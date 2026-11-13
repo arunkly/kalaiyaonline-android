@@ -1,5 +1,9 @@
 package com.kalaiyaonline.news;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Intent;
@@ -23,6 +27,7 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -64,7 +69,9 @@ public class MainActivity extends AppCompatActivity {
 
     private UpdateChecker updates;
     private View morePanel;
+    private WeatherBoard weather;
     private boolean moreOpen;
+    private boolean askedLocation;
     private int currentNav = R.id.nav_home;
 
     @Override
@@ -151,17 +158,51 @@ public class MainActivity extends AppCompatActivity {
         style(title, 20, R.font.mukta_extrabold);
         box.addView(title);
         TextView hint = new TextView(this);
-        hint.setText("नयाँ मोड्युल यहीं थपिनेछन्।");
+        hint.setText("kalaiyaonline.com को मौसम रिपोर्ट");
         hint.setTextColor(0xFF78716C);
-        hint.setTextSize(14);
-        hint.setPadding(0, dp(4), 0, 0);
+        hint.setTextSize(13);
+        hint.setPadding(0, dp(2), 0, 0);
         box.addView(hint);
+        weather = new WeatherBoard(this);
+        box.addView(weather.view());
+        weather.load(27.033, 84.983);
         return box;
     }
 
     private void toggleMore() {
         moreOpen = !moreOpen;
         morePanel.setVisibility(moreOpen ? View.VISIBLE : View.GONE);
+        if (moreOpen) refreshWeather();
+    }
+
+    private void refreshWeather() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            Location location = latestLocation();
+            if (location != null) {
+                weather.load(location.getLatitude(), location.getLongitude());
+                return;
+            }
+        } else if (!askedLocation) {
+            askedLocation = true;
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 41);
+        }
+        weather.load(27.033, 84.983);
+    }
+
+    private Location latestLocation() {
+        LocationManager manager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Location best = null;
+        for (String provider : manager.getProviders(true)) {
+            Location location = manager.getLastKnownLocation(provider);
+            if (location != null && (best == null || location.getTime() > best.getTime())) best = location;
+        }
+        return best;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, @NonNull String[] permissions, @NonNull int[] results) {
+        super.onRequestPermissionsResult(code, permissions, results);
+        if (code == 41 && weather != null) refreshWeather();
     }
 
     private void showHome() {
