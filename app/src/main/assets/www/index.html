@@ -12,12 +12,18 @@
       <img src="wordmark.png" alt="KONLINE.com" />
       <div class="stripes"><span></span><span></span></div>
     </header>
-    <main id="app"></main>
+    <main id="app"><p class="empty">समाचार लोड हुँदैछ…</p></main>
     <nav class="tabbar">
       <button type="button" data-tab="home">गृह</button>
       <button type="button" data-tab="gallery">फोटो</button>
       <button type="button" data-tab="directory">डाइरेक्टरी</button>
     </nav>
+    <script>
+      window.onerror = function (message) {
+        var el = document.getElementById("app");
+        if (el) el.textContent = "एप खुल्न सकेन: " + message;
+      };
+    </script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -18,7 +18,13 @@ function clean(value) {
 }
 
 function esc(value) {
-  return clean(value).replace(/[&<>"']/g, (char) => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[char]));
+  return clean(value).replace(/[&<>"']/g, function (char) {
+    if (char === "&") return "&" + "amp;";
+    if (char === "<") return "&" + "lt;";
+    if (char === ">") return "&" + "gt;";
+    if (char === '"') return "&" + "quot;";
+    return "&" + "#39;";
+  });
 }
 
 function fetchHtml(path) {
