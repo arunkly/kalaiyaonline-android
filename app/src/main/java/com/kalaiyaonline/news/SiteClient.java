@@ -71,6 +71,9 @@ public final class SiteClient {
         String image = imageFrom(doc.selectFirst("figure.article-hero-image"));
         if (image.isEmpty()) image = imageFrom(doc.body());
         String date = text(doc.selectFirst(".article-meta-date"));
+        String category = text(doc.selectFirst(".article-category, .master-category, .nb1-cat"));
+        if (category.isEmpty()) category = text(doc.selectFirst("h1") == null ? null : doc.selectFirst("h1").parent() == null ? null : doc.selectFirst("h1").parent().selectFirst("a[href*=/category/]"));
+        if (category.isEmpty()) category = "समाचार";
         String author = text(doc.selectFirst(".article-reporter-name, .reporter-meta-name"));
         if (author.isEmpty()) author = "कलैया अनलाइन";
         StringBuilder body = new StringBuilder();
@@ -80,7 +83,7 @@ public final class SiteClient {
             if (body.length() > 0) body.append("\n\n");
             body.append(line);
         }
-        return new Story(slug, title, image, "", date, author, body.toString());
+        return new Story(slug, title, image, category, date, author, body.toString());
     }
 
     public List<Story> gallery() throws Exception {

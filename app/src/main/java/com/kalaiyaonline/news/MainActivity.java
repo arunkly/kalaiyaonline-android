@@ -456,6 +456,8 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("slug", story.slug);
         intent.putExtra("title", story.title);
         intent.putExtra("image", story.image);
+        intent.putExtra("category", story.category);
+        intent.putExtra("date", story.date);
         startActivity(intent);
     }
 
