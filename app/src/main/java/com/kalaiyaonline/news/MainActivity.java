@@ -62,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
     private ObjectAnimator tickerAnim;
     private int homeGen;
 
+    private UpdateChecker updates;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,6 +98,14 @@ public class MainActivity extends AppCompatActivity {
         root.addView(nav);
         setContentView(root);
         showHome();
+        updates = new UpdateChecker(this);
+        updates.check();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (updates != null) updates.installPending();
     }
 
     private View header() {
