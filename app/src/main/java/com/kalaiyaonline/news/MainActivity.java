@@ -18,8 +18,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import android.util.TypedValue;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -342,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText(label);
         title.setTextColor(0xFF0B5C28);
-        title.setTextSize(18);
+        style(title, 22, R.font.mukta_extrabold);
         head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView more = new TextView(this);
         more.setText("सबै");
@@ -375,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText(story.title);
         title.setTextColor(0xFF1C1917);
-        title.setTextSize(15);
+        style(title, 17, R.font.mukta_semibold);
         title.setMaxLines(3);
         title.setPadding(dp(10), 0, 0, 0);
         row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -510,6 +513,11 @@ public class MainActivity extends AppCompatActivity {
         return view;
     }
 
+    private void style(TextView view, int sizePx, int font) {
+        view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sizePx);
+        view.setTypeface(ResourcesCompat.getFont(this, font));
+    }
+
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
@@ -566,7 +574,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView title = new TextView(MainActivity.this);
                 title.setText(story.title);
                 title.setTextColor(0xFFFFFFFF);
-                title.setTextSize(20);
+                style(title, 25, R.font.mukta_bold);
                 title.setPadding(dp(14), 0, dp(14), dp(16));
                 frame.addView(title, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
                 frame.setOnClickListener(v -> openStory(story));
