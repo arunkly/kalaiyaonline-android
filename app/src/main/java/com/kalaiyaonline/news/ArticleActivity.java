@@ -49,12 +49,16 @@ public class ArticleActivity extends AppCompatActivity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFFF6F7F4);
+        root.setBackgroundColor(0xFFF3F5F2);
         TextView back = new TextView(this);
-        back.setText("‹  समाचार");
-        back.setTextColor(0xFF0F8A3C);
-        back.setTextSize(16);
-        back.setPadding(dp(16), dp(14), dp(16), dp(8));
+        back.setText("‹");
+        back.setTextColor(0xFF0B5C28);
+        back.setTextSize(22);
+        back.setGravity(Gravity.CENTER);
+        back.setBackgroundResource(R.drawable.bg_chip);
+        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        backLp.setMargins(dp(12), dp(10), dp(12), dp(4));
+        back.setLayoutParams(backLp);
         back.setOnClickListener(v -> finish());
         root.addView(back);
 
@@ -70,6 +74,7 @@ public class ArticleActivity extends AppCompatActivity {
         categoryView.setBackgroundResource(R.drawable.bg_badge);
         categoryView.setPadding(dp(14), dp(6), dp(14), dp(6));
         categoryView.setTextSize(13);
+        categoryView.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
         LinearLayout.LayoutParams catLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         catLp.gravity = Gravity.CENTER_HORIZONTAL;
         categoryView.setLayoutParams(catLp);
@@ -79,7 +84,7 @@ public class ArticleActivity extends AppCompatActivity {
         title.setText(fallbackTitle == null ? "" : fallbackTitle);
         title.setTextColor(0xFF1C1917);
         title.setGravity(Gravity.CENTER);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 35);
         Typeface bold = ResourcesCompat.getFont(this, R.font.mukta_bold);
         title.setTypeface(bold);
         title.setPadding(dp(8), dp(14), dp(8), dp(8));
@@ -121,31 +126,38 @@ public class ArticleActivity extends AppCompatActivity {
         });
 
         MaterialCardView frame = new MaterialCardView(this);
-        frame.setRadius(dp(16));
-        frame.setCardElevation(0);
+        frame.setRadius(dp(20));
+        frame.setCardElevation(dp(3));
+        frame.setCardBackgroundColor(0xFFE8F6EE);
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setBackgroundColor(0xFFE8F6EE);
-        frame.addView(image, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
+        frame.addView(image, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(240)));
         page.addView(frame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView body = new TextView(this);
         body.setText("पूर्ण समाचार लोड हुँदैछ…");
-        body.setTextColor(0xFF1C1917);
-        body.setTextSize(17);
-        body.setLineSpacing(dp(6), 1f);
-        body.setPadding(0, dp(16), 0, dp(8));
+        body.setTextColor(0xFF292524);
+        body.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
+        body.setLineSpacing(dp(8), 1f);
+        body.setPadding(dp(2), dp(18), dp(2), dp(8));
         page.addView(body);
 
+        MaterialCardView shareCard = new MaterialCardView(this);
+        shareCard.setRadius(dp(20));
+        shareCard.setCardElevation(dp(2));
+        shareCard.setCardBackgroundColor(0xFFFFFFFF);
+        LinearLayout shareBox = new LinearLayout(this);
+        shareBox.setOrientation(LinearLayout.VERTICAL);
+        shareBox.setGravity(Gravity.CENTER);
+        shareBox.setPadding(dp(8), dp(14), dp(8), dp(16));
         TextView shareLabel = new TextView(this);
         shareLabel.setText("सेयर गर्नुहोस्");
         shareLabel.setGravity(Gravity.CENTER);
         shareLabel.setTextColor(0xFF0B5C28);
         shareLabel.setTextSize(16);
         shareLabel.setTypeface(bold);
-        shareLabel.setPadding(0, dp(18), 0, dp(10));
-        page.addView(shareLabel);
-
+        shareLabel.setPadding(0, 0, 0, dp(12));
+        shareBox.addView(shareLabel);
         LinearLayout shares = new LinearLayout(this);
         shares.setOrientation(LinearLayout.HORIZONTAL);
         shares.setGravity(Gravity.CENTER);
@@ -155,7 +167,11 @@ public class ArticleActivity extends AppCompatActivity {
         shares.addView(shareButton("Viber", 0xFF7360F2, "com.viber.voip", link, title));
         shares.addView(shareButton("X", 0xFF111111, "com.twitter.android", link, title));
         shares.addView(shareButton("थप", 0xFF0F8A3C, null, link, title));
-        page.addView(shares);
+        shareBox.addView(shares);
+        shareCard.addView(shareBox);
+        LinearLayout.LayoutParams shareCardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        shareCardLp.topMargin = dp(18);
+        page.addView(shareCard, shareCardLp);
 
         scroll.addView(page);
         root.addView(scroll);
