@@ -1,5 +1,5 @@
 # कलैया अनलाइन एन्ड्रोइड
 
-यो APK ले kalaiyaonline.com को समाचार, फोटो ग्यालरी र डाइरेक्टरी फोनमै देखाउँछ।
+यो APK ले https://onlinekly.grok.me खोल्छ। वेब एप र फोन एप एउटै हुन्।
 
-इन्स्टल: GitHub Releases बाट `KalaiyaOnline.apk` डाउनलोड गर्नुहोस्। अज्ञात स्रोत अनुमति दिनुपर्न सक्छ।
+इन्स्टल: GitHub Releases बाट `KalaiyaOnline.apk` डाउनलोड गर्नुहोस्।

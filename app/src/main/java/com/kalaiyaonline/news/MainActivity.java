@@ -5,18 +5,16 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 public class MainActivity extends Activity {
+    private static final String HOME = "https://onlinekly.grok.me/";
     private WebView web;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -25,79 +23,76 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         web = new WebView(this);
         setContentView(web);
+
+        CookieManager cookies = CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(web, true);
+
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
+        settings.setDatabaseEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+
         web.addJavascriptInterface(new Bridge(), "KalaiyaNative");
+        web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (uri == null) return true;
-                String host = uri.getHost() == null ? "" : uri.getHost();
-                if ("file".equals(uri.getScheme())
-                        || host.equals("kalaiyaonline.com")
-                        || host.endsWith(".kalaiyaonline.com")
-                        || host.equals("ik.imagekit.io")
-                        || host.endsWith(".imagekit.io")
-                        || host.equals("fonts.googleapis.com")
-                        || host.equals("fonts.gstatic.com")) {
-                    return false;
-                }
+                if (staysInApp(uri)) return false;
                 startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 return true;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                view.evaluateJavascript(
+                        "(function(){if(navigator.share)return;navigator.share=function(d){d=d||{};var text=[d.title||'',d.text||'',d.url||''].filter(Boolean).join('\\n');KalaiyaNative.share(d.title||document.title,text);return Promise.resolve();};})();",
+                        null);
+            }
         });
-        web.loadUrl("file:///android_asset/www/index.html");
+
+        if (savedInstanceState != null) {
+            web.restoreState(savedInstanceState);
+        } else {
+            web.loadUrl(HOME);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        web.saveState(outState);
     }
 
     @Override
     public void onBackPressed() {
-        web.evaluateJavascript("window.appBack()", value -> {
-            if ("\"exit\"".equals(value)) finish();
-        });
+        if (web.canGoBack()) web.goBack();
+        else super.onBackPressed();
+    }
+
+    private boolean staysInApp(Uri uri) {
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme();
+        if (!"https".equals(scheme) && !"http".equals(scheme)) return false;
+        String host = uri.getHost() == null ? "" : uri.getHost();
+        return host.equals("onlinekly.grok.me")
+                || host.endsWith(".grok.me")
+                || host.equals("kalaiyaonline.com")
+                || host.endsWith(".kalaiyaonline.com")
+                || host.endsWith("imagekit.io")
+                || host.endsWith("googleapis.com")
+                || host.endsWith("gstatic.com")
+                || host.endsWith("ytimg.com")
+                || host.endsWith("youtube.com")
+                || host.endsWith("youtube-nocookie.com");
     }
 
     private final class Bridge {
-        @JavascriptInterface
-        public String fetchText(String raw) {
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL(raw);
-                if (!"https".equals(url.getProtocol())) return "";
-                String host = url.getHost();
-                if (host == null || !(host.equals("kalaiyaonline.com") || host.endsWith(".kalaiyaonline.com"))) {
-                    return "";
-                }
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(20000);
-                connection.setInstanceFollowRedirects(true);
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36");
-                connection.setRequestProperty("Accept", "text/html,application/xhtml+xml");
-                connection.setRequestProperty("Accept-Language", "ne,en;q=0.8");
-                int code = connection.getResponseCode();
-                InputStream stream = code >= 400 ? connection.getErrorStream() : connection.getInputStream();
-                if (stream == null) return "";
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                byte[] chunk = new byte[8192];
-                int read;
-                int total = 0;
-                while ((read = stream.read(chunk)) != -1 && total < 1_500_000) {
-                    buffer.write(chunk, 0, read);
-                    total += read;
-                }
-                stream.close();
-                return buffer.toString("UTF-8");
-            } catch (Exception error) {
-                return "";
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-        }
-
         @JavascriptInterface
         public void share(String title, String text) {
             runOnUiThread(() -> {
