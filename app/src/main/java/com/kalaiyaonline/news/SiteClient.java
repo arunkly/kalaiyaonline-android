@@ -16,11 +16,13 @@ public final class SiteClient {
     public static final class Home {
         public final String dateLine;
         public final List<Story> ticker;
+        public final List<Story> headlines;
         public final List<Story> stories;
 
-        Home(String dateLine, List<Story> ticker, List<Story> stories) {
+        Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories) {
             this.dateLine = dateLine;
             this.ticker = ticker;
+            this.headlines = headlines;
             this.stories = stories;
         }
     }
@@ -36,7 +38,27 @@ public final class SiteClient {
             ticker.add(story);
         }
         List<Story> stories = storiesIn(doc);
-        return new Home(date, ticker, stories);
+        List<Story> headlines = new ArrayList<>();
+        Element primary = doc.selectFirst("article.master-feature-card.is-primary");
+        Story lead = storyFromElement(primary);
+        if (lead != null) headlines.add(lead);
+        for (Element article : doc.select("article.master-feature-card.is-secondary")) {
+            Story story = storyFromElement(article);
+            if (story == null || containsSlug(headlines, story.slug) || headlines.size() >= 3) continue;
+            headlines.add(story);
+        }
+        for (Story story : stories) {
+            if (headlines.size() >= 3) break;
+            if (!"हेडलाइन".equals(story.category) && !headlines.isEmpty()) continue;
+            if (containsSlug(headlines, story.slug)) continue;
+            headlines.add(story);
+        }
+        for (Story story : stories) {
+            if (headlines.size() >= 3) break;
+            if (containsSlug(headlines, story.slug)) continue;
+            headlines.add(story);
+        }
+        return new Home(date, ticker, headlines, stories);
     }
 
     public List<Story> category(String slug) throws Exception {
@@ -104,20 +126,31 @@ public final class SiteClient {
         List<Story> stories = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
         for (Element article : doc.select("article")) {
-            String href = "";
-            Element link = article.selectFirst("a[href*=/news/]");
-            if (link != null) href = link.attr("href");
-            String slug = slug(href);
-            if (slug == null || !seen.add(slug)) continue;
-            String title = text(article.selectFirst("h1, h2, h3, h4"));
-            if (title.length() < 8) continue;
-            String category = text(article.selectFirst(".master-category, .category-card-badge, .ctnb-kicker, .nb1-cat"));
-            String date = text(article.selectFirst(".master-meta-date, .category-card-meta, .ctnb-meta, .hlg-date"));
-            String author = text(article.selectFirst(".reporter-meta-name"));
-            stories.add(new Story(slug, title, imageFrom(article), category, date, author, ""));
+            Story story = storyFromElement(article);
+            if (story == null || !seen.add(story.slug)) continue;
+            stories.add(story);
             if (stories.size() >= 24) break;
         }
         return stories;
+    }
+
+    private Story storyFromElement(Element article) {
+        if (article == null) return null;
+        Element link = article.selectFirst("a[href*=/news/]");
+        String href = link == null ? "" : link.attr("href");
+        String slug = slug(href);
+        if (slug == null) return null;
+        String title = text(article.selectFirst("h1, h2, h3, h4"));
+        if (title.length() < 8) return null;
+        String category = text(article.selectFirst(".master-category, .category-card-badge, .ctnb-kicker, .nb1-cat"));
+        String date = text(article.selectFirst(".master-meta-date, .category-card-meta, .ctnb-meta, .hlg-date"));
+        String author = text(article.selectFirst(".reporter-meta-name"));
+        return new Story(slug, title, imageFrom(article), category, date, author, "");
+    }
+
+    private static boolean containsSlug(List<Story> list, String slug) {
+        for (Story story : list) if (story.slug.equals(slug)) return true;
+        return false;
     }
 
     private Story fromLink(Element link, String category) {

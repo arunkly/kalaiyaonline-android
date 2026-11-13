@@ -1,18 +1,27 @@
 package com.kalaiyaonline.news;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.card.MaterialCardView;
@@ -20,6 +29,7 @@ import com.google.android.material.card.MaterialCardView;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,15 +41,21 @@ public class MainActivity extends AppCompatActivity {
     private TextView status;
     private String section = "home";
 
-    private static final String[][] CATS = {
-            {"", "समाचार"},
+    private static final String[][] SECTIONS = {
+            {"news", "समाचार"},
             {"local", "स्थानीय"},
             {"international", "अन्तर्राष्ट्रिय"},
             {"politics", "राजनीति"},
             {"artha", "अर्थ"},
             {"khelkud", "खेलकुद"},
             {"entertainment", "मनोरंजन"},
+            {"lekhabichar", "लेख / बिचार"},
     };
+
+    private final Handler sliderHandler = new Handler(Looper.getMainLooper());
+    private ViewPager2 pager;
+    private ObjectAnimator tickerAnim;
+    private int homeGen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,34 +114,56 @@ public class MainActivity extends AppCompatActivity {
 
     private void showHome() {
         section = "home";
+        stopMotion();
+        int gen = homeGen;
         setStatus("समाचार लोड हुँदैछ…");
         io.execute(() -> {
             try {
                 SiteClient.Home home = client.home();
-                runOnUiThread(() -> renderHome(home));
+                runOnUiThread(() -> {
+                    if (gen == homeGen) renderHome(home, gen);
+                });
             } catch (Exception error) {
-                runOnUiThread(() -> setStatus("समाचार ल्याउन सकिएन। इन्टरनेट जाँच्नुहोस्।"));
+                runOnUiThread(() -> {
+                    if (gen == homeGen) setStatus("समाचार ल्याउन सकिएन। इन्टरनेट जाँच्नुहोस्।");
+                });
             }
         });
     }
 
-    private void renderHome(SiteClient.Home home) {
-        if (!"home".equals(section)) return;
+    private void renderHome(SiteClient.Home home, int gen) {
+        if (!"home".equals(section) || gen != homeGen) return;
         page.removeAllViews();
+        if (!home.headlines.isEmpty()) page.addView(slider(home.headlines));
         if (!home.dateLine.isEmpty()) page.addView(meta(home.dateLine));
-        page.addView(chips());
         if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
-        if (home.stories.isEmpty()) {
-            page.addView(message("समाचार भेटिएन।"));
-            return;
-        }
-        Story lead = home.stories.get(0);
-        page.addView(card(lead, true));
-        for (int i = 1; i < home.stories.size(); i++) page.addView(card(home.stories.get(i), false));
+        page.addView(chips());
+        LinearLayout sections = new LinearLayout(this);
+        sections.setOrientation(LinearLayout.VERTICAL);
+        page.addView(sections);
+        io.execute(() -> {
+            for (String[] cat : SECTIONS) {
+                List<Story> list;
+                try {
+                    list = client.category(cat[0]);
+                } catch (Exception error) {
+                    list = new ArrayList<>();
+                }
+                if (list.isEmpty()) continue;
+                List<Story> top = list.subList(0, Math.min(3, list.size()));
+                String slug = cat[0];
+                String label = cat[1];
+                runOnUiThread(() -> {
+                    if (gen != homeGen || !"home".equals(section)) return;
+                    sections.addView(categoryBlock(label, slug, top));
+                });
+            }
+        });
     }
 
     private void showList(String kind) {
         section = kind;
+        stopMotion();
         setStatus("लोड हुँदैछ…");
         io.execute(() -> {
             try {
@@ -152,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showCommunity() {
         section = "community";
+        stopMotion();
         page.removeAllViews();
         page.addView(heading("समुदाय"));
         page.addView(message("कलैया अनलाइन\nतपाईंको शहर, तपाईंको समाचार\n\nसमाचार, फोटो र डाइरेक्टरी यही एपभित्र kalaiyaonline.com बाट आउँछ।"));
@@ -159,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void openCategory(String slug, String label) {
         section = "cat:" + slug;
+        stopMotion();
         setStatus(label + " लोड हुँदैछ…");
         io.execute(() -> {
             try {
@@ -182,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(this);
         row.setPadding(0, dp(8), 0, dp(8));
-        for (String[] cat : CATS) {
+        for (String[] cat : SECTIONS) {
             TextView chip = new TextView(this);
             chip.setText(cat[1]);
             chip.setTextColor(0xFF0B5C28);
@@ -198,12 +238,60 @@ public class MainActivity extends AppCompatActivity {
         return scroll;
     }
 
+    private View slider(List<Story> stories) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        pager = new ViewPager2(this);
+        pager.setAdapter(new HeroAdapter(stories));
+        pager.setOffscreenPageLimit(stories.size());
+        LinearLayout.LayoutParams pagerLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(268));
+        pagerLp.bottomMargin = dp(8);
+        box.addView(pager, pagerLp);
+        LinearLayout dots = new LinearLayout(this);
+        dots.setGravity(Gravity.CENTER);
+        View[] marks = new View[stories.size()];
+        for (int i = 0; i < stories.size(); i++) {
+            View dot = new View(this);
+            dot.setBackgroundResource(i == 0 ? R.drawable.bg_dot : R.drawable.bg_dot_off);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(i == 0 ? 18 : 8), dp(8));
+            lp.leftMargin = dp(4);
+            lp.rightMargin = dp(4);
+            dots.addView(dot, lp);
+            marks[i] = dot;
+        }
+        box.addView(dots);
+        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                for (int i = 0; i < marks.length; i++) {
+                    marks[i].setBackgroundResource(i == position ? R.drawable.bg_dot : R.drawable.bg_dot_off);
+                    ViewGroup.LayoutParams lp = marks[i].getLayoutParams();
+                    lp.width = dp(i == position ? 18 : 8);
+                    marks[i].setLayoutParams(lp);
+                }
+                scheduleSlide(stories.size());
+            }
+        });
+        scheduleSlide(stories.size());
+        return box;
+    }
+
+    private void scheduleSlide(int count) {
+        sliderHandler.removeCallbacksAndMessages(null);
+        if (count < 2 || pager == null) return;
+        sliderHandler.postDelayed(() -> {
+            if (!"home".equals(section) || pager == null) return;
+            int next = (pager.getCurrentItem() + 1) % count;
+            pager.setCurrentItem(next, true);
+        }, 3500);
+    }
+
     private View ticker(List<Story> items) {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setBackgroundResource(R.drawable.bg_ticker);
-        bar.setPadding(dp(8), dp(8), dp(12), dp(8));
+        bar.setPadding(dp(8), dp(8), dp(8), dp(8));
         TextView badge = new TextView(this);
         badge.setText("ताजा");
         badge.setTextColor(0xFFFFFFFF);
@@ -211,23 +299,102 @@ public class MainActivity extends AppCompatActivity {
         badge.setBackgroundResource(R.drawable.bg_badge);
         badge.setPadding(dp(10), dp(4), dp(10), dp(4));
         bar.addView(badge);
+        FrameLayout clip = new FrameLayout(this);
+        clip.setClipChildren(true);
+        TextView moving = new TextView(this);
         StringBuilder text = new StringBuilder();
-        for (int i = 0; i < Math.min(3, items.size()); i++) {
-            if (i > 0) text.append("   ·   ");
-            text.append(items.get(i).title);
+        for (int pass = 0; pass < 2; pass++) {
+            for (Story item : items) {
+                text.append(item.title).append("     •     ");
+            }
         }
-        TextView view = new TextView(this);
-        view.setText(text.toString());
-        view.setTextColor(0xFFFFFFFF);
-        view.setTextSize(14);
-        view.setMaxLines(2);
-        view.setPadding(dp(10), 0, 0, 0);
-        bar.addView(view, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        moving.setText(text.toString());
+        moving.setTextColor(0xFFFFFFFF);
+        moving.setTextSize(14);
+        moving.setSingleLine(true);
+        clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+        bar.addView(clip, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(12);
+        lp.topMargin = dp(8);
+        lp.bottomMargin = dp(4);
         bar.setLayoutParams(lp);
         bar.setOnClickListener(v -> openStory(items.get(0)));
+        moving.post(() -> {
+            int travel = clip.getWidth() + moving.getWidth();
+            if (travel <= 0) return;
+            moving.setTranslationX(clip.getWidth());
+            if (tickerAnim != null) tickerAnim.cancel();
+            tickerAnim = ObjectAnimator.ofFloat(moving, "translationX", clip.getWidth(), -moving.getWidth());
+            tickerAnim.setDuration(Math.max(12000, travel * 14L));
+            tickerAnim.setRepeatCount(ValueAnimator.INFINITE);
+            tickerAnim.setInterpolator(new LinearInterpolator());
+            tickerAnim.start();
+        });
         return bar;
+    }
+
+    private View categoryBlock(String label, String slug, List<Story> stories) {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        block.setPadding(0, dp(16), 0, dp(4));
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = new TextView(this);
+        title.setText(label);
+        title.setTextColor(0xFF0B5C28);
+        title.setTextSize(18);
+        head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView more = new TextView(this);
+        more.setText("सबै");
+        more.setTextColor(0xFFF15A22);
+        more.setTextSize(14);
+        more.setOnClickListener(v -> openCategory(slug, label));
+        head.addView(more);
+        block.addView(head);
+        for (Story story : stories) block.addView(compact(story));
+        return block;
+    }
+
+    private View compact(Story story) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(14));
+        card.setCardElevation(dp(1));
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        card.setUseCompatPadding(true);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(8), dp(8), dp(10), dp(8));
+        if (!story.image.isEmpty()) {
+            ImageView image = new ImageView(this);
+            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            image.setBackgroundColor(0xFFE8F6EE);
+            row.addView(image, new LinearLayout.LayoutParams(dp(92), dp(72)));
+            loadImage(story.image, image);
+        }
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFF1C1917);
+        title.setTextSize(15);
+        title.setMaxLines(3);
+        title.setPadding(dp(10), 0, 0, 0);
+        row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        card.addView(row);
+        card.setOnClickListener(v -> openStory(story));
+        return card;
+    }
+
+    private void stopMotion() {
+        homeGen++;
+        sliderHandler.removeCallbacksAndMessages(null);
+        if (tickerAnim != null) tickerAnim.cancel();
+        pager = null;
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopMotion();
+        super.onDestroy();
     }
 
     private View card(Story story, boolean hero) {
@@ -345,5 +512,66 @@ public class MainActivity extends AppCompatActivity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private final class HeroAdapter extends RecyclerView.Adapter<HeroAdapter.Holder> {
+        private final List<Story> stories;
+
+        HeroAdapter(List<Story> stories) {
+            this.stories = stories;
+        }
+
+        @NonNull
+        @Override
+        public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            FrameLayout frame = new FrameLayout(MainActivity.this);
+            frame.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            return new Holder(frame);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull Holder holder, int position) {
+            holder.bind(stories.get(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return stories.size();
+        }
+
+        final class Holder extends RecyclerView.ViewHolder {
+            Holder(FrameLayout frame) {
+                super(frame);
+            }
+
+            void bind(Story story) {
+                FrameLayout frame = (FrameLayout) itemView;
+                frame.removeAllViews();
+                ImageView image = new ImageView(MainActivity.this);
+                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                image.setBackgroundColor(0xFF0B5C28);
+                frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                View shade = new View(MainActivity.this);
+                shade.setBackgroundResource(R.drawable.bg_shade);
+                frame.addView(shade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(140), Gravity.BOTTOM));
+                TextView badge = new TextView(MainActivity.this);
+                badge.setText("हेडलाइन");
+                badge.setTextColor(0xFFFFFFFF);
+                badge.setTextSize(12);
+                badge.setBackgroundResource(R.drawable.bg_badge);
+                badge.setPadding(dp(10), dp(4), dp(10), dp(4));
+                FrameLayout.LayoutParams badgeLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
+                badgeLp.setMargins(dp(14), dp(14), 0, 0);
+                frame.addView(badge, badgeLp);
+                TextView title = new TextView(MainActivity.this);
+                title.setText(story.title);
+                title.setTextColor(0xFFFFFFFF);
+                title.setTextSize(20);
+                title.setPadding(dp(14), 0, dp(14), dp(16));
+                frame.addView(title, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+                frame.setOnClickListener(v -> openStory(story));
+                if (!story.image.isEmpty()) loadImage(story.image, image);
+            }
+        }
     }
 }
