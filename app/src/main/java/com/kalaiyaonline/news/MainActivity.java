@@ -63,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
     private int homeGen;
 
     private UpdateChecker updates;
+    private View morePanel;
+    private boolean moreOpen;
+    private int currentNav = R.id.nav_home;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,20 +82,29 @@ public class MainActivity extends AppCompatActivity {
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
+        morePanel = morePanel();
+        morePanel.setVisibility(View.GONE);
+        root.addView(morePanel);
+
         BottomNavigationView nav = new BottomNavigationView(this);
         nav.inflateMenu(R.menu.bottom_nav);
         nav.setBackgroundColor(0xFFFFFFFF);
         nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
         nav.setItemTextColor(getColorStateList(R.color.nav_tint));
         nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
-        nav.setElevation(dp(8));
+        nav.setElevation(dp(12));
         nav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+            if (id == R.id.nav_more) {
+                toggleMore();
+                return false;
+            }
+            if (moreOpen) toggleMore();
+            currentNav = id;
             if (id == R.id.nav_home) showHome();
             else if (id == R.id.nav_gallery) showList("gallery");
             else if (id == R.id.nav_directory) showList("directory");
             else if (id == R.id.nav_reels) showList("reels");
-            else showCommunity();
             return true;
         });
         root.addView(nav);
@@ -125,6 +137,31 @@ public class MainActivity extends AppCompatActivity {
         orange.setBackgroundColor(0xFFF15A22);
         box.addView(orange, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
         return box;
+    }
+
+    private View morePanel() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFFFFFFF);
+        box.setElevation(dp(16));
+        box.setPadding(dp(16), dp(14), dp(16), dp(16));
+        TextView title = new TextView(this);
+        title.setText("थप");
+        title.setTextColor(0xFF0B5C28);
+        style(title, 20, R.font.mukta_extrabold);
+        box.addView(title);
+        TextView hint = new TextView(this);
+        hint.setText("नयाँ मोड्युल यहीं थपिनेछन्।");
+        hint.setTextColor(0xFF78716C);
+        hint.setTextSize(14);
+        hint.setPadding(0, dp(4), 0, 0);
+        box.addView(hint);
+        return box;
+    }
+
+    private void toggleMore() {
+        moreOpen = !moreOpen;
+        morePanel.setVisibility(moreOpen ? View.VISIBLE : View.GONE);
     }
 
     private void showHome() {
@@ -201,14 +238,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         for (Story story : list) page.addView(card(story, false));
-    }
-
-    private void showCommunity() {
-        section = "community";
-        stopMotion();
-        page.removeAllViews();
-        page.addView(heading("समुदाय"));
-        page.addView(message("कलैया अनलाइन\nतपाईंको शहर, तपाईंको समाचार\n\nसमाचार, फोटो र डाइरेक्टरी यही एपभित्र kalaiyaonline.com बाट आउँछ।"));
     }
 
     private void openCategory(String slug, String label) {

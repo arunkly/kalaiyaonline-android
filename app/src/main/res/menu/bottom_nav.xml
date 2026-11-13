@@ -4,5 +4,5 @@
     <item android:id="@+id/nav_gallery" android:icon="@drawable/ic_photo" android:title="फोटो" />
     <item android:id="@+id/nav_directory" android:icon="@drawable/ic_pin" android:title="डाइरेक्टरी" />
     <item android:id="@+id/nav_reels" android:icon="@drawable/ic_play" android:title="रिल्स" />
-    <item android:id="@+id/nav_community" android:icon="@drawable/ic_people" android:title="समुदाय" />
+    <item android:id="@+id/nav_more" android:icon="@drawable/ic_more" android:title="थप" />
 </menu>
