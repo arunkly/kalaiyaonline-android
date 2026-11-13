@@ -151,28 +151,53 @@ public class MainActivity extends AppCompatActivity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundColor(0xFFFFFFFF);
         box.setElevation(dp(16));
-        box.setPadding(dp(16), dp(14), dp(16), dp(16));
+        box.setPadding(dp(12), dp(10), dp(12), dp(12));
         TextView title = new TextView(this);
         title.setText("थप");
         title.setTextColor(0xFF0B5C28);
-        style(title, 20, R.font.mukta_extrabold);
+        style(title, 18, R.font.mukta_extrabold);
+        title.setPadding(dp(4), 0, 0, dp(8));
         box.addView(title);
-        TextView hint = new TextView(this);
-        hint.setText("kalaiyaonline.com को मौसम रिपोर्ट");
-        hint.setTextColor(0xFF78716C);
-        hint.setTextSize(13);
-        hint.setPadding(0, dp(2), 0, 0);
-        box.addView(hint);
         weather = new WeatherBoard(this);
-        box.addView(weather.view());
-        weather.load(27.033, 84.983);
+        box.addView(moreItem(R.drawable.ic_weather, "मौसम", this::showWeather));
         return box;
+    }
+
+    private View moreItem(int icon, String label, Runnable action) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundResource(R.drawable.bg_chip);
+        row.setPadding(dp(12), dp(10), dp(14), dp(10));
+        ImageView mark = new ImageView(this);
+        mark.setImageResource(icon);
+        androidx.core.graphics.drawable.DrawableCompat.setTint(mark.getDrawable().mutate(), 0xFF0F8A3C);
+        row.addView(mark, new LinearLayout.LayoutParams(dp(28), dp(28)));
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(0xFF1C1917);
+        style(name, 17, R.font.mukta_semibold);
+        name.setPadding(dp(12), 0, 0, 0);
+        row.addView(name);
+        row.setOnClickListener(v -> action.run());
+        return row;
+    }
+
+    private void showWeather() {
+        section = "weather";
+        stopMotion();
+        if (moreOpen) toggleMore();
+        page.removeAllViews();
+        page.addView(heading("मौसम"));
+        View board = weather.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        refreshWeather();
     }
 
     private void toggleMore() {
         moreOpen = !moreOpen;
         morePanel.setVisibility(moreOpen ? View.VISIBLE : View.GONE);
-        if (moreOpen) refreshWeather();
     }
 
     private void refreshWeather() {
