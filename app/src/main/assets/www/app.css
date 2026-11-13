@@ -1,0 +1,45 @@
+:root {
+  --brand: #0f8a3c;
+  --deep: #0b5c28;
+  --accent: #f15a22;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --line: #e7e5e4;
+  --mint: #e8f6ee;
+  --cream: #fff7f2;
+  --surface: #ffffff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #f6f7f4; color: var(--ink); font-family: Mukta, "Noto Sans Devanagari", sans-serif; }
+.top { position: sticky; top: 0; z-index: 5; background: #fff; }
+.top img { display: block; height: 46px; margin: 8px auto; }
+.stripes span { display: block; height: 4px; background: var(--brand); }
+.stripes span + span { height: 2px; background: var(--accent); }
+main { padding: 12px 12px 88px; }
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr);
+  background: #fff; border-top: 1px solid var(--line); padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+}
+.tabbar button { border: 0; background: transparent; font: inherit; font-weight: 700; color: var(--muted); min-height: 44px; }
+.tabbar button.on { color: var(--brand); }
+.hero, .card, .photo, .dir {
+  display: block; width: 100%; text-align: left; border: 0; background: #fff; color: inherit;
+  border-radius: 16px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); margin: 0 0 12px; padding: 0;
+  font: inherit;
+}
+.hero img, .card img, .photo img, .dir img { width: 100%; object-fit: cover; background: var(--mint); display: block; }
+.hero img { height: 210px; }
+.card img, .photo img { height: 120px; }
+.pad { padding: 10px 12px 12px; }
+h1 { font-size: 1.35rem; line-height: 1.35; margin: 0; }
+h2 { font-size: 1rem; line-height: 1.4; margin: 0; }
+.kicker { color: var(--accent); font-size: .75rem; font-weight: 800; margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: .8rem; margin: 6px 0 0; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.chips { display: flex; gap: 8px; overflow: auto; padding-bottom: 10px; }
+.chips button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-weight: 700; white-space: nowrap; }
+.chips button.on { background: var(--mint); border-color: var(--brand); color: var(--deep); }
+.article p { font-size: 1.05rem; line-height: 1.7; }
+.share { margin-top: 8px; border: 0; background: var(--brand); color: #fff; border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 800; }
+.empty { color: var(--muted); text-align: center; padding: 32px 8px; }
+.band { background: var(--cream); margin: 0 -12px 12px; padding: 12px; }
