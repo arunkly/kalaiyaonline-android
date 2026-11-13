@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -69,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
     private UpdateChecker updates;
     private View morePanel;
+    private View dim;
     private WeatherBoard weather;
     private BottomNavigationView nav;
     private boolean moreOpen;
@@ -79,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        FrameLayout screen = new FrameLayout(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFF6F7F4);
@@ -86,14 +90,28 @@ public class MainActivity extends AppCompatActivity {
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(12), dp(8), dp(12), dp(12));
+        page.setPadding(dp(12), dp(8), dp(12), dp(96));
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        screen.addView(root, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        dim = new View(this);
+        dim.setBackgroundColor(0x73000000);
+        dim.setVisibility(View.GONE);
+        dim.setOnClickListener(v -> {
+            setMore(false);
+            restoreNav();
+        });
+        FrameLayout.LayoutParams dimLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        dimLp.bottomMargin = dp(80);
+        screen.addView(dim, dimLp);
 
         morePanel = morePanel();
         morePanel.setVisibility(View.GONE);
-        root.addView(morePanel);
+        FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        sheetLp.bottomMargin = dp(80);
+        screen.addView(morePanel, sheetLp);
 
         BottomNavigationView nav = new BottomNavigationView(this);
         this.nav = nav;
@@ -125,8 +143,9 @@ public class MainActivity extends AppCompatActivity {
                 restoreNav();
             }
         });
-        root.addView(nav);
-        setContentView(root);
+        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(80), Gravity.BOTTOM);
+        screen.addView(nav, navLp);
+        setContentView(screen);
         showHome();
         updates = new UpdateChecker(this);
         updates.check();
@@ -160,38 +179,175 @@ public class MainActivity extends AppCompatActivity {
     private View morePanel() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundColor(0xFFFFFFFF);
-        box.setElevation(dp(16));
-        box.setPadding(dp(12), dp(10), dp(12), dp(12));
+        GradientDrawable sheet = new GradientDrawable();
+        sheet.setColor(0xFFF8FBFA);
+        float radius = dp(28);
+        sheet.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        box.setBackground(sheet);
+        box.setElevation(dp(18));
+        box.setPadding(dp(14), dp(8), dp(14), dp(12));
+
+        View handle = new View(this);
+        GradientDrawable grip = new GradientDrawable();
+        grip.setColor(0xFFD6D3D1);
+        grip.setCornerRadius(dp(4));
+        handle.setBackground(grip);
+        LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(dp(42), dp(4));
+        handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+        handleLp.bottomMargin = dp(10);
+        box.addView(handle, handleLp);
+
+        LinearLayout head = new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout badge = new LinearLayout(this);
+        badge.setGravity(Gravity.CENTER);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor(0xFFE5F6EC);
+        badgeBg.setCornerRadius(dp(14));
+        badge.setBackground(badgeBg);
+        ImageView grid = new ImageView(this);
+        grid.setImageResource(R.drawable.ic_more);
+        DrawableCompat.setTint(grid.getDrawable().mutate(), 0xFF0F8A3C);
+        badge.addView(grid, new LinearLayout.LayoutParams(dp(22), dp(22)));
+        head.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
+
+        LinearLayout titles = new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        titles.setPadding(dp(10), 0, 0, 0);
         TextView title = new TextView(this);
-        title.setText("थप");
-        title.setTextColor(0xFF0B5C28);
-        style(title, 18, R.font.mukta_extrabold);
-        title.setPadding(dp(4), 0, 0, dp(8));
-        box.addView(title);
+        title.setText("मोड्युलहरू");
+        title.setTextColor(0xFF142033);
+        style(title, 22, R.font.mukta_extrabold);
+        titles.addView(title);
+        TextView subtitle = new TextView(this);
+        subtitle.setText("तपाईंको पहुँचका सबै सुविधाहरू");
+        subtitle.setTextColor(0xFF78716C);
+        style(subtitle, 13, R.font.mukta_regular);
+        titles.addView(subtitle);
+        head.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView close = new TextView(this);
+        close.setText("×");
+        close.setGravity(Gravity.CENTER);
+        close.setTextColor(0xFF44403C);
+        close.setTextSize(22);
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setColor(0xFFF4F4F5);
+        closeBg.setCornerRadius(dp(20));
+        close.setBackground(closeBg);
+        close.setOnClickListener(v -> {
+            setMore(false);
+            restoreNav();
+        });
+        head.addView(close, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        box.addView(head);
+
         weather = new WeatherBoard(this);
-        box.addView(moreItem(R.drawable.ic_weather, "मौसम", this::showWeather));
+        GridLayout modules = new GridLayout(this);
+        modules.setColumnCount(4);
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gridLp.topMargin = dp(12);
+        box.addView(modules, gridLp);
+        modules.addView(moduleTile("🎬", "भिडियो", 0xFFE7F6EC, () -> openTab(R.id.nav_reels)));
+        modules.addView(moduleTile("🎞", "रील्स", 0xFFFDECEC, () -> openTab(R.id.nav_reels)));
+        modules.addView(moduleTile("🔴", "लाइभ", 0xFFF3E9FB, () -> showSoon("लाइभ")));
+        modules.addView(moduleTile("⛅", "मौसम", 0xFFFFF4E5, this::showWeather));
+        modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, () -> showSoon("वायु गुणस्तर")));
+        modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, () -> showSoon("नेपाली पात्रो")));
+        modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, () -> showSoon("मिति रूपान्तरण")));
+        modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, () -> showSoon("मुद्रा रूपान्तरण")));
+        modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, () -> showSoon("प्रीति ↔ युनिकोड")));
+        modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, () -> showSoon("रक्तदान")));
+        modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> showSoon("गोपनीयता नीति")));
+        modules.addView(moduleTile("🔐", "लगइन / खाता", 0xFFFFF6EA, () -> showSoon("लगइन / खाता")));
+        box.addView(languageBar());
         return box;
     }
 
-    private View moreItem(int icon, String label, Runnable action) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundResource(R.drawable.bg_chip);
-        row.setPadding(dp(12), dp(10), dp(14), dp(10));
-        ImageView mark = new ImageView(this);
-        mark.setImageResource(icon);
-        androidx.core.graphics.drawable.DrawableCompat.setTint(mark.getDrawable().mutate(), 0xFF0F8A3C);
-        row.addView(mark, new LinearLayout.LayoutParams(dp(28), dp(28)));
+    private View moduleTile(String emoji, String label, int color, Runnable action) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(18));
+        tile.setBackground(bg);
+        tile.setPadding(dp(4), dp(12), dp(4), dp(10));
+        TextView icon = new TextView(this);
+        icon.setText(emoji);
+        icon.setTextSize(24);
+        icon.setGravity(Gravity.CENTER);
+        icon.setTextColor(0xFF0F8A3C);
+        tile.addView(icon);
         TextView name = new TextView(this);
         name.setText(label);
         name.setTextColor(0xFF1C1917);
-        style(name, 17, R.font.mukta_semibold);
-        name.setPadding(dp(12), 0, 0, 0);
-        row.addView(name);
-        row.setOnClickListener(v -> action.run());
-        return row;
+        name.setGravity(Gravity.CENTER);
+        name.setMaxLines(2);
+        style(name, 12, R.font.mukta_semibold);
+        name.setPadding(dp(2), dp(4), dp(2), 0);
+        tile.addView(name);
+        tile.setOnClickListener(v -> action.run());
+        GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+        lp.width = 0;
+        lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        lp.setMargins(dp(4), dp(4), dp(4), dp(4));
+        tile.setMinimumHeight(dp(92));
+        tile.setLayoutParams(lp);
+        return tile;
+    }
+
+    private View languageBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(4), dp(12), 0, dp(2));
+        TextView globe = new TextView(this);
+        globe.setText("🌐");
+        globe.setTextSize(16);
+        bar.addView(globe);
+        TextView label = new TextView(this);
+        label.setText("भाषा परिवर्तन");
+        label.setTextColor(0xFF1C1917);
+        style(label, 14, R.font.mukta_bold);
+        label.setPadding(dp(8), 0, dp(8), 0);
+        bar.addView(label);
+        bar.addView(langChip("नेपाली", true));
+        bar.addView(langChip("English", false));
+        bar.addView(langChip("English साइट ›", false));
+        return bar;
+    }
+
+    private TextView langChip(String label, boolean selected) {
+        TextView chip = new TextView(this);
+        chip.setText(label);
+        chip.setTextSize(12);
+        chip.setTextColor(selected ? 0xFF0B5C28 : 0xFF44403C);
+        chip.setPadding(dp(10), dp(6), dp(10), dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(16));
+        bg.setColor(selected ? 0xFFE5F6EC : 0xFFFFFFFF);
+        bg.setStroke(dp(1), selected ? 0xFF8FCBAA : 0xFFE7E5E4);
+        chip.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.leftMargin = dp(4);
+        chip.setLayoutParams(lp);
+        return chip;
+    }
+
+    private void openTab(int id) {
+        nav.setSelectedItemId(id);
+    }
+
+    private void showSoon(String name) {
+        section = "module";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading(name));
+        page.addView(message(name + " छिट्टै थपिनेछ।"));
     }
 
     private void showWeather() {
@@ -210,6 +366,7 @@ public class MainActivity extends AppCompatActivity {
     private void setMore(boolean open) {
         moreOpen = open;
         morePanel.setVisibility(open ? View.VISIBLE : View.GONE);
+        dim.setVisibility(open ? View.VISIBLE : View.GONE);
     }
 
     private void restoreNav() {
