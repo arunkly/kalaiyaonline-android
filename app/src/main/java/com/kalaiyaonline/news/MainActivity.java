@@ -5,6 +5,7 @@ import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +24,7 @@ import android.util.TypedValue;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -229,7 +231,13 @@ public class MainActivity extends AppCompatActivity {
             TextView chip = new TextView(this);
             chip.setText(cat[1]);
             chip.setTextColor(0xFF0B5C28);
-            chip.setTextSize(14);
+            style(chip, 18, R.font.mukta_bold);
+            chip.setGravity(Gravity.CENTER_VERTICAL);
+            Drawable icon = DrawableCompat.wrap(getDrawable(iconFor(cat[0]))).mutate();
+            DrawableCompat.setTint(icon, 0xFF0B5C28);
+            icon.setBounds(0, 0, dp(18), dp(18));
+            chip.setCompoundDrawables(icon, null, null, null);
+            chip.setCompoundDrawablePadding(dp(6));
             chip.setBackgroundResource(R.drawable.bg_chip);
             chip.setPadding(dp(14), dp(8), dp(14), dp(8));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -511,6 +519,17 @@ public class MainActivity extends AppCompatActivity {
         lp.setMargins(-dp(12), -dp(8), -dp(12), dp(8));
         view.setLayoutParams(lp);
         return view;
+    }
+
+    private int iconFor(String slug) {
+        if ("local".equals(slug)) return R.drawable.ic_pin;
+        if ("international".equals(slug)) return R.drawable.ic_cat_globe;
+        if ("politics".equals(slug)) return R.drawable.ic_cat_politics;
+        if ("artha".equals(slug)) return R.drawable.ic_cat_wallet;
+        if ("khelkud".equals(slug)) return R.drawable.ic_cat_trophy;
+        if ("entertainment".equals(slug)) return R.drawable.ic_cat_film;
+        if ("lekhabichar".equals(slug)) return R.drawable.ic_cat_pen;
+        return R.drawable.ic_cat_news;
     }
 
     private void style(TextView view, int sizePx, int font) {
