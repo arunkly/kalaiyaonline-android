@@ -15,6 +15,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.card.MaterialCardView;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -58,6 +59,10 @@ public class MainActivity extends AppCompatActivity {
         BottomNavigationView nav = new BottomNavigationView(this);
         nav.inflateMenu(R.menu.bottom_nav);
         nav.setBackgroundColor(0xFFFFFFFF);
+        nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
+        nav.setItemTextColor(getColorStateList(R.color.nav_tint));
+        nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
+        nav.setElevation(dp(8));
         nav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) showHome();
@@ -182,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             chip.setText(cat[1]);
             chip.setTextColor(0xFF0B5C28);
             chip.setTextSize(14);
-            chip.setBackgroundColor(0xFFFFFFFF);
+            chip.setBackgroundResource(R.drawable.bg_chip);
             chip.setPadding(dp(14), dp(8), dp(14), dp(8));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.rightMargin = dp(8);
@@ -194,64 +199,75 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private View ticker(List<Story> items) {
-        TextView view = new TextView(this);
-        StringBuilder text = new StringBuilder("ताजा  ");
-        for (int i = 0; i < Math.min(4, items.size()); i++) {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setBackgroundResource(R.drawable.bg_ticker);
+        bar.setPadding(dp(8), dp(8), dp(12), dp(8));
+        TextView badge = new TextView(this);
+        badge.setText("ताजा");
+        badge.setTextColor(0xFFFFFFFF);
+        badge.setTextSize(12);
+        badge.setBackgroundResource(R.drawable.bg_badge);
+        badge.setPadding(dp(10), dp(4), dp(10), dp(4));
+        bar.addView(badge);
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < Math.min(3, items.size()); i++) {
             if (i > 0) text.append("   ·   ");
             text.append(items.get(i).title);
         }
+        TextView view = new TextView(this);
         view.setText(text.toString());
         view.setTextColor(0xFFFFFFFF);
         view.setTextSize(14);
         view.setMaxLines(2);
-        view.setBackgroundColor(0xFF1C1917);
-        view.setPadding(dp(12), dp(10), dp(12), dp(10));
+        view.setPadding(dp(10), 0, 0, 0);
+        bar.addView(view, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = dp(12);
-        view.setLayoutParams(lp);
-        view.setOnClickListener(v -> openStory(items.get(0)));
-        return view;
+        bar.setLayoutParams(lp);
+        bar.setOnClickListener(v -> openStory(items.get(0)));
+        return bar;
     }
 
     private View card(Story story, boolean hero) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(0xFFFFFFFF);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(12);
-        card.setLayoutParams(lp);
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(16));
+        card.setCardElevation(dp(2));
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        card.setUseCompatPadding(true);
+        LinearLayout inner = new LinearLayout(this);
+        inner.setOrientation(LinearLayout.VERTICAL);
         if (!story.image.isEmpty()) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xFFE8F6EE);
-            card.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, hero ? dp(210) : dp(160)));
+            inner.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, hero ? dp(210) : dp(150)));
             loadImage(story.image, image);
         }
         LinearLayout pad = new LinearLayout(this);
         pad.setOrientation(LinearLayout.VERTICAL);
-        pad.setPadding(dp(12), dp(10), dp(12), dp(12));
-        if (!story.category.isEmpty()) {
-            TextView kicker = new TextView(this);
-            kicker.setText(story.category);
-            kicker.setTextColor(0xFFF15A22);
-            kicker.setTextSize(12);
-            pad.addView(kicker);
-        }
+        pad.setPadding(dp(14), dp(12), dp(14), dp(14));
+        TextView kicker = new TextView(this);
+        kicker.setText(story.category.isEmpty() ? (hero ? "हेडलाइन" : "समाचार") : story.category);
+        kicker.setTextColor(0xFFF15A22);
+        kicker.setTextSize(12);
+        pad.addView(kicker);
         TextView title = new TextView(this);
         title.setText(story.title);
         title.setTextColor(0xFF1C1917);
         title.setTextSize(hero ? 20 : 16);
+        title.setPadding(0, dp(4), 0, 0);
         pad.addView(title);
-        String meta = (story.author.isEmpty() ? "" : story.author) + (story.date.isEmpty() ? "" : " · " + story.date);
-        if (!meta.isEmpty() && !meta.equals(" · ")) {
-            TextView line = new TextView(this);
-            line.setText(meta.replaceAll("^ · ", ""));
-            line.setTextColor(0xFF78716C);
-            line.setTextSize(12);
-            line.setPadding(0, dp(4), 0, 0);
-            pad.addView(line);
-        }
-        card.addView(pad);
+        String meta = (story.author.isEmpty() ? "कलैया अनलाइन" : story.author) + (story.date.isEmpty() ? "" : " · " + story.date);
+        TextView line = new TextView(this);
+        line.setText(meta);
+        line.setTextColor(0xFF78716C);
+        line.setTextSize(12);
+        line.setPadding(0, dp(6), 0, 0);
+        pad.addView(line);
+        inner.addView(pad);
+        card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
         return card;
     }
@@ -318,8 +334,12 @@ public class MainActivity extends AppCompatActivity {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(0xFF0F8A3C);
-        view.setTextSize(14);
-        view.setPadding(dp(4), dp(4), dp(4), dp(4));
+        view.setTextSize(15);
+        view.setBackgroundColor(0xFFE8F6EE);
+        view.setPadding(dp(16), dp(10), dp(16), dp(10));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(-dp(12), -dp(8), -dp(12), dp(8));
+        view.setLayoutParams(lp);
         return view;
     }
 
