@@ -70,7 +70,9 @@ public class MainActivity extends AppCompatActivity {
     private UpdateChecker updates;
     private View morePanel;
     private WeatherBoard weather;
+    private BottomNavigationView nav;
     private boolean moreOpen;
+    private boolean restoringNav;
     private boolean askedLocation;
     private int currentNav = R.id.nav_home;
 
@@ -94,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
         root.addView(morePanel);
 
         BottomNavigationView nav = new BottomNavigationView(this);
+        this.nav = nav;
         nav.inflateMenu(R.menu.bottom_nav);
         nav.setBackgroundColor(0xFFFFFFFF);
         nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
@@ -101,18 +104,26 @@ public class MainActivity extends AppCompatActivity {
         nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
         nav.setElevation(dp(12));
         nav.setOnItemSelectedListener(item -> {
+            if (restoringNav) return true;
             int id = item.getItemId();
             if (id == R.id.nav_more) {
-                toggleMore();
-                return false;
+                setMore(true);
+                return true;
             }
-            if (moreOpen) toggleMore();
+            setMore(false);
             currentNav = id;
             if (id == R.id.nav_home) showHome();
             else if (id == R.id.nav_gallery) showList("gallery");
             else if (id == R.id.nav_directory) showList("directory");
             else if (id == R.id.nav_reels) showList("reels");
             return true;
+        });
+        nav.setOnItemReselectedListener(item -> {
+            if (restoringNav) return;
+            if (item.getItemId() == R.id.nav_more) {
+                setMore(false);
+                restoreNav();
+            }
         });
         root.addView(nav);
         setContentView(root);
@@ -186,7 +197,8 @@ public class MainActivity extends AppCompatActivity {
     private void showWeather() {
         section = "weather";
         stopMotion();
-        if (moreOpen) toggleMore();
+        setMore(false);
+        restoreNav();
         page.removeAllViews();
         page.addView(heading("मौसम"));
         View board = weather.view();
@@ -195,9 +207,16 @@ public class MainActivity extends AppCompatActivity {
         refreshWeather();
     }
 
-    private void toggleMore() {
-        moreOpen = !moreOpen;
-        morePanel.setVisibility(moreOpen ? View.VISIBLE : View.GONE);
+    private void setMore(boolean open) {
+        moreOpen = open;
+        morePanel.setVisibility(open ? View.VISIBLE : View.GONE);
+    }
+
+    private void restoreNav() {
+        if (nav.getSelectedItemId() == currentNav) return;
+        restoringNav = true;
+        nav.setSelectedItemId(currentNav);
+        restoringNav = false;
     }
 
     private void refreshWeather() {
