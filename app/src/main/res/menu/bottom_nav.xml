@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_home" android:icon="@android:drawable/ic_menu_today" android:title="गृह" />
+    <item android:id="@+id/nav_gallery" android:icon="@android:drawable/ic_menu_gallery" android:title="फोटो" />
+    <item android:id="@+id/nav_directory" android:icon="@android:drawable/ic_menu_myplaces" android:title="डाइरेक्टरी" />
+    <item android:id="@+id/nav_reels" android:icon="@android:drawable/ic_media_play" android:title="रिल्स" />
+    <item android:id="@+id/nav_community" android:icon="@android:drawable/ic_menu_my_calendar" android:title="समुदाय" />
+</menu>

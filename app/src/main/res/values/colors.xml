@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#0F8A3C</color>
+    <color name="accent">#F15A22</color>
+    <color name="ink">#1C1917</color>
+    <color name="muted">#78716C</color>
+    <color name="line">#E7E5E4</color>
+    <color name="paper">#F6F7F4</color>
+    <color name="mint">#E8F6EE</color>
+    <color name="white">#FFFFFF</color>
+</resources>

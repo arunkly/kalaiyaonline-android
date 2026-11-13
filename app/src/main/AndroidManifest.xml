@@ -10,6 +10,10 @@
         android:theme="@style/Theme.Kalaiya"
         android:usesCleartextTraffic="false">
         <activity
+            android:name=".ArticleActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true"
