@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -50,6 +51,7 @@ public class ArticleActivity extends AppCompatActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFF3F5F2);
+        root.addView(brandHeader());
         TextView back = new TextView(this);
         back.setText("‹");
         back.setTextColor(0xFF0B5C28);
@@ -84,10 +86,11 @@ public class ArticleActivity extends AppCompatActivity {
         title.setText(fallbackTitle == null ? "" : fallbackTitle);
         title.setTextColor(0xFF1C1917);
         title.setGravity(Gravity.CENTER);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 35);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 28);
         Typeface bold = ResourcesCompat.getFont(this, R.font.mukta_bold);
         title.setTypeface(bold);
-        title.setPadding(dp(8), dp(14), dp(8), dp(8));
+        title.setLineSpacing(0, 1.05f);
+        title.setPadding(dp(4), dp(8), dp(4), dp(4));
         page.addView(title);
 
         dateView = new TextView(this);
@@ -192,6 +195,25 @@ public class ArticleActivity extends AppCompatActivity {
                 runOnUiThread(() -> body.setText("समाचार खोल्न सकिएन।"));
             }
         });
+    }
+
+    private View brandHeader() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFFFFFFF);
+        ImageView logo = new ImageView(this);
+        logo.setAdjustViewBounds(true);
+        logo.setImageResource(R.drawable.wordmark);
+        int pad = dp(10);
+        logo.setPadding(pad, pad, pad, dp(6));
+        box.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
+        View green = new View(this);
+        green.setBackgroundColor(0xFF0F8A3C);
+        box.addView(green, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)));
+        View orange = new View(this);
+        orange.setBackgroundColor(0xFFF15A22);
+        box.addView(orange, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
+        return box;
     }
 
     private TextView roundAction(String label, int icon, int tint) {
