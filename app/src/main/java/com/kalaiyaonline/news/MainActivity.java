@@ -1348,11 +1348,10 @@ public class MainActivity extends AppCompatActivity {
         box.setOrientation(LinearLayout.HORIZONTAL);
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(dp(10), dp(6), dp(10), dp(6));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFFFFFFFF);
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFFFFFFF, 0xFF8FDBA8});
         bg.setCornerRadius(dp(18));
         box.setBackground(bg);
-        box.setElevation(dp(2));
+        box.setElevation(0);
         TextView day = new TextView(this);
         day.setTextColor(0xFF0F8A3C);
         style(day, 22, R.font.mukta_extrabold);
@@ -1386,11 +1385,10 @@ public class MainActivity extends AppCompatActivity {
         box.setOrientation(LinearLayout.HORIZONTAL);
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(dp(10), dp(6), dp(10), dp(6));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFFFFFFFF);
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFFFFFFF, 0xFF8FDBA8});
         bg.setCornerRadius(dp(18));
         box.setBackground(bg);
-        box.setElevation(dp(2));
+        box.setElevation(0);
         weatherTemp = new TextView(this);
         weatherTemp.setText("—");
         weatherTemp.setTextColor(0xFF0F8A3C);
