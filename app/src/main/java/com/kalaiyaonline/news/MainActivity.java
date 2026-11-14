@@ -10,6 +10,11 @@ import android.content.Intent;
 import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Outline;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.view.ViewOutlineProvider;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -563,7 +568,7 @@ public class MainActivity extends AppCompatActivity {
         page.removeAllViews();
         if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
-        for (int i = 0; i < heroes.size(); i++) page.addView(heroCard(heroes.get(i), i == 0));
+        for (Story story : heroes) page.addView(headlineCard(story));
         page.addView(homeTabs(home));
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
         for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
@@ -741,6 +746,135 @@ public class MainActivity extends AppCompatActivity {
             tickerAnim.start();
         });
         return bar;
+    }
+
+    private View headlineCard(Story story) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(22));
+        card.setCardElevation(dp(3));
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        card.setUseCompatPadding(true);
+        LinearLayout inner = new LinearLayout(this);
+        inner.setOrientation(LinearLayout.VERTICAL);
+        inner.setGravity(Gravity.CENTER_HORIZONTAL);
+        inner.setPadding(dp(16), dp(10), dp(16), dp(12));
+
+        View accent = new View(this);
+        GradientDrawable accentBg = new GradientDrawable();
+        accentBg.setCornerRadius(dp(4));
+        accentBg.setColor(0xFFF15A22);
+        accent.setBackground(accentBg);
+        LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams(dp(42), dp(5));
+        accentLp.gravity = Gravity.CENTER_HORIZONTAL;
+        accentLp.bottomMargin = dp(14);
+        inner.addView(accent, accentLp);
+
+        TextView title = new TextView(this);
+        title.setText(accentTitle(story.title));
+        title.setGravity(Gravity.CENTER);
+        style(title, 28, R.font.mukta_extrabold);
+        title.setLineSpacing(0, 1.05f);
+        inner.addView(title);
+
+        LinearLayout meta = new LinearLayout(this);
+        meta.setOrientation(LinearLayout.HORIZONTAL);
+        meta.setGravity(Gravity.CENTER);
+        meta.setPadding(0, dp(12), 0, dp(10));
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.mipmap.ic_launcher);
+        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        logo.setClipToOutline(true);
+        logo.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        meta.addView(logo, new LinearLayout.LayoutParams(dp(28), dp(28)));
+        TextView source = new TextView(this);
+        source.setText("कलैया अनलाइन");
+        source.setTextColor(0xFF142033);
+        style(source, 15, R.font.mukta_bold);
+        source.setPadding(dp(8), 0, dp(8), 0);
+        meta.addView(source);
+        TextView bar = new TextView(this);
+        bar.setText("|");
+        bar.setTextColor(0xFFD6D3D1);
+        bar.setTextSize(16);
+        meta.addView(bar);
+        if (!story.date.isEmpty()) {
+            ImageView calendar = new ImageView(this);
+            calendar.setImageResource(R.drawable.ic_calendar);
+            LinearLayout.LayoutParams calLp = new LinearLayout.LayoutParams(dp(16), dp(16));
+            calLp.leftMargin = dp(8);
+            calLp.rightMargin = dp(4);
+            meta.addView(calendar, calLp);
+            TextView date = new TextView(this);
+            date.setText(story.date);
+            date.setTextColor(0xFF1C1917);
+            style(date, 14, R.font.mukta_semibold);
+            meta.addView(date);
+        }
+        inner.addView(meta);
+
+        View line = new View(this);
+        line.setBackgroundColor(0xFFE7E5E4);
+        LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        lineLp.bottomMargin = dp(12);
+        inner.addView(line, lineLp);
+
+        FrameLayout photo = new FrameLayout(this);
+        photo.setBackgroundColor(0xFFE8F6EE);
+        photo.setClipToOutline(true);
+        photo.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(16));
+            }
+        });
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
+        if (!story.image.isEmpty()) loadImage(story.image, image);
+        ImageView save = new ImageView(this);
+        save.setImageResource(R.drawable.ic_bookmark);
+        save.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable saveBg = new GradientDrawable();
+        saveBg.setCornerRadius(dp(12));
+        saveBg.setColor(0xFFFFFFFF);
+        save.setBackground(saveBg);
+        paintSave(save, story.slug);
+        save.setOnClickListener(v -> {
+            boolean now = !isSaved(story.slug);
+            getSharedPreferences("article", MODE_PRIVATE).edit().putBoolean("saved:" + story.slug, now).apply();
+            paintSave(save, story.slug);
+        });
+        FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
+        saveLp.setMargins(0, dp(10), dp(10), 0);
+        photo.addView(save, saveLp);
+        inner.addView(photo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
+        card.addView(inner);
+        card.setOnClickListener(v -> openStory(story));
+        return card;
+    }
+
+    private CharSequence accentTitle(String title) {
+        SpannableString text = new SpannableString(title);
+        int split = title.indexOf(' ');
+        if (split < 1) split = Math.min(title.length(), 4);
+        text.setSpan(new ForegroundColorSpan(0xFFF15A22), 0, split, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (split < title.length()) {
+            text.setSpan(new ForegroundColorSpan(0xFF1B2A4A), split, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return text;
+    }
+
+    private boolean isSaved(String slug) {
+        return getSharedPreferences("article", MODE_PRIVATE).getBoolean("saved:" + slug, false);
+    }
+
+    private void paintSave(ImageView save, String slug) {
+        Drawable icon = DrawableCompat.wrap(save.getDrawable()).mutate();
+        DrawableCompat.setTint(icon, isSaved(slug) ? 0xFF0F8A3C : 0xFF44403C);
+        save.setImageDrawable(icon);
     }
 
     private View heroCard(Story story, boolean lead) {
