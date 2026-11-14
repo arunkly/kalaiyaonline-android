@@ -26,27 +26,33 @@ final class PatroBoard {
 
     private final AppCompatActivity activity;
     private final LinearLayout root;
-    private final TextView title;
+    private TextView yearLabel;
+    private TextView monthLabel;
     private final TextView subtitle;
     private final TextView status;
+    private final TextView note;
     private final LinearLayout detail;
     private final GridLayout week;
     private final GridLayout grid;
     private final LinearLayout upcoming;
-    private int month = 7;
+    private int year = 2083;
+    private int month;
     private int day;
 
     PatroBoard(AppCompatActivity activity) {
         this.activity = activity;
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.addView(nav());
-        title = text("२०८३", 28, 0xFF142033, true);
-        root.addView(title);
-        subtitle = text("", 14, 0xFF57534E, false);
+        root.addView(chrome());
+        subtitle = text("", 13, 0xFF78716C, false);
+        subtitle.setGravity(Gravity.CENTER);
+        subtitle.setPadding(0, dp(2), 0, dp(4));
         root.addView(subtitle);
+        note = text("", 12, 0xFF9A3412, false);
+        note.setVisibility(View.GONE);
+        root.addView(note);
         status = text("पात्रो लोड हुँदैछ…", 14, 0xFF0B5C28, true);
-        status.setPadding(0, dp(6), 0, dp(6));
+        status.setPadding(0, dp(4), 0, dp(4));
         root.addView(status);
         detail = new LinearLayout(activity);
         detail.setOrientation(LinearLayout.VERTICAL);
@@ -70,30 +76,70 @@ final class PatroBoard {
         load(0, 0);
     }
 
-    private View nav() {
-        LinearLayout bar = new LinearLayout(activity);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.addView(chip("‹", () -> shift(-1)));
-        TextView label = text("नेपाली पात्रो", 16, 0xFF0B5C28, true);
-        label.setPadding(dp(10), 0, dp(10), 0);
-        bar.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        bar.addView(chip("आज", this::loadToday));
-        bar.addView(chip("›", () -> shift(1)));
-        return bar;
+    private View chrome() {
+        LinearLayout box = new LinearLayout(activity);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, dp(4), 0, dp(6));
+        LinearLayout yearRow = new LinearLayout(activity);
+        yearRow.setGravity(Gravity.CENTER_VERTICAL);
+        yearRow.addView(arrow("‹", () -> shiftYear(-1)));
+        yearLabel = text(nepali(year), 26, 0xFF142033, true);
+        yearLabel.setGravity(Gravity.CENTER);
+        yearRow.addView(yearLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        yearRow.addView(chip("आज", this::loadToday));
+        yearRow.addView(arrow("›", () -> shiftYear(1)));
+        box.addView(yearRow);
+        LinearLayout monthRow = new LinearLayout(activity);
+        monthRow.setGravity(Gravity.CENTER_VERTICAL);
+        monthRow.setPadding(0, dp(8), 0, 0);
+        monthRow.addView(arrow("‹", () -> shiftMonth(-1)));
+        monthLabel = text("महिना", 18, 0xFF0B5C28, true);
+        monthLabel.setGravity(Gravity.CENTER);
+        monthRow.addView(monthLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        monthRow.addView(arrow("›", () -> shiftMonth(1)));
+        box.addView(monthRow);
+        return box;
     }
 
-    private void shift(int delta) {
+    private void shiftYear(int delta) {
+        int next = year + delta;
+        if (next < 2075 || next > 2092) return;
+        year = next;
+        yearLabel.setText(nepali(year));
+        load(month > 0 ? month : 1, 1);
+    }
+
+    private void shiftMonth(int delta) {
+        if (month <= 0) {
+            loadToday();
+            return;
+        }
         int next = month + delta;
-        if (next < 1) next = 12;
-        if (next > 12) next = 1;
+        int nextYear = year;
+        if (next < 1) {
+            next = 12;
+            nextYear--;
+        } else if (next > 12) {
+            next = 1;
+            nextYear++;
+        }
+        if (nextYear < 2075 || nextYear > 2092) return;
+        year = nextYear;
+        yearLabel.setText(nepali(year));
         load(next, 1);
     }
 
     private void load(int nextMonth, int nextDay) {
         final int requestMonth = nextMonth;
         final int requestDay = nextDay;
-        activity.runOnUiThread(() -> status.setText("पात्रो लोड हुँदैछ…"));
+        if (nextMonth > 0) month = nextMonth;
+        else year = todayYear();
+        if (nextDay > 0) day = nextDay;
+        if (yearLabel != null) yearLabel.setText(nepali(year));
+        activity.runOnUiThread(() -> {
+            status.setVisibility(View.VISIBLE);
+            status.setText("पात्रो लोड हुँदैछ…");
+        });
         new Thread(() -> {
             String html = fetch(requestMonth, requestDay);
             activity.runOnUiThread(() -> {
@@ -108,12 +154,25 @@ final class PatroBoard {
 
     private void render(String html) {
         Matcher hero = Pattern.compile("<h1>([^<]+)</h1><p>([^<]+)</p>").matcher(html);
-        if (hero.find()) {
-            title.setText(hero.group(1));
-            subtitle.setText(hero.group(2));
+        if (hero.find()) subtitle.setText(hero.group(2).trim());
+        Matcher linkedYear = Pattern.compile("calendar=(\\d{4})").matcher(html);
+        if (linkedYear.find()) {
+            year = Integer.parseInt(linkedYear.group(1));
+            yearLabel.setText(nepali(year));
         }
+        String sub = subtitle.getText().toString();
+        int split = sub.indexOf('·');
+        monthLabel.setText(split > 0 ? sub.substring(0, split).trim() : (sub.isEmpty() ? "महिना" : sub));
         Matcher count = Pattern.compile("patro-hero-month\"><strong>([^<]+)</strong><span>([^<]+)</span>").matcher(html);
-        if (count.find()) subtitle.setText(subtitle.getText() + " · " + count.group(1) + " " + count.group(2));
+        if (count.find()) subtitle.setText(sub + (sub.isEmpty() ? "" : " · ") + count.group(1) + " " + count.group(2));
+
+        Matcher warning = Pattern.compile("सूचना:\\s*([^<]{8,180})").matcher(html);
+        if (warning.find()) {
+            note.setText(warning.group(1).trim());
+            note.setVisibility(View.VISIBLE);
+        } else {
+            note.setVisibility(View.GONE);
+        }
 
         List<Day> days = new ArrayList<>();
         Matcher cells = Pattern.compile("<a class=\"patro-day([^\"]*)\" href=\"\\?calendar=(\\d+)&(?:amp;)?month=(\\d+)&(?:amp;)?day=(\\d+)[^\"]*\"><b>([^<]*)</b><small>([^<]*)</small>(?:<em>([^<]*)</em>)?").matcher(html);
@@ -132,8 +191,7 @@ final class PatroBoard {
             return;
         }
         month = days.get(0).month;
-        status.setText("पुनः लोड");
-        status.setOnClickListener(v -> load(month, day));
+        status.setVisibility(View.GONE);
 
         detail.removeAllViews();
         Matcher tile = Pattern.compile("patro-date-tile\"><strong>([^<]+)</strong><b>([^<]+)</b><span>([^<]+)</span><small>([^<]+)</small>").matcher(html);
@@ -160,12 +218,12 @@ final class PatroBoard {
         for (Day item : days) addCell(grid, dayCell(item));
 
         upcoming.removeAllViews();
-        TextView head = text("आगामी इभेन्ट्सहरू", 18, 0xFF142033, true);
-        head.setPadding(0, dp(14), 0, dp(6));
+        TextView head = text("आगामी पर्व", 18, 0xFF142033, true);
+        head.setPadding(0, dp(16), 0, dp(6));
         upcoming.addView(head);
         Matcher events = Pattern.compile("<a href=\"\\?calendar=\\d+&(?:amp;)?month=(\\d+)&(?:amp;)?day=(\\d+)#patro-detail\"><time><b>([^<]*)</b><small>([^<]*)</small></time><span><strong>([^<]*)</strong><small>([^<]*)</small>").matcher(html);
         int shown = 0;
-        while (events.find()) {
+        while (events.find() && shown < 6) {
             shown++;
             int eventMonth = Integer.parseInt(events.group(1));
             int eventDay = Integer.parseInt(events.group(2));
@@ -185,10 +243,11 @@ final class PatroBoard {
         cell.setGravity(Gravity.CENTER_HORIZONTAL);
         boolean today = item.cls.contains("today");
         boolean holiday = item.cls.contains("holiday");
+        boolean selected = item.month == month && item.day == day && day > 0;
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(10));
-        bg.setColor(today ? 0xFFE5F6EC : 0xFFFFFFFF);
-        if (today) bg.setStroke(dp(1), 0xFF0F8A3C);
+        bg.setCornerRadius(dp(12));
+        bg.setColor(today || selected ? 0xFFE5F6EC : 0xFFFFFFFF);
+        if (today || selected) bg.setStroke(dp(1), 0xFF0F8A3C);
         cell.setBackground(bg);
         cell.setPadding(dp(2), dp(6), dp(2), dp(4));
         cell.setMinimumHeight(dp(58));
@@ -241,7 +300,9 @@ final class PatroBoard {
     }
 
     private String fetch(int requestMonth, int requestDay) {
-        String url = "https://kalaiyaonline.com/?calendar=2083";
+        int requestYear = year;
+        if (requestMonth <= 0) requestYear = todayYear();
+        String url = "https://kalaiyaonline.com/?calendar=" + requestYear;
         if (requestMonth > 0) url += "&month=" + requestMonth + "&day=" + Math.max(requestDay, 1);
         HttpURLConnection connection = null;
         try {
@@ -263,7 +324,25 @@ final class PatroBoard {
         }
     }
 
-    private TextView chip(String label, Runnable action) {
+    private int todayYear() {
+        Calendar calendar = Calendar.getInstance();
+        int adYear = calendar.get(Calendar.YEAR);
+        int adMonth = calendar.get(Calendar.MONTH) + 1;
+        int adDay = calendar.get(Calendar.DAY_OF_MONTH);
+        int bs = adYear + 56;
+        if (adMonth > 4 || (adMonth == 4 && adDay >= 14)) bs++;
+        return bs;
+    }
+
+    private String nepali(int number) {
+        String digits = "०१२३४५६७८९";
+        String raw = String.valueOf(number);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) out.append(digits.charAt(raw.charAt(i) - '0'));
+        return out.toString();
+    }
+
+    private TextView arrow(String label, Runnable action) {
         TextView chip = text(label, 15, 0xFF0B5C28, true);
         chip.setGravity(Gravity.CENTER);
         chip.setMinWidth(dp(44));
@@ -276,6 +355,12 @@ final class PatroBoard {
         lp.leftMargin = dp(6);
         chip.setLayoutParams(lp);
         chip.setOnClickListener(v -> action.run());
+        return chip;
+    }
+
+    private TextView chip(String label, Runnable action) {
+        TextView chip = arrow(label, action);
+        chip.setMinWidth(dp(52));
         return chip;
     }
 
