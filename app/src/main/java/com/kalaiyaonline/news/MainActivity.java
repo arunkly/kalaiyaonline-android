@@ -754,7 +754,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, this::showPatro));
         modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, this::showConverter));
         modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, this::showCurrency));
-        modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, this::showPreeti));
+        modules.addView(moduleTile("अ", "प्रीति «» युनिकोड", 0xFFE7F6EC, this::showPreeti));
         modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, this::showBlood));
         modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
         modules.addView(moduleTile("🔐", "लगइन / खाता", 0xFFFFF6EA, () -> openWeb("https://kalaiyaonline.com/account.php")));
@@ -922,7 +922,7 @@ public class MainActivity extends AppCompatActivity {
         setMore(false);
         restoreNav();
         page.removeAllViews();
-        page.addView(heading("प्रीति ↔ युनिकोड"));
+        page.addView(heading("प्रीति «» युनिकोड"));
         View board = preeti.view();
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);

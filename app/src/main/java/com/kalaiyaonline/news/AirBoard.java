@@ -61,7 +61,7 @@ final class AirBoard {
         TextView source = text("स्रोत: Open-Meteo Air Quality API। यो मोडेलको अनुमान हो, सरकारी स्टेशनको प्रत्यक्ष मापनभन्दा फरक हुन सक्छ।", 12, 0xFF78716C, false);
         source.setPadding(0, dp(8), 0, dp(4));
         root.addView(source);
-        TextView link = text("नेपाल सरकारको Air Quality पोर्टल ↗", 14, 0xFF0F8A3C, true);
+        TextView link = text("नेपाल सरकारको Air Quality पोर्टल ›", 14, 0xFF0F8A3C, true);
         link.setOnClickListener(v -> activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://pollution.gov.np/"))));
         root.addView(link);
         root.setOnClickListener(v -> load());
@@ -92,7 +92,7 @@ final class AirBoard {
             if (low == null || reading.aqi < low.aqi) low = reading;
             if (high == null || reading.aqi > high.aqi) high = reading;
         }
-        status.setText(count == 0 ? "डेटा आएन। थिचेर पुनः लोड गर्नुहोस्।" : "↻ पुनः लोड");
+        status.setText(count == 0 ? "डेटा आएन। थिचेर पुनः लोड गर्नुहोस्।" : "पुनः लोड");
         summary.removeAllViews();
         summary.addView(stat("औसत AQI", count == 0 ? "—" : String.valueOf(Math.round(total / (float) count))));
         summary.addView(stat("कम AQI", low == null ? "—" : low.name + " " + low.aqi));

@@ -83,13 +83,13 @@ final class CurrencyBoard {
         });
         card.addView(currency);
 
-        direction = text("विदेशी मुद्रा → NPR", 15, 0xFF0B5C28, true);
+        direction = text("विदेशी मुद्रा › NPR", 15, 0xFF0B5C28, true);
         direction.setGravity(Gravity.CENTER);
         direction.setPadding(dp(12), dp(10), dp(12), dp(10));
         direction.setBackground(chipBg(true));
         direction.setOnClickListener(v -> {
             toNpr = !toNpr;
-            direction.setText(toNpr ? "विदेशी मुद्रा → NPR" : "NPR → विदेशी मुद्रा");
+            direction.setText(toNpr ? "विदेशी मुद्रा › NPR" : "NPR › विदेशी मुद्रा");
             render();
         });
         LinearLayout.LayoutParams dirLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -124,7 +124,7 @@ final class CurrencyBoard {
         table = new LinearLayout(activity);
         table.setOrientation(LinearLayout.VERTICAL);
         list.addView(table);
-        TextView source = text("नेपाल राष्ट्र बैंकको आधिकारिक दर ↗", 14, 0xFF0F8A3C, true);
+        TextView source = text("नेपाल राष्ट्र बैंकको आधिकारिक दर ›", 14, 0xFF0F8A3C, true);
         source.setPadding(0, dp(8), 0, 0);
         source.setOnClickListener(v -> activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.nrb.org.np/forex/"))));
         list.addView(source);

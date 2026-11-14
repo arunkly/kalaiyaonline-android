@@ -62,7 +62,7 @@ final class ConverterBoard {
 
     private View adCard() {
         LinearLayout card = card();
-        card.addView(text("ईस्वी → विक्रम संवत्", 18, 0xFF142033, true));
+        card.addView(text("ईस्वी › विक्रम संवत्", 18, 0xFF142033, true));
         card.addView(text("अंग्रेजी मिति छान्नुहोस्।", 13, 0xFF78716C, false));
         adLabel = text("", 16, 0xFF1C1917, true);
         adLabel.setPadding(0, dp(8), 0, dp(8));
@@ -83,7 +83,7 @@ final class ConverterBoard {
 
     private View bsCard() {
         LinearLayout card = card();
-        card.addView(text("विक्रम संवत् → ईस्वी", 18, 0xFF142033, true));
+        card.addView(text("विक्रम संवत् › ईस्वी", 18, 0xFF142033, true));
         card.addView(text("वर्ष, महिना र गते छान्नुहोस्।", 13, 0xFF78716C, false));
         int[] today = adToBs(adYear, adMonth, adDay);
         bsYear = picker(2000, 2092, null);

@@ -38,8 +38,8 @@ final class PreetiBoard {
 
         LinearLayout modes = new LinearLayout(activity);
         modes.setOrientation(LinearLayout.HORIZONTAL);
-        toUnicode = chip("Preeti → Unicode", true);
-        toPreeti = chip("Unicode → Preeti", false);
+        toUnicode = chip("Preeti › Unicode", true);
+        toPreeti = chip("Unicode › Preeti", false);
         toUnicode.setOnClickListener(v -> setMode(true, false));
         toPreeti.setOnClickListener(v -> setMode(false, false));
         modes.addView(toUnicode, weight());

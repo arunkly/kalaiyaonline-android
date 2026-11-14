@@ -143,7 +143,7 @@ final class BloodBoard {
 
     private void showDetail(String html, String slug) {
         detailPane.removeAllViews();
-        detailPane.addView(button("← सूची", false, this::showList));
+        detailPane.addView(button("‹ सूची", false, this::showList));
         LinearLayout card = new LinearLayout(activity);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);

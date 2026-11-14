@@ -132,7 +132,7 @@ final class PatroBoard {
             return;
         }
         month = days.get(0).month;
-        status.setText("↻ पुनः लोड");
+        status.setText("पुनः लोड");
         status.setOnClickListener(v -> load(month, day));
 
         detail.removeAllViews();

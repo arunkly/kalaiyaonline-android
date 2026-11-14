@@ -268,7 +268,7 @@ final class DirectoryBoard {
         list.removeAllViews();
         status.setText("");
 
-        TextView back = text("←  सूची", 14, 0xFF0B5C28, true);
+        TextView back = text("‹  सूची", 14, 0xFF0B5C28, true);
         back.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable backBg = new GradientDrawable();
         backBg.setCornerRadius(dp(16));
