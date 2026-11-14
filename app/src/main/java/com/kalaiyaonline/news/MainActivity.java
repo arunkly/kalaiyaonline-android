@@ -17,6 +17,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.ViewOutlineProvider;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -1061,7 +1062,11 @@ public class MainActivity extends AppCompatActivity {
         title.setGravity(Gravity.CENTER);
         style(title, 30, R.font.mukta_extrabold);
         title.setIncludeFontPadding(false);
-        title.setLineSpacing(dp(2), 1.12f);
+        title.setLineSpacing(dp(-10), 0.85f);
+        if (Build.VERSION.SDK_INT >= 28) {
+            title.setFallbackLineSpacing(false);
+            title.setLineHeight(dp(38));
+        }
         inner.addView(title);
 
         LinearLayout meta = new LinearLayout(this);
