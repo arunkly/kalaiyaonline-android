@@ -8,6 +8,7 @@ public final class Story {
     public final String date;
     public final String author;
     public final String body;
+    public String views = "";
 
     public Story(String slug, String title, String image, String category, String date, String author, String body) {
         this.slug = slug;

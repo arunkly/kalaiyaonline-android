@@ -6,6 +6,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
+import android.text.TextUtils;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -34,9 +38,9 @@ public class ArticleActivity extends AppCompatActivity {
     private String slug = "";
     private TextView categoryView;
     private TextView dateView;
+    private TextView authorView;
+    private TextView viewsView;
     private TextView saveView;
-    private TextView likeView;
-    private TextView dislikeView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +54,7 @@ public class ArticleActivity extends AppCompatActivity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFFF3F5F2);
+        root.setBackgroundColor(0xFFFFFFFF);
         root.addView(brandHeader());
         TextView back = new TextView(this);
         back.setText("‹");
@@ -69,6 +73,7 @@ public class ArticleActivity extends AppCompatActivity {
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(16), dp(4), dp(16), dp(28));
         page.setGravity(Gravity.CENTER_HORIZONTAL);
+        page.setBackgroundColor(0xFFFFFFFF);
 
         categoryView = new TextView(this);
         categoryView.setText(fallbackCategory == null || fallbackCategory.isEmpty() ? "समाचार" : fallbackCategory);
@@ -86,56 +91,95 @@ public class ArticleActivity extends AppCompatActivity {
         title.setText(fallbackTitle == null ? "" : fallbackTitle);
         title.setTextColor(0xFF1C1917);
         title.setGravity(Gravity.CENTER);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 28);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 30);
         Typeface bold = ResourcesCompat.getFont(this, R.font.mukta_bold);
         title.setTypeface(bold);
-        title.setLineSpacing(0, 1.05f);
-        title.setPadding(dp(4), dp(8), dp(4), dp(4));
+        title.setIncludeFontPadding(false);
+        title.setLineSpacing(0, 0.92f);
+        if (Build.VERSION.SDK_INT >= 28) {
+            title.setFallbackLineSpacing(false);
+            title.setLineHeight(dp(40));
+        }
+        title.setPadding(dp(2), dp(12), dp(2), dp(2));
         page.addView(title);
 
         dateView = new TextView(this);
         dateView.setText(fallbackDate == null ? "" : fallbackDate);
         dateView.setTextColor(0xFF78716C);
         dateView.setGravity(Gravity.CENTER);
-        dateView.setTextSize(14);
+        dateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        dateView.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_regular));
+        dateView.setPadding(0, dp(6), 0, dp(4));
         page.addView(dateView);
 
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        actionLp.topMargin = dp(12);
-        actionLp.bottomMargin = dp(16);
-        actions.setLayoutParams(actionLp);
+        LinearLayout meta = new LinearLayout(this);
+        meta.setOrientation(LinearLayout.HORIZONTAL);
+        meta.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        metaLp.topMargin = dp(10);
+        metaLp.bottomMargin = dp(8);
+        meta.setLayoutParams(metaLp);
+        meta.setGravity(Gravity.CENTER);
+
+        ImageView authorIcon = new ImageView(this);
+        authorIcon.setImageResource(R.drawable.ic_user);
+        authorIcon.setPadding(dp(6), dp(6), dp(6), dp(6));
+        GradientDrawable authorBg = new GradientDrawable();
+        authorBg.setShape(GradientDrawable.OVAL);
+        authorBg.setColor(0xFF0F8A3C);
+        authorIcon.setBackground(authorBg);
+        meta.addView(authorIcon, new LinearLayout.LayoutParams(dp(32), dp(32)));
+
+        authorView = new TextView(this);
+        authorView.setText("कलैया अनलाइन");
+        authorView.setTextColor(0xFF1C1917);
+        authorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        authorView.setTypeface(bold);
+        authorView.setMaxLines(1);
+        authorView.setEllipsize(TextUtils.TruncateAt.END);
+        authorView.setPadding(dp(8), 0, dp(8), 0);
+        meta.addView(authorView);
+
+        meta.addView(metaDivider());
+
+        ImageView eye = new ImageView(this);
+        eye.setImageResource(R.drawable.ic_eye);
+        LinearLayout.LayoutParams eyeLp = new LinearLayout.LayoutParams(dp(18), dp(18));
+        eyeLp.leftMargin = dp(8);
+        meta.addView(eye, eyeLp);
+
+        viewsView = new TextView(this);
+        viewsView.setText("—");
+        viewsView.setTextColor(0xFF0B5C28);
+        viewsView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        viewsView.setTypeface(bold);
+        viewsView.setPadding(dp(4), 0, dp(8), 0);
+        meta.addView(viewsView);
+
+        meta.addView(metaDivider());
+
         saveView = roundAction("सेभ", R.drawable.ic_bookmark, 0xFF0F8A3C);
-        likeView = roundAction("मन पर्यो", R.drawable.ic_like, 0xFF0F8A3C);
-        dislikeView = roundAction("मन परेन", R.drawable.ic_dislike, 0xFFB45309);
-        actions.addView(saveView);
-        actions.addView(likeView);
-        actions.addView(dislikeView);
-        page.addView(actions);
+        LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveView.getLayoutParams();
+        saveLp.leftMargin = dp(8);
+        meta.addView(saveView);
+        page.addView(meta);
         paintActions();
         saveView.setOnClickListener(v -> {
             prefs.edit().putBoolean(key("saved"), !saved()).apply();
             paintActions();
         });
-        likeView.setOnClickListener(v -> {
-            prefs.edit().putString(key("react"), "like".equals(reaction()) ? "" : "like").apply();
-            paintActions();
-        });
-        dislikeView.setOnClickListener(v -> {
-            prefs.edit().putString(key("react"), "dislike".equals(reaction()) ? "" : "dislike").apply();
-            paintActions();
-        });
 
         MaterialCardView frame = new MaterialCardView(this);
-        frame.setRadius(dp(20));
-        frame.setCardElevation(dp(3));
-        frame.setCardBackgroundColor(0xFFE8F6EE);
+        frame.setRadius(dp(18));
+        frame.setCardElevation(0);
+        frame.setStrokeWidth(0);
+        frame.setCardBackgroundColor(0xFFFFFFFF);
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        frame.addView(image, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(240)));
-        page.addView(frame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        frame.addView(image, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(230)));
+        LinearLayout.LayoutParams frameLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        frameLp.topMargin = dp(8);
+        page.addView(frame, frameLp);
 
         TextView body = new TextView(this);
         body.setText("पूर्ण समाचार लोड हुँदैछ…");
@@ -146,8 +190,10 @@ public class ArticleActivity extends AppCompatActivity {
         page.addView(body);
 
         MaterialCardView shareCard = new MaterialCardView(this);
-        shareCard.setRadius(dp(20));
-        shareCard.setCardElevation(dp(2));
+        shareCard.setRadius(dp(18));
+        shareCard.setCardElevation(0);
+        shareCard.setStrokeWidth(dp(1));
+        shareCard.setStrokeColor(0xFFE7E5E4);
         shareCard.setCardBackgroundColor(0xFFFFFFFF);
         LinearLayout shareBox = new LinearLayout(this);
         shareBox.setOrientation(LinearLayout.VERTICAL);
@@ -188,6 +234,8 @@ public class ArticleActivity extends AppCompatActivity {
                     if (!story.category.isEmpty()) categoryView.setText(story.category);
                     if (!story.title.isEmpty()) title.setText(story.title);
                     if (!story.date.isEmpty()) dateView.setText(story.date);
+                    if (!story.author.isEmpty()) authorView.setText(story.author);
+                    viewsView.setText(story.views.isEmpty() ? "—" : story.views);
                     body.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
                     if (!story.image.isEmpty()) load(story.image, image);
                 });
@@ -216,6 +264,16 @@ public class ArticleActivity extends AppCompatActivity {
         return box;
     }
 
+    private View metaDivider() {
+        View line = new View(this);
+        line.setBackgroundColor(0xFFE7E5E4);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(1), dp(18));
+        lp.leftMargin = dp(2);
+        lp.rightMargin = dp(2);
+        line.setLayoutParams(lp);
+        return line;
+    }
+
     private TextView roundAction(String label, int icon, int tint) {
         TextView view = new TextView(this);
         view.setText(label);
@@ -237,8 +295,6 @@ public class ArticleActivity extends AppCompatActivity {
 
     private void paintActions() {
         paintOne(saveView, saved());
-        paintOne(likeView, "like".equals(reaction()));
-        paintOne(dislikeView, "dislike".equals(reaction()));
     }
 
     private void paintOne(TextView view, boolean on) {
@@ -292,10 +348,6 @@ public class ArticleActivity extends AppCompatActivity {
 
     private boolean saved() {
         return prefs.getBoolean(key("saved"), false);
-    }
-
-    private String reaction() {
-        return prefs.getString(key("react"), "");
     }
 
     private String key(String name) {

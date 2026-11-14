@@ -189,7 +189,11 @@ public final class SiteClient {
         if (category.isEmpty()) category = text(doc.selectFirst("h1") == null ? null : doc.selectFirst("h1").parent() == null ? null : doc.selectFirst("h1").parent().selectFirst("a[href*=/category/]"));
         if (category.isEmpty()) category = "समाचार";
         String author = text(doc.selectFirst(".article-reporter-name, .reporter-meta-name"));
+        if (author.isEmpty()) author = text(doc.selectFirst("a[href*=reporter]"));
         if (author.isEmpty()) author = "कलैया अनलाइन";
+        String views = "";
+        java.util.regex.Matcher readers = java.util.regex.Pattern.compile("([०-९0-9][०-९0-9,]*)\\s*पाठक").matcher(doc.body().text());
+        if (readers.find()) views = readers.group(1);
         StringBuilder body = new StringBuilder();
         for (Element p : doc.select(".article-content p")) {
             String line = p.text().replaceAll("\\s+", " ").trim();
@@ -197,7 +201,9 @@ public final class SiteClient {
             if (body.length() > 0) body.append("\n\n");
             body.append(line);
         }
-        return new Story(slug, title, image, category, date, author, body.toString());
+        Story story = new Story(slug, title, image, category, date, author, body.toString());
+        story.views = views;
+        return story;
     }
 
     public List<Story> gallery() throws Exception {
