@@ -1015,20 +1015,30 @@ public class MainActivity extends AppCompatActivity {
         HorizontalScrollView scroll = new HorizontalScrollView(this);
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(this);
-        row.setPadding(0, dp(8), 0, dp(8));
+        row.setPadding(dp(2), dp(4), dp(2), dp(10));
         for (String[] cat : SECTIONS) {
+            boolean on = cat[0].equals(catSlug);
             TextView chip = new TextView(this);
             chip.setText(cat[1]);
-            chip.setTextColor(0xFF0B5C28);
-            style(chip, 18, R.font.mukta_bold);
+            chip.setTextColor(on ? 0xFFFFFFFF : 0xFF1C1917);
+            style(chip, 15, R.font.mukta_semibold);
             chip.setGravity(Gravity.CENTER_VERTICAL);
             Drawable icon = DrawableCompat.wrap(getDrawable(iconFor(cat[0]))).mutate();
-            DrawableCompat.setTint(icon, 0xFF0B5C28);
-            icon.setBounds(0, 0, dp(18), dp(18));
+            DrawableCompat.setTint(icon, on ? 0xFFFFFFFF : 0xFF0F8A3C);
+            icon.setBounds(0, 0, dp(16), dp(16));
             chip.setCompoundDrawables(icon, null, null, null);
             chip.setCompoundDrawablePadding(dp(6));
-            chip.setBackgroundResource(R.drawable.bg_chip);
-            chip.setPadding(dp(14), dp(8), dp(14), dp(8));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(dp(22));
+            if (on) {
+                bg.setColor(0xFF0F8A3C);
+            } else {
+                bg.setColor(0xFFFFFFFF);
+                bg.setStroke(dp(1), 0xFFE5E7EB);
+            }
+            chip.setBackground(bg);
+            chip.setElevation(on ? dp(4) : dp(1));
+            chip.setPadding(dp(14), dp(8), dp(16), dp(8));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.rightMargin = dp(8);
             chip.setOnClickListener(v -> openCategory(cat[0], cat[1]));
@@ -1518,7 +1528,7 @@ public class MainActivity extends AppCompatActivity {
         title.setText(story.title);
         title.setTextColor(0xFF1C1917);
         if (hero) title.setTextSize(20);
-        else style(title, 20, R.font.mukta_bold);
+        else style(title, 18, R.font.mukta_semibold);
         title.setPadding(0, dp(4), 0, 0);
         pad.addView(title);
         String meta = (story.author.isEmpty() ? "कलैया अनलाइन" : story.author) + (story.date.isEmpty() ? "" : " · " + story.date);
