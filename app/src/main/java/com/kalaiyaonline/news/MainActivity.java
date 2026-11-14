@@ -1034,7 +1034,8 @@ public class MainActivity extends AppCompatActivity {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(22));
         card.setCardElevation(0);
-        card.setStrokeWidth(0);
+        card.setStrokeWidth(dp(1));
+        card.setStrokeColor(0xFFE8E6E3);
         card.setCardBackgroundColor(0xFFFFFFFF);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1058,9 +1059,9 @@ public class MainActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText(accentTitle(story.title));
         title.setGravity(Gravity.CENTER);
-        style(title, 28, R.font.mukta_extrabold);
+        style(title, 30, R.font.mukta_extrabold);
         title.setIncludeFontPadding(false);
-        title.setLineSpacing(dp(-8), 0.78f);
+        title.setLineSpacing(dp(2), 1.12f);
         inner.addView(title);
 
         LinearLayout meta = new LinearLayout(this);
@@ -1119,9 +1120,25 @@ public class MainActivity extends AppCompatActivity {
         });
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
+        photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
-        inner.addView(photo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
+        ImageView save = new ImageView(this);
+        save.setImageResource(R.drawable.ic_bookmark);
+        save.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable saveBg = new GradientDrawable();
+        saveBg.setCornerRadius(dp(14));
+        saveBg.setColor(0xFFFFFFFF);
+        save.setBackground(saveBg);
+        paintSave(save, story.slug);
+        save.setOnClickListener(v -> {
+            boolean now = !isSaved(story.slug);
+            getSharedPreferences("article", MODE_PRIVATE).edit().putBoolean("saved:" + story.slug, now).apply();
+            paintSave(save, story.slug);
+        });
+        FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
+        saveLp.setMargins(0, dp(10), dp(10), 0);
+        photo.addView(save, saveLp);
+        inner.addView(photo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
         card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
         return card;
