@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private PatroBoard patro;
     private ConverterBoard converter;
     private CurrencyBoard fx;
+    private PreetiBoard preeti;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -252,6 +253,7 @@ public class MainActivity extends AppCompatActivity {
         patro = new PatroBoard(this);
         converter = new ConverterBoard(this);
         fx = new CurrencyBoard(this);
+        preeti = new PreetiBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -265,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, this::showPatro));
         modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, this::showConverter));
         modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, this::showCurrency));
-        modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, () -> showSoon("प्रीति ↔ युनिकोड")));
+        modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, this::showPreeti));
         modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, () -> showSoon("रक्तदान")));
         modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> showSoon("गोपनीयता नीति")));
         modules.addView(moduleTile("🔐", "लगइन / खाता", 0xFFFFF6EA, () -> showSoon("लगइन / खाता")));
@@ -420,6 +422,18 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         fx.load();
+    }
+
+    private void showPreeti() {
+        section = "preeti";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("प्रीति ↔ युनिकोड"));
+        View board = preeti.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
     }
 
     private void setMore(boolean open) {
