@@ -237,7 +237,8 @@ final class WeatherBoard {
             if (json.optBoolean("error")) return false;
             JSONObject current = json.getJSONObject("current");
             int code = current.getInt("weather_code");
-            String summary = label(code) + "  " + symbol(code);
+            boolean day = current.optInt("is_day", 1) == 1;
+            String summary = label(code, day) + "  " + symbol(code);
             String details = "अनुभूति " + round(current.getDouble("apparent_temperature"))
                     + "°   आर्द्रता " + current.getInt("relative_humidity_2m")
                     + "%   हावा " + round(current.getDouble("wind_speed_10m")) + " km/h";
@@ -376,7 +377,7 @@ final class WeatherBoard {
     private String openUrl(double latitude, double longitude) {
         return "https://api.open-meteo.com/v1/forecast?latitude=" + latitude
                 + "&longitude=" + longitude
-                + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m"
+                + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m"
                 + "&daily=weather_code,temperature_2m_max,temperature_2m_min"
                 + "&timezone=" + enc("Asia/Kathmandu") + "&forecast_days=7";
     }
@@ -421,9 +422,9 @@ final class WeatherBoard {
         return names[calendar.get(Calendar.DAY_OF_WEEK)];
     }
 
-    private String label(int code) {
-        if (code == 0) return "घमाइलो";
-        if (code <= 3) return "आंशिक बादल";
+    private String label(int code, boolean day) {
+        if (code == 0) return day ? "घमाइलो" : "सफा रात";
+        if (code <= 3) return day ? "आंशिक बादल" : "हल्का बादल";
         if (code == 45 || code == 48) return "हुस्सु";
         if (code <= 67) return "वर्षा";
         if (code <= 77) return "हिउँ";
@@ -449,7 +450,10 @@ final class WeatherBoard {
         if (value.contains("rain") || value.contains("sleet")) return "वर्षा";
         if (value.contains("fog")) return "हुस्सु";
         if (value.contains("cloud")) return value.contains("partly") || value.contains("fair") ? "आंशिक बादल" : "बादल";
-        if (value.contains("clear") || value.contains("fair")) return "घमाइलो";
+        if (value.contains("clear") || value.contains("fair")) {
+            int hour = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kathmandu")).get(Calendar.HOUR_OF_DAY);
+            return hour >= 6 && hour < 18 ? "घमाइलो" : "सफा रात";
+        }
         return "मौसम";
     }
 

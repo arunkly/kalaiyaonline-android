@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
     private TextView weatherFlip;
+    private TextView weatherTemp;
     private String[] weatherLines = new String[0];
     private int weatherIndex;
     private int homeGen;
@@ -1322,35 +1323,49 @@ public class MainActivity extends AppCompatActivity {
 
     private View weatherChip() {
         LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
+        box.setOrientation(LinearLayout.HORIZONTAL);
         box.setGravity(Gravity.CENTER_VERTICAL);
-        box.setPadding(dp(12), dp(6), dp(12), dp(6));
-        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF0B5C28, 0xFF14944A});
+        box.setPadding(dp(10), dp(6), dp(10), dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFFFFFFF);
         bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), 0xFFE5E7EB);
         box.setBackground(bg);
+        weatherTemp = new TextView(this);
+        weatherTemp.setText("—");
+        weatherTemp.setTextColor(0xFF0F8A3C);
+        style(weatherTemp, 22, R.font.mukta_extrabold);
+        weatherTemp.setIncludeFontPadding(false);
+        box.addView(weatherTemp);
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.setPadding(dp(8), 0, 0, 0);
         TextView place = new TextView(this);
         place.setText("कलैया");
-        place.setTextColor(0xFFD1FAE5);
+        place.setTextColor(0xFFF15A22);
         style(place, 11, R.font.mukta_bold);
         place.setIncludeFontPadding(false);
-        box.addView(place);
+        words.addView(place);
         weatherFlip = new TextView(this);
-        weatherFlip.setText("मौसम लोड हुँदैछ");
-        weatherFlip.setTextColor(0xFFFFFFFF);
+        weatherFlip.setText("लोड हुँदैछ");
+        weatherFlip.setTextColor(0xFF142033);
         weatherFlip.setMaxLines(1);
-        style(weatherFlip, 16, R.font.mukta_bold);
+        style(weatherFlip, 13, R.font.mukta_semibold);
         weatherFlip.setIncludeFontPadding(false);
-        box.addView(weatherFlip);
+        words.addView(weatherFlip);
+        box.addView(words);
         box.setOnClickListener(v -> showWeather());
         return box;
     }
 
     private void loadStripWeather() {
         io.execute(() -> {
-            String body = fetchText("https://api.open-meteo.com/v1/forecast?latitude=27.033&longitude=84.983&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FKathmandu&forecast_days=1");
+            String body = fetchText("https://api.open-meteo.com/v1/forecast?latitude=27.033&longitude=84.983&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FKathmandu&forecast_days=1");
             String[] lines = weatherCopy(body);
+            String temp = weatherTempText(body);
             runOnUiThread(() -> {
                 if (!"home".equals(section) || weatherFlip == null || lines.length == 0) return;
+                if (weatherTemp != null) weatherTemp.setText(temp);
                 weatherLines = lines;
                 weatherIndex = 0;
                 weatherFlip.setAlpha(1f);
@@ -1376,20 +1391,28 @@ public class MainActivity extends AppCompatActivity {
         try {
             JSONObject json = new JSONObject(body);
             JSONObject current = json.getJSONObject("current");
-            int temp = (int) Math.round(current.getDouble("temperature_2m"));
-            String sky = skyLabel(current.optInt("weather_code"));
+            boolean day = current.optInt("is_day", 1) == 1;
+            String sky = skyLabel(current.optInt("weather_code"), day);
             JSONObject daily = json.getJSONObject("daily");
             int max = (int) Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0));
             int min = (int) Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0));
-            return new String[]{nepaliNumber(temp) + "°", sky, nepaliNumber(max) + "° / " + nepaliNumber(min) + "°"};
+            return new String[]{sky, "अधिकतम " + nepaliNumber(max) + "°", "न्यूनतम " + nepaliNumber(min) + "°"};
         } catch (Exception ignored) {
             return new String[0];
         }
     }
 
-    private String skyLabel(int code) {
-        if (code == 0) return "घमाइलो";
-        if (code <= 3) return "आंशिक बादल";
+    private String weatherTempText(String body) {
+        try {
+            return nepaliNumber((int) Math.round(new JSONObject(body).getJSONObject("current").getDouble("temperature_2m"))) + "°";
+        } catch (Exception ignored) {
+            return "—";
+        }
+    }
+
+    private String skyLabel(int code, boolean day) {
+        if (code == 0) return day ? "घमाइलो" : "सफा रात";
+        if (code <= 3) return day ? "आंशिक बादल" : "हल्का बादल";
         if (code == 45 || code == 48) return "हुस्सु";
         if (code <= 67) return "वर्षा";
         if (code <= 77) return "हिउँ";
