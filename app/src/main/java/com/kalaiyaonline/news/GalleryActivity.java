@@ -43,6 +43,7 @@ public class GalleryActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Night.sync(this);
         String url = getIntent().getStringExtra("url");
         String fallbackTitle = getIntent().getStringExtra("title");
         String fallbackImage = getIntent().getStringExtra("image");
@@ -111,6 +112,7 @@ public class GalleryActivity extends AppCompatActivity {
         page.addView(grid, gridLp);
 
         scroll.addView(page);
+        Night.allow(scroll, Night.on(this));
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.setPadding(0, 0, 0, DockBar.inset(this));
         galleryAd = Ads.attach(this, root);

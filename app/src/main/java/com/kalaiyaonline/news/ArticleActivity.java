@@ -55,6 +55,7 @@ public class ArticleActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Night.sync(this);
         prefs = getSharedPreferences("article", MODE_PRIVATE);
         slug = getIntent().getStringExtra("slug");
         String fallbackTitle = getIntent().getStringExtra("title");
@@ -223,6 +224,7 @@ public class ArticleActivity extends AppCompatActivity {
         page.addView(relatedBox);
 
         scroll.addView(page);
+        Night.allow(scroll, Night.on(this));
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.setPadding(0, 0, 0, DockBar.inset(this));
         articleAd = Ads.attach(this, root);

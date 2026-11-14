@@ -35,6 +35,7 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -124,10 +125,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Night.sync(this);
         FrameLayout screen = new FrameLayout(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFFF6F7F4);
+        root.setBackgroundColor(Night.on(this) ? 0xFF0E1210 : 0xFFF6F7F4);
         root.addView(header());
         tickerHost = new FrameLayout(this);
         tickerHost.setVisibility(View.GONE);
@@ -138,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
         page.setPadding(dp(12), dp(8), dp(12), dp(16));
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(page);
+        Night.allow(scroll, Night.on(this));
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.setPadding(0, 0, 0, DockBar.inset(this));
         shellAd = Ads.attach(this, root);
@@ -254,7 +257,8 @@ public class MainActivity extends AppCompatActivity {
     private View header() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundColor(0xFFFFFFFF);
+        box.setBackgroundColor(Night.on(this) ? 0xFF101412 : 0xFFFFFFFF);
+        Night.allow(box, false);
         box.setElevation(dp(2));
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -264,13 +268,14 @@ public class MainActivity extends AppCompatActivity {
         logo.setAdjustViewBounds(true);
         logo.setScaleType(ImageView.ScaleType.FIT_START);
         logo.setImageResource(R.drawable.wordmark);
+        Night.allow(logo, false);
         row.addView(logo, new LinearLayout.LayoutParams(0, dp(38), 1f));
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
         actions.setPadding(dp(3), dp(3), dp(3), dp(3));
         GradientDrawable pill = new GradientDrawable();
-        pill.setColor(0xFFF3F6F4);
+        pill.setColor(Night.on(this) ? 0xFF24302A : 0xFFF3F6F4);
         pill.setCornerRadius(dp(22));
         actions.setBackground(pill);
         actions.addView(headerButton(R.drawable.ic_bell, this::openBell));
@@ -294,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
         view.setLayoutParams(lp);
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(18));
-        bg.setColor(0xFFF3F6F4);
+        bg.setColor(Night.on(this) ? 0xFF24302A : 0xFFF3F6F4);
         view.setBackground(bg);
         view.setOnClickListener(v -> action.run());
         return view;
@@ -561,31 +566,36 @@ public class MainActivity extends AppCompatActivity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundColor(0xFFFFFFFF);
         box.setElevation(dp(16));
+        Night.allow(box, false);
+        boolean dark = Night.on(this);
+        if (dark) box.setBackgroundColor(0xFF121816);
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
         brand.setBackgroundColor(0xFF0F8A3C);
-        brand.setPadding(dp(16), dp(18), dp(16), dp(16));
+        brand.setPadding(dp(16), dp(16), dp(16), dp(14));
         ImageView mark = new ImageView(this);
         mark.setImageResource(R.drawable.wordmark);
+        Night.allow(mark, false);
         mark.setAdjustViewBounds(true);
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        mark.setBackgroundColor(0xFFFFFFFF);
         mark.setPadding(dp(8), dp(4), dp(8), dp(4));
         GradientDrawable chip = new GradientDrawable();
         chip.setColor(0xFFFFFFFF);
         chip.setCornerRadius(dp(10));
         mark.setBackground(chip);
-        brand.addView(mark, new LinearLayout.LayoutParams(dp(158), dp(40)));
+        brand.addView(mark, new LinearLayout.LayoutParams(dp(150), dp(36)));
+        brand.addView(themeSwitch());
         TextView sub = new TextView(this);
         sub.setText("समाचार श्रेणी");
         sub.setTextColor(0xFFD1FAE5);
-        style(sub, 13, R.font.mukta_regular);
+        style(sub, 12, R.font.mukta_regular);
+        sub.setPadding(0, dp(10), 0, 0);
         brand.addView(sub);
         box.addView(brand);
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(10), dp(8), dp(10), dp(16));
+        list.setPadding(dp(8), dp(6), dp(8), dp(8));
         String[][] items = {
                 {"news", "समाचार"},
                 {"local", "स्थानीय"},
@@ -599,42 +609,93 @@ public class MainActivity extends AppCompatActivity {
                 {"videos", "भिडियो"},
                 {"directory", "डाइरेक्टरी"}
         };
-        for (String[] item : items) list.addView(drawerRow(item[0], item[1]));
+        for (String[] item : items) list.addView(drawerRow(item[0], item[1], dark));
         scroll.addView(list);
         box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        TextView version = new TextView(this);
+        version.setText("संस्करण " + versionName());
+        version.setGravity(Gravity.CENTER);
+        version.setTextColor(dark ? 0xFF9AA89F : 0xFF78716C);
+        style(version, 12, R.font.mukta_regular);
+        version.setPadding(dp(12), dp(10), dp(12), dp(14));
+        box.addView(version);
         return box;
     }
 
-    private View drawerRow(String slug, String label) {
+    private View themeSwitch() {
+        boolean dark = Night.on(this);
+        LinearLayout track = new LinearLayout(this);
+        track.setOrientation(LinearLayout.HORIZONTAL);
+        track.setPadding(dp(3), dp(3), dp(3), dp(3));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFFFFFFF);
+        bg.setCornerRadius(dp(16));
+        track.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(12);
+        track.setLayoutParams(lp);
+        track.addView(themeChoice("उज्यालो", !dark, false), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        track.addView(themeChoice("अँध्यारो", dark, true), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        return track;
+    }
+
+    private View themeChoice(String label, boolean selected, boolean darkChoice) {
+        TextView view = new TextView(this);
+        view.setText(label);
+        view.setGravity(Gravity.CENTER);
+        view.setTextColor(selected ? 0xFFFFFFFF : 0xFF0F8A3C);
+        style(view, 13, R.font.mukta_bold);
+        view.setPadding(dp(8), dp(6), dp(8), dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(13));
+        bg.setColor(selected ? 0xFF0F8A3C : 0x00000000);
+        view.setBackground(bg);
+        view.setOnClickListener(v -> {
+            if (Night.on(this) == darkChoice) return;
+            Night.set(this, darkChoice);
+            AppCompatDelegate.setDefaultNightMode(darkChoice ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO);
+        });
+        return view;
+    }
+
+    private String versionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private View drawerRow(String slug, String label, boolean dark) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(8), dp(8), dp(8));
+        row.setPadding(dp(6), dp(5), dp(6), dp(5));
         ImageView icon = new ImageView(this);
         int res = "gallery".equals(slug) ? R.drawable.ic_photo : "videos".equals(slug) ? R.drawable.ic_play : "directory".equals(slug) ? R.drawable.ic_pin : iconFor(slug);
         icon.setImageResource(res);
-        icon.setPadding(dp(8), dp(8), dp(8), dp(8));
+        icon.setPadding(dp(6), dp(6), dp(6), dp(6));
         GradientDrawable bubble = new GradientDrawable();
-        bubble.setCornerRadius(dp(14));
-        bubble.setColor(0xFFE8F6EE);
+        bubble.setCornerRadius(dp(12));
+        bubble.setColor(dark ? 0xFF1E3328 : 0xFFE8F6EE);
         icon.setBackground(bubble);
         Drawable drawable = DrawableCompat.wrap(icon.getDrawable()).mutate();
         DrawableCompat.setTint(drawable, 0xFF0B5C28);
         icon.setImageDrawable(drawable);
-        row.addView(icon, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        row.addView(icon, new LinearLayout.LayoutParams(dp(32), dp(32)));
         TextView text = new TextView(this);
         text.setText(label);
-        text.setTextColor(0xFF1C1917);
-        style(text, 17, R.font.mukta_bold);
-        text.setPadding(dp(12), 0, 0, 0);
+        text.setTextColor(dark ? 0xFFF3F6F4 : 0xFF1C1917);
+        style(text, 14, R.font.mukta_semibold);
+        text.setPadding(dp(10), 0, 0, 0);
         row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView chevron = new TextView(this);
         chevron.setText("›");
         chevron.setTextColor(0xFF0F8A3C);
-        chevron.setTextSize(22);
+        chevron.setTextSize(16);
         row.addView(chevron);
         View rule = new View(this);
-        rule.setBackgroundColor(0xFFF1F5F3);
+        rule.setBackgroundColor(dark ? 0xFF2A332E : 0xFFF1F5F3);
         LinearLayout wrap = new LinearLayout(this);
         wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.addView(row);
@@ -1480,7 +1541,8 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(0xFFFFFFFF);
+        int paper = Night.on(this) ? 0xFF171D19 : 0xFFFFFFFF;
+        bar.setBackgroundColor(paper);
         bar.setMinimumHeight(dp(42));
         LinearLayout badge = new LinearLayout(this);
         badge.setOrientation(LinearLayout.HORIZONTAL);
@@ -1513,13 +1575,13 @@ public class MainActivity extends AppCompatActivity {
             for (Story item : items) text.append(item.title).append("     ·     ");
         }
         moving.setText(text.toString().trim());
-        moving.setTextColor(0xFF142033);
+        moving.setTextColor(Night.on(this) ? 0xFFF3F6F4 : 0xFF142033);
         moving.setSingleLine(true);
         style(moving, 15, R.font.mukta_semibold);
         moving.setIncludeFontPadding(false);
         clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
         View fade = new View(this);
-        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0x00FFFFFF, 0xFFFFFFFF}));
+        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0x00000000, paper}));
         clip.addView(fade, new FrameLayout.LayoutParams(dp(28), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.END));
         LinearLayout.LayoutParams clipLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
         clipLp.leftMargin = dp(12);
@@ -1531,6 +1593,7 @@ public class MainActivity extends AppCompatActivity {
         wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
         wrap.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+        Night.allow(wrap, false);
         moving.post(() -> {
             moving.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             ViewGroup.LayoutParams params = moving.getLayoutParams();
@@ -2060,7 +2123,10 @@ public class MainActivity extends AppCompatActivity {
             Bitmap bitmap = Bitmaps.load(url, 720);
             if (bitmap == null) return;
             runOnUiThread(() -> {
-                if (!isDestroyed()) target.setImageBitmap(bitmap);
+                if (!isDestroyed()) {
+                    Night.allow(target, false);
+                    target.setImageBitmap(bitmap);
+                }
             });
         });
     }

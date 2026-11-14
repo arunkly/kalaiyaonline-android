@@ -121,8 +121,8 @@ final class DockBar extends FrameLayout {
         for (int i = 0; i < IDS.length; i++) {
             if (IDS[i] == R.id.nav_home) continue;
             boolean on = IDS[i] == selected;
-            icons[i].setImageDrawable(tinted(ICONS[i], 0xFF1A1A1A));
-            labels[side].setTextColor(0xFF1A1A1A);
+            icons[i].setImageDrawable(tinted(ICONS[i], Night.on(getContext()) ? 0xFFE7EEEA : 0xFF1A1A1A));
+            labels[side].setTextColor(Night.on(getContext()) ? 0xFFE7EEEA : 0xFF1A1A1A);
             labels[side].setTypeface(ResourcesCompat.getFont(getContext(), on ? R.font.mukta_semibold : R.font.mukta_regular));
             side++;
         }
@@ -187,7 +187,7 @@ final class DockBar extends FrameLayout {
         canvas.translate(0, -dp(3));
         canvas.drawPath(shape, paint);
         canvas.restore();
-        paint.setColor(Color.WHITE);
+        paint.setColor(Night.on(getContext()) ? 0xFF171D19 : Color.WHITE);
         canvas.drawPath(shape, paint);
     }
 
