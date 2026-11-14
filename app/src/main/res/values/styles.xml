@@ -10,6 +10,12 @@
         <item name="fontFamily">@font/mukta</item>
     </style>
 
+    <style name="Theme.Kalaiya.Splash" parent="Theme.Kalaiya">
+        <item name="android:windowBackground">@drawable/splash_window</item>
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+    </style>
+
     <style name="NavLabel" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textSize">12sp</item>
         <item name="android:fontFamily">@font/mukta_semibold</item>
