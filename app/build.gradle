@@ -10,8 +10,8 @@ android {
         applicationId "com.kalaiyaonline.news"
         minSdk 24
         targetSdk 34
-        versionCode 53
-        versionName "2.9.6"
+        versionCode 54
+        versionName "2.9.7"
     }
 
     buildTypes {
@@ -30,4 +30,5 @@ dependencies {
     implementation "androidx.viewpager2:viewpager2:1.1.0"
     implementation "com.google.android.material:material:1.12.0"
     implementation "org.jsoup:jsoup:1.18.1"
+    implementation "com.google.android.gms:play-services-ads:23.6.0"
 }

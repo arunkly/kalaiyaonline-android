@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
+import com.google.android.gms.ads.AdView;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.InputStream;
@@ -48,6 +49,7 @@ public class ArticleActivity extends AppCompatActivity {
     private String keptCategory = "";
     private String keptDate = "";
     private LinearLayout relatedBox;
+    private AdView articleAd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -220,7 +222,8 @@ public class ArticleActivity extends AppCompatActivity {
         page.addView(relatedBox);
 
         scroll.addView(page);
-        root.addView(scroll);
+        root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        articleAd = Ads.attach(this, root);
         setContentView(root);
 
         if (fallbackImage != null && !fallbackImage.isEmpty()) load(fallbackImage, image);
@@ -449,5 +452,23 @@ public class ArticleActivity extends AppCompatActivity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (articleAd != null) articleAd.resume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (articleAd != null) articleAd.pause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (articleAd != null) articleAd.destroy();
+        super.onDestroy();
     }
 }

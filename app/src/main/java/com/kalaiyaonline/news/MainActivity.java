@@ -41,6 +41,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.gms.ads.AdView;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.InputStream;
@@ -108,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean moreOpen;
     private boolean restoringNav;
     private int currentNav = R.id.nav_home;
+    private AdView shellAd;
+    private AdView feedAd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,10 +123,12 @@ public class MainActivity extends AppCompatActivity {
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(12), dp(8), dp(12), dp(68));
+        page.setPadding(dp(12), dp(8), dp(12), dp(16));
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.setPadding(0, 0, 0, dp(50));
+        shellAd = Ads.attach(this, root);
         screen.addView(root, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         dim = new View(this);
@@ -214,7 +219,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (shellAd != null) shellAd.resume();
+        if (feedAd != null) feedAd.resume();
         if (updates != null) updates.installPending();
+    }
+
+    @Override
+    protected void onPause() {
+        if (shellAd != null) shellAd.pause();
+        if (feedAd != null) feedAd.pause();
+        super.onPause();
     }
 
     private View header() {
@@ -983,6 +997,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void renderHome(SiteClient.Home home, int gen) {
         if (!"home".equals(section) || gen != homeGen) return;
+        if (feedAd != null) {
+            feedAd.destroy();
+            feedAd = null;
+        }
         page.removeAllViews();
         if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
@@ -993,6 +1011,7 @@ public class MainActivity extends AppCompatActivity {
         ruleLp.topMargin = dp(14);
         ruleLp.bottomMargin = dp(12);
         page.addView(rule, ruleLp);
+        feedAd = Ads.attach(this, page);
         page.addView(homeTabs(home));
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
         for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
@@ -1636,6 +1655,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         stopMotion();
+        if (shellAd != null) shellAd.destroy();
+        if (feedAd != null) feedAd.destroy();
         super.onDestroy();
     }
 

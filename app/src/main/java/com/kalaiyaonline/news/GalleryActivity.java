@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
+import com.google.android.gms.ads.AdView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -35,6 +36,7 @@ public class GalleryActivity extends AppCompatActivity {
     private final SiteClient client = new SiteClient();
     private final ExecutorService io = Executors.newFixedThreadPool(3);
     private final List<String> photos = new ArrayList<>();
+    private AdView galleryAd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +110,7 @@ public class GalleryActivity extends AppCompatActivity {
 
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        galleryAd = Ads.attach(this, root);
         setContentView(root);
 
         if (fallbackImage != null && !fallbackImage.isEmpty()) load(fallbackImage, coverImage, 1000);
@@ -268,5 +271,23 @@ public class GalleryActivity extends AppCompatActivity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (galleryAd != null) galleryAd.resume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (galleryAd != null) galleryAd.pause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (galleryAd != null) galleryAd.destroy();
+        super.onDestroy();
     }
 }
