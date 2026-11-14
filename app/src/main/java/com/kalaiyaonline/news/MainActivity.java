@@ -7,6 +7,7 @@ import android.location.LocationManager;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -140,7 +141,6 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_home) showHome();
             else if (id == R.id.nav_gallery) showList("gallery");
             else if (id == R.id.nav_directory) showList("directory");
-            else if (id == R.id.nav_reels) showList("reels");
             return true;
         });
         nav.setOnItemReselectedListener(item -> {
@@ -264,7 +264,6 @@ public class MainActivity extends AppCompatActivity {
         gridLp.topMargin = dp(12);
         box.addView(modules, gridLp);
         modules.addView(moduleTile("🎬", "भिडियो", 0xFFE7F6EC, this::showVideos));
-        modules.addView(moduleTile("🎞", "रील्स", 0xFFFDECEC, () -> openTab(R.id.nav_reels)));
         modules.addView(moduleTile("🔴", "लाइभ", 0xFFF3E9FB, () -> showSoon("लाइभ")));
         modules.addView(moduleTile("⛅", "मौसम", 0xFFFFF4E5, this::showWeather));
         modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, this::showAir));
@@ -273,8 +272,8 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, this::showCurrency));
         modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, this::showPreeti));
         modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, this::showBlood));
-        modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> showSoon("गोपनीयता नीति")));
-        modules.addView(moduleTile("🔐", "लगइन / खाता", 0xFFFFF6EA, () -> showSoon("लगइन / खाता")));
+        modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
+        modules.addView(moduleTile("🔐", "लगइन / खाता", 0xFFFFF6EA, () -> openWeb("https://kalaiyaonline.com/account.php")));
         box.addView(languageBar());
         return box;
     }
@@ -352,6 +351,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void openTab(int id) {
         nav.setSelectedItemId(id);
+    }
+
+    private void openWeb(String url) {
+        setMore(false);
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
     }
 
     private void showSoon(String name) {
