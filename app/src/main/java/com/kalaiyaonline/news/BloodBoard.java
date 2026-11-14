@@ -225,20 +225,10 @@ final class BloodBoard {
 
     private void loadImage(String url, ImageView target) {
         new Thread(() -> {
-            Bitmap bitmap = null;
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-                connection.setConnectTimeout(12000);
-                connection.setReadTimeout(12000);
-                bitmap = BitmapFactory.decodeStream(connection.getInputStream());
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-            Bitmap image = bitmap;
-            if (image != null) activity.runOnUiThread(() -> target.setImageBitmap(image));
+            Bitmap bitmap = Bitmaps.load(url, 800);
+            if (bitmap != null && !activity.isDestroyed()) activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) target.setImageBitmap(bitmap);
+            });
         }).start();
     }
 

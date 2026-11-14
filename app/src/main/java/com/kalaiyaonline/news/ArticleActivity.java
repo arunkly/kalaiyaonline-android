@@ -528,18 +528,10 @@ public class ArticleActivity extends AppCompatActivity {
 
     private void load(String url, ImageView target) {
         io.execute(() -> {
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setConnectTimeout(12000);
-                connection.setReadTimeout(12000);
-                InputStream stream = connection.getInputStream();
-                Bitmap bitmap = BitmapFactory.decodeStream(stream);
-                if (bitmap != null) runOnUiThread(() -> target.setImageBitmap(bitmap));
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
+            Bitmap bitmap = Bitmaps.load(url, 1400);
+            if (bitmap != null) runOnUiThread(() -> {
+                if (!isDestroyed()) target.setImageBitmap(bitmap);
+            });
         });
     }
 

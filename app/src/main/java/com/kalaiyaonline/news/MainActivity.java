@@ -1050,7 +1050,9 @@ public class MainActivity extends AppCompatActivity {
                         : "directory".equals(kind) ? client.directory() : client.reels();
                 runOnUiThread(() -> renderList(kind, list));
             } catch (Exception error) {
-                runOnUiThread(() -> setStatus("लोड हुन सकेन।"));
+                runOnUiThread(() -> {
+                    if (kind.equals(section)) setStatus("लोड हुन सकेन।");
+                });
             }
         });
     }
@@ -1748,26 +1750,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadImage(String url, ImageView target) {
         io.execute(() -> {
-            Bitmap bitmap = fetchBitmap(url);
+            Bitmap bitmap = Bitmaps.load(url, 1200);
             if (bitmap == null) return;
-            runOnUiThread(() -> target.setImageBitmap(bitmap));
+            runOnUiThread(() -> {
+                if (!isDestroyed()) target.setImageBitmap(bitmap);
+            });
         });
-    }
-
-    private Bitmap fetchBitmap(String url) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(12000);
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            InputStream stream = connection.getInputStream();
-            return BitmapFactory.decodeStream(stream);
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
     }
 
     private void setStatus(String text) {

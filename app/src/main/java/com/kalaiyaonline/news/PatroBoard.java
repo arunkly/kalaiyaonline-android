@@ -272,9 +272,11 @@ final class PatroBoard {
         if (!full.find()) return 0;
         String[] parts = first.ad.trim().split(" ");
         if (parts.length < 2) return 0;
-        int anchor = dateNumber(Integer.parseInt(full.group(3)), monthIndex(full.group(1)), Integer.parseInt(full.group(2)));
-        int cellMonth = monthIndex(parts[0]);
-        int cellDay = Integer.parseInt(parts[1]);
+        try {
+            int anchor = dateNumber(Integer.parseInt(full.group(3)), monthIndex(full.group(1)), Integer.parseInt(full.group(2)));
+            int cellMonth = monthIndex(parts[0]);
+            int cellDay = Integer.parseInt(parts[1].replaceAll("\\D", ""));
+            if (cellDay < 1) return 0;
         int year = Integer.parseInt(full.group(3));
         int bestYear = year;
         int bestGap = Integer.MAX_VALUE;
@@ -288,6 +290,9 @@ final class PatroBoard {
         Calendar calendar = Calendar.getInstance();
         calendar.set(bestYear, cellMonth, cellDay, 12, 0, 0);
         return calendar.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     private int dateNumber(int year, int month, int day) {

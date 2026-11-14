@@ -43,7 +43,10 @@ final class UpdateChecker {
                 String apk = assetUrl(json);
                 if (apk.isEmpty()) return;
                 String version = tag.startsWith("v") ? tag.substring(1) : tag;
-                activity.runOnUiThread(() -> offer(version, apk));
+                activity.runOnUiThread(() -> {
+                    if (activity.isFinishing() || activity.isDestroyed()) return;
+                    offer(version, apk);
+                });
             } catch (Exception ignored) {
             }
         });
@@ -84,13 +87,15 @@ final class UpdateChecker {
                 input.close();
                 connection.disconnect();
                 activity.runOnUiThread(() -> {
-                    progress.dismiss();
+                    if (progress.isShowing()) progress.dismiss();
+                    if (activity.isFinishing() || activity.isDestroyed()) return;
                     pending = file;
                     install(file);
                 });
             } catch (Exception error) {
                 activity.runOnUiThread(() -> {
-                    progress.dismiss();
+                    if (progress.isShowing()) progress.dismiss();
+                    if (activity.isFinishing() || activity.isDestroyed()) return;
                     new AlertDialog.Builder(activity)
                             .setMessage("अपडेट डाउनलोड हुन सकेन। पछि फेरि प्रयास गर्नुहोस्।")
                             .setPositiveButton("ठीक छ", null)

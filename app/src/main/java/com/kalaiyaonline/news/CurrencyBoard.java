@@ -212,7 +212,7 @@ final class CurrencyBoard {
         } catch (Exception ignored) {
         }
         double used = sell ? rate.sell : rate.buy;
-        if (used <= 0) {
+        if (used <= 0 || rate.unit <= 0) {
             result.setText("दर उपलब्ध छैन");
             formula.setText("");
             return;
