@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private View morePanel;
     private View dim;
     private WeatherBoard weather;
+    private AirBoard air;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -244,6 +245,7 @@ public class MainActivity extends AppCompatActivity {
         box.addView(head);
 
         weather = new WeatherBoard(this);
+        air = new AirBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -253,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("🎞", "रील्स", 0xFFFDECEC, () -> openTab(R.id.nav_reels)));
         modules.addView(moduleTile("🔴", "लाइभ", 0xFFF3E9FB, () -> showSoon("लाइभ")));
         modules.addView(moduleTile("⛅", "मौसम", 0xFFFFF4E5, this::showWeather));
-        modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, () -> showSoon("वायु गुणस्तर")));
+        modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, this::showAir));
         modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, () -> showSoon("नेपाली पात्रो")));
         modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, () -> showSoon("मिति रूपान्तरण")));
         modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, () -> showSoon("मुद्रा रूपान्तरण")));
@@ -361,6 +363,19 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         refreshWeather();
+    }
+
+    private void showAir() {
+        section = "air";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("वायु गुणस्तर"));
+        View board = air.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        air.load();
     }
 
     private void setMore(boolean open) {
