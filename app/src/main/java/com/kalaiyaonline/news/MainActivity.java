@@ -845,6 +845,12 @@ public class MainActivity extends AppCompatActivity {
         if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
         for (Story story : heroes) page.addView(headlineCard(story));
+        View rule = new View(this);
+        rule.setBackgroundColor(0xFFE5E7EB);
+        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        ruleLp.topMargin = dp(14);
+        ruleLp.bottomMargin = dp(12);
+        page.addView(rule, ruleLp);
         page.addView(homeTabs(home));
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
         for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
@@ -1027,9 +1033,13 @@ public class MainActivity extends AppCompatActivity {
     private View headlineCard(Story story) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(22));
-        card.setCardElevation(dp(3));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
         card.setCardBackgroundColor(0xFFFFFFFF);
-        card.setUseCompatPadding(true);
+        card.setUseCompatPadding(false);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(12);
+        card.setLayoutParams(cardLp);
         LinearLayout inner = new LinearLayout(this);
         inner.setOrientation(LinearLayout.VERTICAL);
         inner.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1111,22 +1121,6 @@ public class MainActivity extends AppCompatActivity {
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
-        ImageView save = new ImageView(this);
-        save.setImageResource(R.drawable.ic_bookmark);
-        save.setPadding(dp(8), dp(8), dp(8), dp(8));
-        GradientDrawable saveBg = new GradientDrawable();
-        saveBg.setCornerRadius(dp(12));
-        saveBg.setColor(0xFFFFFFFF);
-        save.setBackground(saveBg);
-        paintSave(save, story.slug);
-        save.setOnClickListener(v -> {
-            boolean now = !isSaved(story.slug);
-            getSharedPreferences("article", MODE_PRIVATE).edit().putBoolean("saved:" + story.slug, now).apply();
-            paintSave(save, story.slug);
-        });
-        FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
-        saveLp.setMargins(0, dp(10), dp(10), 0);
-        photo.addView(save, saveLp);
         inner.addView(photo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
         card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
@@ -1193,9 +1187,14 @@ public class MainActivity extends AppCompatActivity {
     private View homeTabs(SiteClient.Home home) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(8), 0, 0);
-        LinearLayout tabs = new LinearLayout(this);
-        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        box.setPadding(0, dp(2), 0, 0);
+        LinearLayout track = new LinearLayout(this);
+        track.setOrientation(LinearLayout.HORIZONTAL);
+        track.setPadding(dp(4), dp(4), dp(4), dp(4));
+        GradientDrawable trackBg = new GradientDrawable();
+        trackBg.setCornerRadius(dp(18));
+        trackBg.setColor(0xFFEEF2F0);
+        track.setBackground(trackBg);
         String[] labels = {"सबै", "स्थानिय", "देश", "अन्तरास्ट्रिय"};
         TextView[] buttons = new TextView[4];
         LinearLayout body = new LinearLayout(this);
@@ -1203,11 +1202,10 @@ public class MainActivity extends AppCompatActivity {
         Runnable paint = () -> {
             for (int i = 0; i < buttons.length; i++) {
                 boolean on = i == homeTab;
-                buttons[i].setTextColor(on ? 0xFFFFFFFF : 0xFF0B5C28);
+                buttons[i].setTextColor(on ? 0xFFFFFFFF : 0xFF3F4A45);
                 GradientDrawable chip = new GradientDrawable();
-                chip.setCornerRadius(dp(16));
-                chip.setColor(on ? 0xFF0F8A3C : 0xFFFFFFFF);
-                if (!on) chip.setStroke(dp(1), 0xFFD6E8DC);
+                chip.setCornerRadius(dp(14));
+                chip.setColor(on ? 0xFF0F8A3C : 0x00000000);
                 buttons[i].setBackground(chip);
             }
             body.removeAllViews();
@@ -1225,9 +1223,8 @@ public class MainActivity extends AppCompatActivity {
             tab.setText(labels[i]);
             tab.setGravity(Gravity.CENTER);
             style(tab, 14, R.font.mukta_bold);
-            tab.setPadding(dp(4), dp(8), dp(4), dp(8));
+            tab.setPadding(dp(2), dp(8), dp(2), dp(8));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            lp.rightMargin = i == labels.length - 1 ? 0 : dp(6);
             tab.setLayoutParams(lp);
             int index = i;
             tab.setOnClickListener(v -> {
@@ -1235,9 +1232,9 @@ public class MainActivity extends AppCompatActivity {
                 paint.run();
             });
             buttons[i] = tab;
-            tabs.addView(tab);
+            track.addView(tab);
         }
-        box.addView(tabs);
+        box.addView(track);
         box.addView(body);
         paint.run();
         return box;
