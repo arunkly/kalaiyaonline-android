@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
     private int homeGen;
+    private int homeTab;
 
     private UpdateChecker updates;
     private View morePanel;
@@ -560,31 +561,12 @@ public class MainActivity extends AppCompatActivity {
     private void renderHome(SiteClient.Home home, int gen) {
         if (!"home".equals(section) || gen != homeGen) return;
         page.removeAllViews();
-        if (!home.headlines.isEmpty()) page.addView(slider(home.headlines));
-        if (!home.dateLine.isEmpty()) page.addView(meta(home.dateLine));
         if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
-        page.addView(chips());
-        LinearLayout sections = new LinearLayout(this);
-        sections.setOrientation(LinearLayout.VERTICAL);
-        page.addView(sections);
-        io.execute(() -> {
-            for (String[] cat : SECTIONS) {
-                List<Story> list;
-                try {
-                    list = client.category(cat[0]);
-                } catch (Exception error) {
-                    list = new ArrayList<>();
-                }
-                if (list.isEmpty()) continue;
-                List<Story> top = list.subList(0, Math.min(3, list.size()));
-                String slug = cat[0];
-                String label = cat[1];
-                runOnUiThread(() -> {
-                    if (gen != homeGen || !"home".equals(section)) return;
-                    sections.addView(categoryBlock(label, slug, top));
-                });
-            }
-        });
+        List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
+        for (int i = 0; i < heroes.size(); i++) page.addView(heroCard(heroes.get(i), i == 0));
+        page.addView(homeTabs(home));
+        if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
+        for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
     }
 
     private void showList(String kind) {
@@ -714,8 +696,11 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundResource(R.drawable.bg_ticker);
-        bar.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF08351F, 0xFF0F8A3C});
+        bg.setCornerRadius(dp(14));
+        bar.setBackground(bg);
+        bar.setPadding(dp(8), dp(6), dp(10), dp(6));
+        bar.setMinimumHeight(dp(46));
         TextView badge = new TextView(this);
         badge.setText("ताजा");
         badge.setTextColor(0xFFFFFFFF);
@@ -734,7 +719,8 @@ public class MainActivity extends AppCompatActivity {
         }
         moving.setText(text.toString());
         moving.setTextColor(0xFFFFFFFF);
-        moving.setTextSize(14);
+        moving.setTextSize(15);
+        style(moving, 15, R.font.mukta_semibold);
         moving.setSingleLine(true);
         clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
         bar.addView(clip, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -755,6 +741,154 @@ public class MainActivity extends AppCompatActivity {
             tickerAnim.start();
         });
         return bar;
+    }
+
+    private View heroCard(Story story, boolean lead) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(18));
+        card.setCardElevation(dp(2));
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        card.setUseCompatPadding(true);
+        LinearLayout inner = new LinearLayout(this);
+        inner.setOrientation(LinearLayout.VERTICAL);
+        if (!story.image.isEmpty()) {
+            ImageView image = new ImageView(this);
+            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            image.setBackgroundColor(0xFFE8F6EE);
+            inner.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, lead ? dp(210) : dp(156)));
+            loadImage(story.image, image);
+        }
+        LinearLayout pad = new LinearLayout(this);
+        pad.setOrientation(LinearLayout.VERTICAL);
+        pad.setPadding(dp(14), dp(12), dp(14), dp(14));
+        TextView kicker = new TextView(this);
+        kicker.setText(story.category.isEmpty() ? (lead ? "हेडलाइन" : "") : story.category);
+        kicker.setTextColor(0xFFF15A22);
+        style(kicker, 13, R.font.mukta_bold);
+        if (kicker.getText().length() == 0) kicker.setVisibility(View.GONE);
+        pad.addView(kicker);
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFF1C1917);
+        style(title, lead ? 25 : 20, R.font.mukta_bold);
+        title.setPadding(0, dp(4), 0, 0);
+        pad.addView(title);
+        inner.addView(pad);
+        card.addView(inner);
+        card.setOnClickListener(v -> openStory(story));
+        return card;
+    }
+
+    private View homeTabs(SiteClient.Home home) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, dp(8), 0, 0);
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        String[] labels = {"सबै", "स्थानिय", "देश", "अन्तरास्ट्रिय"};
+        TextView[] buttons = new TextView[4];
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        Runnable paint = () -> {
+            for (int i = 0; i < buttons.length; i++) {
+                boolean on = i == homeTab;
+                buttons[i].setTextColor(on ? 0xFFFFFFFF : 0xFF0B5C28);
+                GradientDrawable chip = new GradientDrawable();
+                chip.setCornerRadius(dp(16));
+                chip.setColor(on ? 0xFF0F8A3C : 0xFFFFFFFF);
+                if (!on) chip.setStroke(dp(1), 0xFFD6E8DC);
+                buttons[i].setBackground(chip);
+            }
+            body.removeAllViews();
+            List<Story> list = homeTab == 1 ? home.tabLocal : homeTab == 2 ? home.tabNational : homeTab == 3 ? home.tabWorld : home.tabAll;
+            if (list.isEmpty()) {
+                body.addView(message("यो ट्याबमा समाचार भेटिएन।"));
+                return;
+            }
+            for (int i = 0; i < list.size(); i++) {
+                body.addView(i == 0 ? heroCard(list.get(i), false) : compact(list.get(i)));
+            }
+        };
+        for (int i = 0; i < labels.length; i++) {
+            TextView tab = new TextView(this);
+            tab.setText(labels[i]);
+            tab.setGravity(Gravity.CENTER);
+            style(tab, 14, R.font.mukta_bold);
+            tab.setPadding(dp(4), dp(8), dp(4), dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            lp.rightMargin = i == labels.length - 1 ? 0 : dp(6);
+            tab.setLayoutParams(lp);
+            int index = i;
+            tab.setOnClickListener(v -> {
+                homeTab = index;
+                paint.run();
+            });
+            buttons[i] = tab;
+            tabs.addView(tab);
+        }
+        box.addView(tabs);
+        box.addView(body);
+        paint.run();
+        return box;
+    }
+
+    private View politicsGrid(List<Story> stories) {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        block.setPadding(0, dp(8), 0, dp(4));
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = new TextView(this);
+        title.setText("राजनीति");
+        title.setTextColor(0xFF0B5C28);
+        style(title, 22, R.font.mukta_extrabold);
+        head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView more = new TextView(this);
+        more.setText("सबै");
+        more.setTextColor(0xFFF15A22);
+        style(more, 14, R.font.mukta_bold);
+        more.setOnClickListener(v -> openCategory("politics", "राजनीति"));
+        head.addView(more);
+        block.addView(head);
+        LinearLayout row = null;
+        for (int i = 0; i < stories.size(); i++) {
+            if (i % 2 == 0) {
+                row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                block.addView(row);
+            }
+            row.addView(overlayCell(stories.get(i)), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+        return block;
+    }
+
+    private View overlayCell(Story story) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(16));
+        card.setCardElevation(dp(2));
+        card.setCardBackgroundColor(0xFF1C1917);
+        card.setUseCompatPadding(true);
+        FrameLayout frame = new FrameLayout(this);
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setBackgroundColor(0xFF14532D);
+        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(168)));
+        if (!story.image.isEmpty()) loadImage(story.image, image);
+        View shade = new View(this);
+        GradientDrawable fade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xF0000000});
+        shade.setBackground(fade);
+        FrameLayout.LayoutParams shadeLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(96), Gravity.BOTTOM);
+        frame.addView(shade, shadeLp);
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFFFFFFFF);
+        title.setMaxLines(3);
+        style(title, 15, R.font.mukta_bold);
+        title.setPadding(dp(10), dp(8), dp(10), dp(10));
+        frame.addView(title, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        card.addView(frame);
+        card.setOnClickListener(v -> openStory(story));
+        return card;
     }
 
     private View categoryBlock(String label, String slug, List<Story> stories) {

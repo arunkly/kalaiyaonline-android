@@ -13,17 +13,43 @@ public final class SiteClient {
     public static final String ORIGIN = "https://kalaiyaonline.com";
     private static final String UA = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
 
+    public static final class Block {
+        public final String label;
+        public final String slug;
+        public final List<Story> stories;
+
+        Block(String label, String slug, List<Story> stories) {
+            this.label = label;
+            this.slug = slug;
+            this.stories = stories;
+        }
+    }
+
     public static final class Home {
         public final String dateLine;
         public final List<Story> ticker;
         public final List<Story> headlines;
         public final List<Story> stories;
+        public final List<Story> tabAll;
+        public final List<Story> tabLocal;
+        public final List<Story> tabNational;
+        public final List<Story> tabWorld;
+        public final List<Story> politics;
+        public final List<Block> blocks;
 
-        Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories) {
+        Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories,
+             List<Story> tabAll, List<Story> tabLocal, List<Story> tabNational, List<Story> tabWorld,
+             List<Story> politics, List<Block> blocks) {
             this.dateLine = dateLine;
             this.ticker = ticker;
             this.headlines = headlines;
             this.stories = stories;
+            this.tabAll = tabAll;
+            this.tabLocal = tabLocal;
+            this.tabNational = tabNational;
+            this.tabWorld = tabWorld;
+            this.politics = politics;
+            this.blocks = blocks;
         }
     }
 
@@ -44,21 +70,59 @@ public final class SiteClient {
         if (lead != null) headlines.add(lead);
         for (Element article : doc.select("article.master-feature-card.is-secondary")) {
             Story story = storyFromElement(article);
-            if (story == null || containsSlug(headlines, story.slug) || headlines.size() >= 3) continue;
+            if (story == null || containsSlug(headlines, story.slug) || headlines.size() >= 2) continue;
             headlines.add(story);
         }
         for (Story story : stories) {
-            if (headlines.size() >= 3) break;
+            if (headlines.size() >= 2) break;
             if (!"हेडलाइन".equals(story.category) && !headlines.isEmpty()) continue;
             if (containsSlug(headlines, story.slug)) continue;
             headlines.add(story);
         }
         for (Story story : stories) {
-            if (headlines.size() >= 3) break;
+            if (headlines.size() >= 2) break;
             if (containsSlug(headlines, story.slug)) continue;
             headlines.add(story);
         }
-        return new Home(date, ticker, headlines, stories);
+        List<Story> tabAll = storiesFrom(doc.getElementById("master-tab-all"), 6);
+        List<Story> tabLocal = storiesFrom(doc.getElementById("master-tab-local"), 6);
+        List<Story> tabNational = storiesFrom(doc.getElementById("master-tab-national"), 6);
+        List<Story> tabWorld = storiesFrom(doc.getElementById("master-tab-international"), 6);
+        List<Story> politics = new ArrayList<>();
+        List<Block> blocks = new ArrayList<>();
+        for (Element section : doc.select("section.master-section")) {
+            String aria = section.attr("aria-label");
+            if (aria.startsWith("राजनीति")) {
+                politics = storiesFrom(section, 4);
+            } else if (aria.startsWith("अर्थ")) {
+                addBlock(blocks, "अर्थ", "artha", section, 3);
+            } else if (aria.startsWith("खेल")) {
+                addBlock(blocks, "खेलकुद", "khelkud", section, 3);
+            } else if (aria.contains("मनोरंजन")) {
+                addBlock(blocks, "मनोरंजन", "entertainment", section, 3);
+            } else if (aria.contains("लेख")) {
+                addBlock(blocks, "लेख / बिचार", "lekhabichar", section, 3);
+            }
+        }
+        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, blocks);
+    }
+
+    private void addBlock(List<Block> blocks, String label, String slug, Element section, int limit) {
+        List<Story> list = storiesFrom(section, limit);
+        if (!list.isEmpty()) blocks.add(new Block(label, slug, list));
+    }
+
+    private List<Story> storiesFrom(Element scope, int limit) {
+        List<Story> stories = new ArrayList<>();
+        if (scope == null) return stories;
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element article : scope.select("article")) {
+            Story story = storyFromElement(article);
+            if (story == null || !seen.add(story.slug)) continue;
+            stories.add(story);
+            if (stories.size() >= limit) break;
+        }
+        return stories;
     }
 
     public List<Story> category(String slug) throws Exception {
