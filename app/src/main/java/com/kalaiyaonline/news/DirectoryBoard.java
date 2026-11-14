@@ -42,7 +42,9 @@ final class DirectoryBoard {
     private final EditText query;
     private final List<Listing> listings = new ArrayList<>();
     private final LinearLayout chips;
+    private final List<String> siteCategories = new ArrayList<>();
     private String category = "";
+    private boolean detailOpen;
     private int page;
     private int generation;
 
@@ -90,33 +92,47 @@ final class DirectoryBoard {
 
     void load() {
         if (!listings.isEmpty()) {
-            showPage();
-            return;
+            renderChips();
+            if (!detailOpen) showPage();
+        } else {
+            status.setText("डाइरेक्टरी लोड हुँदैछ…");
         }
-        status.setText("डाइरेक्टरी लोड हुँदैछ…");
         new Thread(() -> {
             String html = download("https://kalaiyaonline.com/?directory=all");
             List<Listing> parsed = html == null ? null : parse(html);
             activity.runOnUiThread(() -> {
                 if (parsed == null) {
-                    status.setText("डाइरेक्टरी आएन। फेरि थिच्नुहोस्।");
-                    status.setOnClickListener(v -> {
-                        listings.clear();
-                        load();
-                    });
+                    if (listings.isEmpty()) {
+                        status.setText("डाइरेक्टरी आएन। फेरि थिच्नुहोस्।");
+                        status.setOnClickListener(v -> load());
+                    }
                     return;
                 }
                 status.setOnClickListener(null);
                 listings.clear();
                 listings.addAll(parsed);
-                page = 0;
+                if (!category.isEmpty() && !siteCategories.contains(category) && !hasCategory(category)) category = "";
                 renderChips();
-                showPage();
+                if (!detailOpen) showPage();
             });
         }).start();
     }
 
+    private boolean hasCategory(String name) {
+        for (Listing item : listings) if (name.equals(item.category)) return true;
+        return false;
+    }
+
     private List<Listing> parse(String html) {
+        List<String> found = new ArrayList<>();
+        Matcher cats = Pattern.compile("<a\\b[^>]*href=\"[^\"]*directory_category=[^\"]*\"[^>]*>([\\s\\S]*?)</a>").matcher(html);
+        while (cats.find()) {
+            String name = decode(cats.group(1).replaceAll("<[^>]+>", "")).replaceAll("\\s+", " ").trim();
+            if (name.length() < 2 || "सबै".equals(name) || found.contains(name)) continue;
+            found.add(name);
+        }
+        siteCategories.clear();
+        siteCategories.addAll(found);
         List<Listing> rows = new ArrayList<>();
         Matcher cards = Pattern.compile("<article class=\"directory-card-v3\">([\\s\\S]*?)</article>").matcher(html);
         while (cards.find()) {
@@ -136,16 +152,8 @@ final class DirectoryBoard {
     private void renderChips() {
         chips.removeAllViews();
         chips.addView(chip("सबै", "", category.isEmpty()));
-        LinkedHashSet<String> found = new LinkedHashSet<>();
-        for (Listing item : listings) if (!item.category.isEmpty()) found.add(item.category);
-        String[] order = {"अस्पताल", "स्वास्थ्य", "कम्प्युटर", "आईटी", "क्याफे", "खाजा", "बैंक", "विद्यालय", "कलेज", "व्यवसाय", "सरकारी", "होटल", "रेष्ट"};
-        List<String> names = new ArrayList<>();
-        for (String key : order) {
-            for (String name : found) {
-                if (name.contains(key) && !names.contains(name)) names.add(name);
-            }
-        }
-        for (String name : found) if (!names.contains(name)) names.add(name);
+        LinkedHashSet<String> names = new LinkedHashSet<>(siteCategories);
+        for (Listing item : listings) if (!item.category.isEmpty()) names.add(item.category);
         for (String name : names) chips.addView(chip(name, name, name.equals(category)));
     }
 
@@ -192,6 +200,7 @@ final class DirectoryBoard {
     }
 
     private void showPage() {
+        detailOpen = false;
         if (listings.isEmpty()) return;
         generation++;
         String needle = query.getText().toString().trim();
@@ -253,6 +262,7 @@ final class DirectoryBoard {
     }
 
     private void openDetail(Listing item) {
+        detailOpen = true;
         generation++;
         int token = generation;
         list.removeAllViews();
