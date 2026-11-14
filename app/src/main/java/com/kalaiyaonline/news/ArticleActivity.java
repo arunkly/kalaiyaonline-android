@@ -25,6 +25,7 @@ import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.android.gms.ads.AdView;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.InputStream;
@@ -68,7 +69,7 @@ public class ArticleActivity extends AppCompatActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFFFFFFF);
-        root.addView(brandHeader());
+        root.addView(homeHeader());
         TextView back = new TextView(this);
         back.setText("‹");
         back.setTextColor(0xFF0B5C28);
@@ -223,8 +224,35 @@ public class ArticleActivity extends AppCompatActivity {
 
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.setPadding(0, 0, 0, dp(50));
         articleAd = Ads.attach(this, root);
-        setContentView(root);
+        FrameLayout screen = new FrameLayout(this);
+        screen.addView(root, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        View hairline = new View(this);
+        hairline.setBackgroundColor(0xFFE7E5E4);
+        FrameLayout.LayoutParams lineLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.BOTTOM);
+        lineLp.bottomMargin = dp(50);
+        screen.addView(hairline, lineLp);
+        BottomNavigationView nav = new BottomNavigationView(this);
+        nav.inflateMenu(R.menu.bottom_nav);
+        nav.setBackgroundColor(0xFFFFFFFF);
+        nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
+        nav.setItemTextColor(getColorStateList(R.color.nav_tint));
+        nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
+        nav.setItemIconSize(dp(26));
+        nav.setItemPaddingTop(dp(2));
+        nav.setItemPaddingBottom(dp(1));
+        nav.setItemActiveIndicatorEnabled(false);
+        nav.setItemTextAppearanceActive(R.style.NavLabel);
+        nav.setItemTextAppearanceInactive(R.style.NavLabel);
+        nav.setElevation(dp(8));
+        nav.setOnItemSelectedListener(item -> {
+            leave(navTarget(item.getItemId()));
+            return true;
+        });
+        nav.setOnItemReselectedListener(item -> leave(navTarget(item.getItemId())));
+        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50), Gravity.BOTTOM));
+        setContentView(screen);
 
         if (fallbackImage != null && !fallbackImage.isEmpty()) load(fallbackImage, image);
         io.execute(() -> {
@@ -256,6 +284,71 @@ public class ArticleActivity extends AppCompatActivity {
                 runOnUiThread(() -> bodyView.setText("समाचार खोल्न सकिएन।"));
             }
         });
+    }
+
+    private View homeHeader() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFFFFFFF);
+        box.setElevation(dp(2));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(10), dp(12), dp(10));
+        ImageView logo = new ImageView(this);
+        logo.setAdjustViewBounds(true);
+        logo.setScaleType(ImageView.ScaleType.FIT_START);
+        logo.setImageResource(R.drawable.wordmark);
+        row.addView(logo, new LinearLayout.LayoutParams(0, dp(38), 1f));
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        actions.setPadding(dp(3), dp(3), dp(3), dp(3));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(0xFFF3F6F4);
+        pill.setCornerRadius(dp(22));
+        actions.setBackground(pill);
+        actions.addView(headerButton(R.drawable.ic_bell, () -> leave("bell")));
+        actions.addView(headerButton(R.drawable.ic_search, () -> leave("search")));
+        actions.addView(headerButton(R.drawable.ic_menu, () -> leave("menu")));
+        row.addView(actions);
+        box.addView(row);
+        View accent = new View(this);
+        accent.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF0B5C28, 0xFF18A34A, 0xFFF15A22}));
+        box.addView(accent, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
+        return box;
+    }
+
+    private View headerButton(int icon, Runnable action) {
+        ImageView view = new ImageView(this);
+        view.setImageResource(icon);
+        view.setPadding(dp(8), dp(8), dp(8), dp(8));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(36), dp(36));
+        lp.leftMargin = dp(1);
+        lp.rightMargin = dp(1);
+        view.setLayoutParams(lp);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(18));
+        bg.setColor(0xFFF3F6F4);
+        view.setBackground(bg);
+        view.setOnClickListener(v -> action.run());
+        return view;
+    }
+
+    private String navTarget(int id) {
+        if (id == R.id.nav_gallery) return "gallery";
+        if (id == R.id.nav_directory) return "directory";
+        if (id == R.id.nav_saved) return "saved";
+        if (id == R.id.nav_more) return "more";
+        return "home";
+    }
+
+    private void leave(String open) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("open", open);
+        startActivity(intent);
+        finish();
     }
 
     private View brandHeader() {

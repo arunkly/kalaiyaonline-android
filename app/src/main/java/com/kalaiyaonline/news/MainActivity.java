@@ -212,8 +212,31 @@ public class MainActivity extends AppCompatActivity {
         screen.addView(nav, navLp);
         setContentView(screen);
         showHome();
+        consumeOpen(getIntent());
         updates = new UpdateChecker(this);
         updates.check();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        consumeOpen(intent);
+    }
+
+    private void consumeOpen(Intent intent) {
+        if (intent == null) return;
+        String open = intent.getStringExtra("open");
+        if (open == null || open.isEmpty() || nav == null) return;
+        intent.removeExtra("open");
+        if ("search".equals(open)) openSearch();
+        else if ("bell".equals(open)) openBell();
+        else if ("menu".equals(open)) openDrawer();
+        else if ("more".equals(open)) setMore(true);
+        else if ("gallery".equals(open)) nav.setSelectedItemId(R.id.nav_gallery);
+        else if ("directory".equals(open)) nav.setSelectedItemId(R.id.nav_directory);
+        else if ("saved".equals(open)) nav.setSelectedItemId(R.id.nav_saved);
+        else nav.setSelectedItemId(R.id.nav_home);
     }
 
     @Override
