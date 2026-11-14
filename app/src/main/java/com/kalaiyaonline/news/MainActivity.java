@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
     private BloodBoard blood;
     private VideoBoard videos;
     private DirectoryBoard directory;
-    private BottomNavigationView nav;
+    private DockBar nav;
     private boolean moreOpen;
     private boolean restoringNav;
     private int currentNav = R.id.nav_home;
@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        root.setPadding(0, 0, 0, dp(50));
+        root.setPadding(0, 0, 0, DockBar.inset(this));
         shellAd = Ads.attach(this, root);
         screen.addView(root, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         dim.setVisibility(View.GONE);
         dim.setOnClickListener(v -> closeOverlays());
         FrameLayout.LayoutParams dimLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        dimLp.bottomMargin = dp(50);
+        dimLp.bottomMargin = DockBar.inset(this);
         screen.addView(dim, dimLp);
 
         searchPanel = searchPanel();
@@ -158,58 +158,43 @@ public class MainActivity extends AppCompatActivity {
         drawer = drawer();
         drawer.setVisibility(View.GONE);
         FrameLayout.LayoutParams drawerLp = new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START);
-        drawerLp.bottomMargin = dp(50);
+        drawerLp.bottomMargin = DockBar.inset(this);
         screen.addView(drawer, drawerLp);
 
         morePanel = morePanel();
         morePanel.setVisibility(View.GONE);
         FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-        sheetLp.bottomMargin = dp(50);
+        sheetLp.bottomMargin = DockBar.inset(this);
         screen.addView(morePanel, sheetLp);
 
-        BottomNavigationView nav = new BottomNavigationView(this);
+        DockBar nav = new DockBar(this);
         this.nav = nav;
-        nav.inflateMenu(R.menu.bottom_nav);
-        nav.setBackgroundColor(0xFFFFFFFF);
-        nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
-        nav.setItemTextColor(getColorStateList(R.color.nav_tint));
-        nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
-        nav.setItemIconSize(dp(26));
-        nav.setItemPaddingTop(dp(2));
-        nav.setItemPaddingBottom(dp(1));
-        nav.setItemActiveIndicatorEnabled(false);
-        nav.setItemTextAppearanceActive(R.style.NavLabel);
-        nav.setItemTextAppearanceInactive(R.style.NavLabel);
-        nav.setElevation(dp(8));
-        nav.setOnItemSelectedListener(item -> {
-            if (restoringNav) return true;
-            int id = item.getItemId();
-            if (id == R.id.nav_more) {
-                setMore(true);
-                return true;
-            }
-            setMore(false);
-            currentNav = id;
-            if (id == R.id.nav_home) showHome();
-            else if (id == R.id.nav_gallery) showList("gallery");
-            else if (id == R.id.nav_directory) showDirectory();
-            else if (id == R.id.nav_saved) showSaved();
-            return true;
-        });
-        nav.setOnItemReselectedListener(item -> {
-            if (restoringNav) return;
-            if (item.getItemId() == R.id.nav_more) {
+        nav.setListener(new DockBar.Listener() {
+            @Override
+            public void onSelect(int id) {
+                if (restoringNav) return;
+                if (id == R.id.nav_more) {
+                    setMore(true);
+                    return;
+                }
                 setMore(false);
-                restoreNav();
+                currentNav = id;
+                if (id == R.id.nav_home) showHome();
+                else if (id == R.id.nav_gallery) showList("gallery");
+                else if (id == R.id.nav_directory) showDirectory();
+                else if (id == R.id.nav_saved) showSaved();
+            }
+
+            @Override
+            public void onReselect(int id) {
+                if (restoringNav) return;
+                if (id == R.id.nav_more) {
+                    setMore(false);
+                    restoreNav();
+                }
             }
         });
-        View hairline = new View(this);
-        hairline.setBackgroundColor(0xFFE7E5E4);
-        FrameLayout.LayoutParams lineLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.BOTTOM);
-        lineLp.bottomMargin = dp(50);
-        screen.addView(hairline, lineLp);
-        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50), Gravity.BOTTOM);
-        screen.addView(nav, navLp);
+        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this) + dp(28), Gravity.BOTTOM));
         setContentView(screen);
         showHome();
         consumeOpen(getIntent());

@@ -112,35 +112,24 @@ public class GalleryActivity extends AppCompatActivity {
 
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        root.setPadding(0, 0, 0, dp(50));
+        root.setPadding(0, 0, 0, DockBar.inset(this));
         galleryAd = Ads.attach(this, root);
         FrameLayout screen = new FrameLayout(this);
         screen.addView(root, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        View hairline = new View(this);
-        hairline.setBackgroundColor(0xFFE7E5E4);
-        FrameLayout.LayoutParams lineLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.BOTTOM);
-        lineLp.bottomMargin = dp(50);
-        screen.addView(hairline, lineLp);
-        BottomNavigationView nav = new BottomNavigationView(this);
-        nav.inflateMenu(R.menu.bottom_nav);
-        nav.setBackgroundColor(0xFFFFFFFF);
-        nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
-        nav.setItemTextColor(getColorStateList(R.color.nav_tint));
-        nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
-        nav.setItemIconSize(dp(26));
-        nav.setItemPaddingTop(dp(2));
-        nav.setItemPaddingBottom(dp(1));
-        nav.setItemActiveIndicatorEnabled(false);
-        nav.setItemTextAppearanceActive(R.style.NavLabel);
-        nav.setItemTextAppearanceInactive(R.style.NavLabel);
-        nav.setElevation(dp(8));
+        DockBar nav = new DockBar(this);
         nav.setSelectedItemId(R.id.nav_gallery);
-        nav.setOnItemSelectedListener(item -> {
-            leave(navTarget(item.getItemId()));
-            return true;
+        nav.setListener(new DockBar.Listener() {
+            @Override
+            public void onSelect(int id) {
+                leave(navTarget(id));
+            }
+
+            @Override
+            public void onReselect(int id) {
+                leave(navTarget(id));
+            }
         });
-        nav.setOnItemReselectedListener(item -> leave(navTarget(item.getItemId())));
-        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50), Gravity.BOTTOM));
+        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this) + dp(28), Gravity.BOTTOM));
         setContentView(screen);
 
         if (fallbackImage != null && !fallbackImage.isEmpty()) load(fallbackImage, coverImage, 1000);
