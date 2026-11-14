@@ -125,7 +125,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Night.sync(this);
         FrameLayout screen = new FrameLayout(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -211,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         });
         screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this), Gravity.BOTTOM));
         setContentView(screen);
+        Night.sync(this);
         showHome();
         consumeOpen(getIntent());
         updates = new UpdateChecker(this);
