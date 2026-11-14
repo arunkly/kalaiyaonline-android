@@ -44,6 +44,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.gms.ads.AdView;
 import com.google.android.material.card.MaterialCardView;
 
+import org.json.JSONObject;
+
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -72,8 +74,12 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final Handler sliderHandler = new Handler(Looper.getMainLooper());
+    private final Handler infoHandler = new Handler(Looper.getMainLooper());
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
+    private TextView weatherFlip;
+    private String[] weatherLines = new String[0];
+    private int weatherIndex;
     private int homeGen;
     private int homeTab;
     private String catSlug = "";
@@ -1011,7 +1017,7 @@ public class MainActivity extends AppCompatActivity {
             feedAd = null;
         }
         page.removeAllViews();
-        if (!home.ticker.isEmpty()) page.addView(ticker(home.ticker));
+        page.addView(infoBar(home.dateLine));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
         for (Story story : heroes) page.addView(headlineCard(story));
         View rule = new View(this);
@@ -1258,6 +1264,183 @@ public class MainActivity extends AppCompatActivity {
             int next = (pager.getCurrentItem() + 1) % count;
             pager.setCurrentItem(next, true);
         }, 3500);
+    }
+
+    private View infoBar(String dateLine) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = dp(8);
+        rowLp.bottomMargin = dp(8);
+        row.setLayoutParams(rowLp);
+        row.addView(dateChip(dateLine), new LinearLayout.LayoutParams(0, dp(58), 1.15f));
+        View gap = new View(this);
+        row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
+        row.addView(weatherChip(), new LinearLayout.LayoutParams(0, dp(58), 1f));
+        loadStripWeather();
+        return row;
+    }
+
+    private View dateChip(String dateLine) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(dp(10), dp(6), dp(10), dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFFFFFFF);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), 0xFFE5E7EB);
+        box.setBackground(bg);
+        TextView day = new TextView(this);
+        day.setTextColor(0xFF0F8A3C);
+        style(day, 22, R.font.mukta_extrabold);
+        day.setIncludeFontPadding(false);
+        String[] parts = nepaliDate(dateLine);
+        day.setText(parts[0]);
+        box.addView(day);
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.setPadding(dp(8), 0, 0, 0);
+        TextView week = new TextView(this);
+        week.setText(weekday());
+        week.setTextColor(0xFFF15A22);
+        style(week, 11, R.font.mukta_bold);
+        week.setIncludeFontPadding(false);
+        words.addView(week);
+        TextView rest = new TextView(this);
+        rest.setText(parts[1]);
+        rest.setTextColor(0xFF142033);
+        rest.setMaxLines(1);
+        style(rest, 13, R.font.mukta_semibold);
+        rest.setIncludeFontPadding(false);
+        words.addView(rest);
+        box.addView(words);
+        box.setOnClickListener(v -> showPatro());
+        return box;
+    }
+
+    private View weatherChip() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(dp(12), dp(6), dp(12), dp(6));
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF0B5C28, 0xFF14944A});
+        bg.setCornerRadius(dp(16));
+        box.setBackground(bg);
+        TextView place = new TextView(this);
+        place.setText("कलैया");
+        place.setTextColor(0xFFD1FAE5);
+        style(place, 11, R.font.mukta_bold);
+        place.setIncludeFontPadding(false);
+        box.addView(place);
+        weatherFlip = new TextView(this);
+        weatherFlip.setText("मौसम लोड हुँदैछ");
+        weatherFlip.setTextColor(0xFFFFFFFF);
+        weatherFlip.setMaxLines(1);
+        style(weatherFlip, 16, R.font.mukta_bold);
+        weatherFlip.setIncludeFontPadding(false);
+        box.addView(weatherFlip);
+        box.setOnClickListener(v -> showWeather());
+        return box;
+    }
+
+    private void loadStripWeather() {
+        io.execute(() -> {
+            String body = fetchText("https://api.open-meteo.com/v1/forecast?latitude=27.033&longitude=84.983&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FKathmandu&forecast_days=1");
+            String[] lines = weatherCopy(body);
+            runOnUiThread(() -> {
+                if (!"home".equals(section) || weatherFlip == null || lines.length == 0) return;
+                weatherLines = lines;
+                weatherIndex = 0;
+                weatherFlip.setAlpha(1f);
+                weatherFlip.setText(lines[0]);
+                infoHandler.removeCallbacksAndMessages(null);
+                infoHandler.postDelayed(this::advanceWeather, 2600);
+            });
+        });
+    }
+
+    private void advanceWeather() {
+        if (!"home".equals(section) || weatherFlip == null || weatherLines.length < 2) return;
+        weatherFlip.animate().alpha(0f).setDuration(240).withEndAction(() -> {
+            if (weatherFlip == null || weatherLines.length == 0) return;
+            weatherIndex = (weatherIndex + 1) % weatherLines.length;
+            weatherFlip.setText(weatherLines[weatherIndex]);
+            weatherFlip.animate().alpha(1f).setDuration(240).start();
+            infoHandler.postDelayed(this::advanceWeather, 2600);
+        }).start();
+    }
+
+    private String[] weatherCopy(String body) {
+        try {
+            JSONObject json = new JSONObject(body);
+            JSONObject current = json.getJSONObject("current");
+            int temp = (int) Math.round(current.getDouble("temperature_2m"));
+            String sky = skyLabel(current.optInt("weather_code"));
+            JSONObject daily = json.getJSONObject("daily");
+            int max = (int) Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0));
+            int min = (int) Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0));
+            return new String[]{nepaliNumber(temp) + "°", sky, nepaliNumber(max) + "° / " + nepaliNumber(min) + "°"};
+        } catch (Exception ignored) {
+            return new String[0];
+        }
+    }
+
+    private String skyLabel(int code) {
+        if (code == 0) return "घमाइलो";
+        if (code <= 3) return "आंशिक बादल";
+        if (code == 45 || code == 48) return "हुस्सु";
+        if (code <= 67) return "वर्षा";
+        if (code <= 77) return "हिउँ";
+        if (code <= 82) return "झरी";
+        if (code >= 95) return "चट्याङ";
+        return "बादल";
+    }
+
+    private String[] nepaliDate(String dateLine) {
+        String value = dateLine == null ? "" : dateLine;
+        int cut = value.indexOf('|');
+        if (cut > 0) value = value.substring(0, cut).trim();
+        String[] parts = value.split("\\s+");
+        if (parts.length >= 3) return new String[]{parts[parts.length - 1], parts[parts.length - 2] + "  " + parts[0]};
+        if (!value.isEmpty()) return new String[]{"आज", value};
+        return new String[]{"आज", weekday()};
+    }
+
+    private String weekday() {
+        String[] names = {"", "आइतबार", "सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"};
+        return names[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK)];
+    }
+
+    private String nepaliNumber(int number) {
+        String digits = "०१२३४५६७८९";
+        String raw = String.valueOf(Math.abs(number));
+        StringBuilder out = new StringBuilder();
+        if (number < 0) out.append('-');
+        for (int i = 0; i < raw.length(); i++) out.append(digits.charAt(raw.charAt(i) - '0'));
+        return out.toString();
+    }
+
+    private String fetchText(String address) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(address).openConnection();
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(8000);
+            connection.setRequestProperty("User-Agent", "KalaiyaOnline");
+            InputStream input = connection.getInputStream();
+            StringBuilder body = new StringBuilder();
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
+            input.close();
+            return body.toString();
+        } catch (Exception ignored) {
+            return "";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private View ticker(List<Story> items) {
@@ -1660,6 +1843,8 @@ public class MainActivity extends AppCompatActivity {
         homeGen++;
         sliderHandler.removeCallbacksAndMessages(null);
         if (tickerAnim != null) tickerAnim.cancel();
+        infoHandler.removeCallbacksAndMessages(null);
+        if (weatherFlip != null) weatherFlip.animate().cancel();
         pager = null;
     }
 
