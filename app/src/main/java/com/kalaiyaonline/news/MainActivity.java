@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         dim.setVisibility(View.GONE);
         dim.setOnClickListener(v -> closeOverlays());
         FrameLayout.LayoutParams dimLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        dimLp.bottomMargin = dp(56);
+        dimLp.bottomMargin = dp(50);
         screen.addView(dim, dimLp);
 
         searchPanel = searchPanel();
@@ -141,13 +141,13 @@ public class MainActivity extends AppCompatActivity {
         drawer = drawer();
         drawer.setVisibility(View.GONE);
         FrameLayout.LayoutParams drawerLp = new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START);
-        drawerLp.bottomMargin = dp(56);
+        drawerLp.bottomMargin = dp(50);
         screen.addView(drawer, drawerLp);
 
         morePanel = morePanel();
         morePanel.setVisibility(View.GONE);
         FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-        sheetLp.bottomMargin = dp(56);
+        sheetLp.bottomMargin = dp(50);
         screen.addView(morePanel, sheetLp);
 
         BottomNavigationView nav = new BottomNavigationView(this);
@@ -157,9 +157,9 @@ public class MainActivity extends AppCompatActivity {
         nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
         nav.setItemTextColor(getColorStateList(R.color.nav_tint));
         nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
-        nav.setItemIconSize(dp(22));
-        nav.setItemPaddingTop(dp(4));
-        nav.setItemPaddingBottom(dp(6));
+        nav.setItemIconSize(dp(26));
+        nav.setItemPaddingTop(dp(2));
+        nav.setItemPaddingBottom(dp(1));
         nav.setItemActiveIndicatorEnabled(false);
         nav.setItemTextAppearanceActive(R.style.NavLabel);
         nav.setItemTextAppearanceInactive(R.style.NavLabel);
@@ -189,9 +189,9 @@ public class MainActivity extends AppCompatActivity {
         View hairline = new View(this);
         hairline.setBackgroundColor(0xFFE7E5E4);
         FrameLayout.LayoutParams lineLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.BOTTOM);
-        lineLp.bottomMargin = dp(56);
+        lineLp.bottomMargin = dp(50);
         screen.addView(hairline, lineLp);
-        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM);
+        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50), Gravity.BOTTOM);
         screen.addView(nav, navLp);
         setContentView(screen);
         showHome();
@@ -785,7 +785,7 @@ public class MainActivity extends AppCompatActivity {
         stopMotion();
         setMore(false);
         page.removeAllViews();
-        page.addView(heading("शीर्षक"));
+        page.addView(heading("सेभ"));
         List<Story> saved = SavedStore.list(this);
         if (saved.isEmpty()) {
             page.addView(message("सेभ गरिएको समाचार छैन।"));

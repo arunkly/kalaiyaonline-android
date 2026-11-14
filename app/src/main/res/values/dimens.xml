@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="design_bottom_navigation_margin">0dp</dimen>
+    <dimen name="design_bottom_navigation_label_padding">1dp</dimen>
+    <dimen name="m3_bottom_nav_min_height">52dp</dimen>
+</resources>

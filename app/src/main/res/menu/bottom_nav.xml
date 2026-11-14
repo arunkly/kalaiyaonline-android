@@ -3,6 +3,6 @@
     <item android:id="@+id/nav_home" android:icon="@drawable/ic_home" android:title="गृह" />
     <item android:id="@+id/nav_gallery" android:icon="@drawable/ic_photo" android:title="फोटो" />
     <item android:id="@+id/nav_directory" android:icon="@drawable/ic_pin" android:title="डाइरेक्टरी" />
-    <item android:id="@+id/nav_saved" android:icon="@drawable/ic_bookmark" android:title="शीर्षक" />
+    <item android:id="@+id/nav_saved" android:icon="@drawable/ic_bookmark" android:title="सेभ" />
     <item android:id="@+id/nav_more" android:icon="@drawable/ic_more" android:title="थप" />
 </menu>
