@@ -264,13 +264,10 @@ public class ArticleActivity extends AppCompatActivity {
         logo.setImageResource(R.drawable.wordmark);
         int pad = dp(10);
         logo.setPadding(pad, pad, pad, dp(6));
-        box.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
-        View green = new View(this);
-        green.setBackgroundColor(0xFF0F8A3C);
-        box.addView(green, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)));
-        View orange = new View(this);
-        orange.setBackgroundColor(0xFFF15A22);
-        box.addView(orange, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
+        box.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
+        View accent = new View(this);
+        accent.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF0B5C28, 0xFF18A34A, 0xFFF15A22}));
+        box.addView(accent, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
         return box;
     }
 
