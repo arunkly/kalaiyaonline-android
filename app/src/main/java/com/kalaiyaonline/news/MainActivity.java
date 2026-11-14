@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private CurrencyBoard fx;
     private PreetiBoard preeti;
     private BloodBoard blood;
+    private VideoBoard videos;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -256,12 +257,13 @@ public class MainActivity extends AppCompatActivity {
         fx = new CurrencyBoard(this);
         preeti = new PreetiBoard(this);
         blood = new BloodBoard(this);
+        videos = new VideoBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         gridLp.topMargin = dp(12);
         box.addView(modules, gridLp);
-        modules.addView(moduleTile("🎬", "भिडियो", 0xFFE7F6EC, () -> openTab(R.id.nav_reels)));
+        modules.addView(moduleTile("🎬", "भिडियो", 0xFFE7F6EC, this::showVideos));
         modules.addView(moduleTile("🎞", "रील्स", 0xFFFDECEC, () -> openTab(R.id.nav_reels)));
         modules.addView(moduleTile("🔴", "लाइभ", 0xFFF3E9FB, () -> showSoon("लाइभ")));
         modules.addView(moduleTile("⛅", "मौसम", 0xFFFFF4E5, this::showWeather));
@@ -449,6 +451,19 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         blood.load();
+    }
+
+    private void showVideos() {
+        section = "videos";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("भिडियो"));
+        View board = videos.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        videos.load();
     }
 
     private void setMore(boolean open) {
