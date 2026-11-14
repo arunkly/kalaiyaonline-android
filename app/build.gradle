@@ -10,8 +10,8 @@ android {
         applicationId "com.kalaiyaonline.news"
         minSdk 24
         targetSdk 34
-        versionCode 66
-        versionName "2.9.19"
+        versionCode 67
+        versionName "2.9.20"
     }
 
     buildTypes {

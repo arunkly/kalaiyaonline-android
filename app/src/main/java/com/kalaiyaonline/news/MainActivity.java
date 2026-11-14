@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private final Handler infoHandler = new Handler(Looper.getMainLooper());
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
+    private FrameLayout tickerHost;
     private TextView weatherFlip;
     private TextView weatherTemp;
     private String[] weatherLines = new String[0];
@@ -128,6 +129,9 @@ public class MainActivity extends AppCompatActivity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFF6F7F4);
         root.addView(header());
+        tickerHost = new FrameLayout(this);
+        tickerHost.setVisibility(View.GONE);
+        root.addView(tickerHost, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -1018,6 +1022,7 @@ public class MainActivity extends AppCompatActivity {
             feedAd = null;
         }
         page.removeAllViews();
+        mountTicker(home.ticker);
         page.addView(infoBar(home.dateLine));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
         for (Story story : heroes) page.addView(headlineCard(story));
@@ -1466,44 +1471,65 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void mountTicker(List<Story> items) {
+        if (tickerHost == null) return;
+        tickerHost.removeAllViews();
+        if (items == null || items.isEmpty()) {
+            tickerHost.setVisibility(View.GONE);
+            return;
+        }
+        tickerHost.addView(ticker(items));
+        tickerHost.setVisibility(View.VISIBLE);
+    }
+
     private View ticker(List<Story> items) {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setClipChildren(true);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFFFFFFFF);
-        bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1), 0xFFE7E5E4);
-        bar.setBackground(bg);
-        bar.setPadding(dp(8), dp(7), dp(12), dp(7));
-        bar.setMinimumHeight(dp(48));
-        TextView badge = new TextView(this);
-        badge.setText("ताजा");
-        badge.setTextColor(0xFFFFFFFF);
-        badge.setTextSize(12);
-        badge.setBackgroundResource(R.drawable.bg_badge);
-        badge.setPadding(dp(10), dp(4), dp(10), dp(4));
-        bar.addView(badge);
+        bar.setBackgroundColor(0xFFFFFFFF);
+        bar.setMinimumHeight(dp(42));
+        LinearLayout badge = new LinearLayout(this);
+        badge.setOrientation(LinearLayout.HORIZONTAL);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackgroundColor(0xFF0F8A3C);
+        badge.setPadding(dp(12), 0, dp(12), 0);
+        View dot = new View(this);
+        GradientDrawable dotBg = new GradientDrawable();
+        dotBg.setShape(GradientDrawable.OVAL);
+        dotBg.setColor(0xFFF15A22);
+        dot.setBackground(dotBg);
+        badge.addView(dot, new LinearLayout.LayoutParams(dp(7), dp(7)));
+        TextView label = new TextView(this);
+        label.setText("ताजा");
+        label.setTextColor(0xFFFFFFFF);
+        label.setPadding(dp(6), 0, 0, 0);
+        style(label, 13, R.font.mukta_bold);
+        label.setIncludeFontPadding(false);
+        badge.addView(label);
+        bar.addView(badge, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
         FrameLayout clip = new FrameLayout(this);
         clip.setClipChildren(true);
         TextView moving = new TextView(this);
         StringBuilder text = new StringBuilder();
         for (int pass = 0; pass < 2; pass++) {
-            for (Story item : items) text.append("   ").append(item.title).append("     •");
+            for (Story item : items) text.append(item.title).append("     ·     ");
         }
         moving.setText(text.toString().trim());
         moving.setTextColor(0xFF142033);
         moving.setSingleLine(true);
         style(moving, 15, R.font.mukta_semibold);
+        moving.setIncludeFontPadding(false);
         clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
-        LinearLayout.LayoutParams clipLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        clipLp.leftMargin = dp(10);
+        LinearLayout.LayoutParams clipLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+        clipLp.leftMargin = dp(12);
+        clipLp.rightMargin = dp(12);
         bar.addView(clip, clipLp);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        lp.bottomMargin = dp(6);
-        bar.setLayoutParams(lp);
+        View line = new View(this);
+        line.setBackgroundColor(0xFFE7E5E4);
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
+        wrap.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
         moving.post(() -> {
             moving.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             ViewGroup.LayoutParams params = moving.getLayoutParams();
@@ -1512,13 +1538,14 @@ public class MainActivity extends AppCompatActivity {
             moving.setTranslationX(clip.getWidth());
             if (tickerAnim != null) tickerAnim.cancel();
             tickerAnim = ObjectAnimator.ofFloat(moving, "translationX", clip.getWidth(), -params.width);
-            float speed = Math.max(dp(42), 1);
-            tickerAnim.setDuration(Math.max(16000L, (long) ((clip.getWidth() + params.width) / speed * 1000f)));
+            float speed = Math.max(dp(46), 1);
+            tickerAnim.setDuration(Math.max(14000L, (long) ((clip.getWidth() + params.width) / speed * 1000f)));
             tickerAnim.setRepeatCount(ValueAnimator.INFINITE);
             tickerAnim.setInterpolator(new LinearInterpolator());
             tickerAnim.start();
         });
-        return bar;
+        bar.setOnClickListener(v -> openStory(items.get(0)));
+        return wrap;
     }
 
     private View headlineCard(Story story) {
@@ -1868,6 +1895,7 @@ public class MainActivity extends AppCompatActivity {
         if (tickerAnim != null) tickerAnim.cancel();
         infoHandler.removeCallbacksAndMessages(null);
         if (weatherFlip != null) weatherFlip.animate().cancel();
+        if (tickerHost != null && !"home".equals(section)) tickerHost.setVisibility(View.GONE);
         pager = null;
     }
 
