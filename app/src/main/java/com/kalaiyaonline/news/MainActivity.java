@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private WeatherBoard weather;
     private AirBoard air;
     private PatroBoard patro;
+    private ConverterBoard converter;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -248,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
         weather = new WeatherBoard(this);
         air = new AirBoard(this);
         patro = new PatroBoard(this);
+        converter = new ConverterBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -259,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("⛅", "मौसम", 0xFFFFF4E5, this::showWeather));
         modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, this::showAir));
         modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, this::showPatro));
-        modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, () -> showSoon("मिति रूपान्तरण")));
+        modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, this::showConverter));
         modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, () -> showSoon("मुद्रा रूपान्तरण")));
         modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, () -> showSoon("प्रीति ↔ युनिकोड")));
         modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, () -> showSoon("रक्तदान")));
@@ -391,6 +393,18 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         patro.loadToday();
+    }
+
+    private void showConverter() {
+        section = "converter";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("मिति रूपान्तरण"));
+        View board = converter.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
     }
 
     private void setMore(boolean open) {
