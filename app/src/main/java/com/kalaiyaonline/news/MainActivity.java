@@ -24,6 +24,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
@@ -75,6 +78,12 @@ public class MainActivity extends AppCompatActivity {
     private ObjectAnimator tickerAnim;
     private int homeGen;
     private int homeTab;
+    private View drawer;
+    private View searchPanel;
+    private LinearLayout searchResults;
+    private EditText searchBox;
+    private boolean drawerOpen;
+    private boolean searchOpen;
 
     private UpdateChecker updates;
     private View morePanel;
@@ -114,13 +123,23 @@ public class MainActivity extends AppCompatActivity {
         dim = new View(this);
         dim.setBackgroundColor(0x73000000);
         dim.setVisibility(View.GONE);
-        dim.setOnClickListener(v -> {
-            setMore(false);
-            restoreNav();
-        });
+        dim.setOnClickListener(v -> closeOverlays());
         FrameLayout.LayoutParams dimLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         dimLp.bottomMargin = dp(56);
         screen.addView(dim, dimLp);
+
+        searchPanel = searchPanel();
+        searchPanel.setVisibility(View.GONE);
+        FrameLayout.LayoutParams searchLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        searchLp.topMargin = dp(62);
+        searchLp.bottomMargin = dp(56);
+        screen.addView(searchPanel, searchLp);
+
+        drawer = drawer();
+        drawer.setVisibility(View.GONE);
+        FrameLayout.LayoutParams drawerLp = new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START);
+        drawerLp.bottomMargin = dp(56);
+        screen.addView(drawer, drawerLp);
 
         morePanel = morePanel();
         morePanel.setVisibility(View.GONE);
@@ -188,10 +207,18 @@ public class MainActivity extends AppCompatActivity {
         box.setBackgroundColor(0xFFFFFFFF);
         ImageView logo = new ImageView(this);
         logo.setAdjustViewBounds(true);
+        logo.setScaleType(ImageView.ScaleType.FIT_START);
         logo.setImageResource(R.drawable.wordmark);
-        int pad = dp(10);
-        logo.setPadding(pad, pad, pad, dp(6));
-        box.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58)));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(8), dp(10), dp(6));
+        row.addView(logo, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        row.addView(headerButton(R.drawable.ic_search, this::openSearch));
+        View gap = new View(this);
+        row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
+        row.addView(headerButton(R.drawable.ic_menu, this::openDrawer));
+        box.addView(row);
         View green = new View(this);
         green.setBackgroundColor(0xFF0F8A3C);
         box.addView(green, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)));
@@ -199,6 +226,231 @@ public class MainActivity extends AppCompatActivity {
         orange.setBackgroundColor(0xFFF15A22);
         box.addView(orange, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
         return box;
+    }
+
+    private View headerButton(int icon, Runnable action) {
+        ImageView view = new ImageView(this);
+        view.setImageResource(icon);
+        view.setPadding(dp(9), dp(9), dp(9), dp(9));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(14));
+        bg.setColor(0xFFE8F6EE);
+        view.setBackground(bg);
+        view.setOnClickListener(v -> action.run());
+        return view;
+    }
+
+    private void openSearch() {
+        setMore(false);
+        closeDrawer(false);
+        searchOpen = true;
+        searchPanel.setVisibility(View.VISIBLE);
+        dim.setVisibility(View.VISIBLE);
+        searchBox.requestFocus();
+    }
+
+    private void openDrawer() {
+        setMore(false);
+        closeSearch(false);
+        drawerOpen = true;
+        drawer.setVisibility(View.VISIBLE);
+        drawer.setTranslationX(-dp(300));
+        drawer.animate().translationX(0).setDuration(220).start();
+        dim.setVisibility(View.VISIBLE);
+    }
+
+    private void closeOverlays() {
+        setMore(false);
+        restoreNav();
+        closeDrawer(true);
+        closeSearch(true);
+    }
+
+    private void closeDrawer(boolean hideDim) {
+        if (!drawerOpen) return;
+        drawerOpen = false;
+        drawer.animate().translationX(-dp(300)).setDuration(180).withEndAction(() -> drawer.setVisibility(View.GONE)).start();
+        if (hideDim && !searchOpen && !moreOpen) dim.setVisibility(View.GONE);
+    }
+
+    private void closeSearch(boolean hideDim) {
+        if (!searchOpen) return;
+        searchOpen = false;
+        searchPanel.setVisibility(View.GONE);
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(searchBox.getWindowToken(), 0);
+        if (hideDim && !drawerOpen && !moreOpen) dim.setVisibility(View.GONE);
+    }
+
+    private View searchPanel() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFF6F7F4);
+        box.setPadding(dp(14), dp(12), dp(14), dp(12));
+        box.setOnClickListener(v -> { });
+        TextView title = new TextView(this);
+        title.setText("समाचार खोज्नुहोस्");
+        title.setTextColor(0xFF0B5C28);
+        style(title, 20, R.font.mukta_extrabold);
+        box.addView(title);
+        searchBox = new EditText(this);
+        searchBox.setHint("शीर्षक वा शब्द लेख्नुहोस्");
+        searchBox.setSingleLine(true);
+        searchBox.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        searchBox.setTextColor(0xFF1C1917);
+        searchBox.setHintTextColor(0xFFA8A29E);
+        style(searchBox, 16, R.font.mukta_regular);
+        GradientDrawable field = new GradientDrawable();
+        field.setCornerRadius(dp(14));
+        field.setColor(0xFFFFFFFF);
+        field.setStroke(dp(1), 0xFFD6E8DC);
+        searchBox.setBackground(field);
+        searchBox.setPadding(dp(14), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams fieldLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        fieldLp.topMargin = dp(10);
+        box.addView(searchBox, fieldLp);
+        searchBox.setOnEditorActionListener((v, actionId, event) -> {
+            runSearch();
+            return true;
+        });
+        TextView go = new TextView(this);
+        go.setText("खोज्नुहोस्");
+        go.setGravity(Gravity.CENTER);
+        go.setTextColor(0xFFFFFFFF);
+        style(go, 16, R.font.mukta_bold);
+        GradientDrawable goBg = new GradientDrawable();
+        goBg.setCornerRadius(dp(14));
+        goBg.setColor(0xFF0F8A3C);
+        go.setBackground(goBg);
+        go.setPadding(dp(12), dp(10), dp(12), dp(10));
+        LinearLayout.LayoutParams goLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        goLp.topMargin = dp(10);
+        go.setOnClickListener(v -> runSearch());
+        box.addView(go, goLp);
+        searchResults = new LinearLayout(this);
+        searchResults.setOrientation(LinearLayout.VERTICAL);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(searchResults);
+        box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        return box;
+    }
+
+    private void runSearch() {
+        String query = searchBox.getText().toString().trim();
+        searchResults.removeAllViews();
+        if (query.length() < 2) {
+            searchResults.addView(message("कम्तीमा २ अक्षर लेख्नुहोस्।"));
+            return;
+        }
+        searchResults.addView(message("खोज्दैछ…"));
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(searchBox.getWindowToken(), 0);
+        io.execute(() -> {
+            try {
+                List<Story> list = client.search(query);
+                runOnUiThread(() -> {
+                    if (!searchOpen) return;
+                    searchResults.removeAllViews();
+                    if (list.isEmpty()) searchResults.addView(message("केही भेटिएन।"));
+                    for (Story story : list) searchResults.addView(compact(story));
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    searchResults.removeAllViews();
+                    searchResults.addView(message("खोज हुन सकेन।"));
+                });
+            }
+        });
+    }
+
+    private View drawer() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xFFFFFFFF);
+        box.setElevation(dp(16));
+        LinearLayout brand = new LinearLayout(this);
+        brand.setOrientation(LinearLayout.VERTICAL);
+        brand.setBackgroundColor(0xFF0F8A3C);
+        brand.setPadding(dp(18), dp(22), dp(18), dp(16));
+        TextView hello = new TextView(this);
+        hello.setText("कलैया अनलाइन");
+        hello.setTextColor(0xFFFFFFFF);
+        style(hello, 20, R.font.mukta_extrabold);
+        brand.addView(hello);
+        TextView sub = new TextView(this);
+        sub.setText("समाचार श्रेणी");
+        sub.setTextColor(0xFFD1FAE5);
+        style(sub, 13, R.font.mukta_regular);
+        brand.addView(sub);
+        box.addView(brand);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(10), dp(8), dp(10), dp(16));
+        String[][] items = {
+                {"news", "समाचार"},
+                {"local", "स्थानीय"},
+                {"international", "अन्तर्राष्ट्रिय"},
+                {"politics", "राजनीति"},
+                {"artha", "अर्थ"},
+                {"khelkud", "खेलकुद"},
+                {"entertainment", "मनोरंजन"},
+                {"lekhabichar", "लेख / बिचार"},
+                {"gallery", "फोटो ग्यालरी"},
+                {"videos", "भिडियो"},
+                {"directory", "डाइरेक्टरी"}
+        };
+        for (String[] item : items) list.addView(drawerRow(item[0], item[1]));
+        scroll.addView(list);
+        box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        return box;
+    }
+
+    private View drawerRow(String slug, String label) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(8), dp(8), dp(8), dp(8));
+        ImageView icon = new ImageView(this);
+        int res = "gallery".equals(slug) ? R.drawable.ic_photo : "videos".equals(slug) ? R.drawable.ic_play : "directory".equals(slug) ? R.drawable.ic_pin : iconFor(slug);
+        icon.setImageResource(res);
+        icon.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable bubble = new GradientDrawable();
+        bubble.setCornerRadius(dp(14));
+        bubble.setColor(0xFFE8F6EE);
+        icon.setBackground(bubble);
+        Drawable drawable = DrawableCompat.wrap(icon.getDrawable()).mutate();
+        DrawableCompat.setTint(drawable, 0xFF0B5C28);
+        icon.setImageDrawable(drawable);
+        row.addView(icon, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        TextView text = new TextView(this);
+        text.setText(label);
+        text.setTextColor(0xFF1C1917);
+        style(text, 17, R.font.mukta_bold);
+        text.setPadding(dp(12), 0, 0, 0);
+        row.addView(text);
+        row.setOnClickListener(v -> {
+            closeDrawer(true);
+            if ("gallery".equals(slug)) {
+                selectNav(R.id.nav_gallery);
+                showList("gallery");
+            } else if ("videos".equals(slug)) showVideos();
+            else if ("directory".equals(slug)) {
+                selectNav(R.id.nav_directory);
+                showDirectory();
+            } else {
+                selectNav(R.id.nav_home);
+                openCategory(slug, label);
+            }
+        });
+        return row;
+    }
+
+    private void selectNav(int id) {
+        currentNav = id;
+        restoringNav = true;
+        nav.setSelectedItemId(id);
+        restoringNav = false;
     }
 
     private View morePanel() {
@@ -740,7 +992,7 @@ public class MainActivity extends AppCompatActivity {
             moving.setTranslationX(clip.getWidth());
             if (tickerAnim != null) tickerAnim.cancel();
             tickerAnim = ObjectAnimator.ofFloat(moving, "translationX", clip.getWidth(), -moving.getWidth());
-            tickerAnim.setDuration(Math.max(12000, travel * 14L));
+            tickerAnim.setDuration(Math.max(9000, items.size() * 4200L));
             tickerAnim.setRepeatCount(ValueAnimator.INFINITE);
             tickerAnim.setInterpolator(new LinearInterpolator());
             tickerAnim.start();
@@ -773,7 +1025,8 @@ public class MainActivity extends AppCompatActivity {
         title.setText(accentTitle(story.title));
         title.setGravity(Gravity.CENTER);
         style(title, 28, R.font.mukta_extrabold);
-        title.setLineSpacing(0, 1.05f);
+        title.setIncludeFontPadding(false);
+        title.setLineSpacing(dp(-2), 0.86f);
         inner.addView(title);
 
         LinearLayout meta = new LinearLayout(this);

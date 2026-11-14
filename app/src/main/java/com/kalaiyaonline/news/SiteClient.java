@@ -60,10 +60,16 @@ public final class SiteClient {
         Set<String> seenTicker = new LinkedHashSet<>();
         for (Element item : doc.select(".aks-ticker-item")) {
             Story story = fromLink(item, "ताजा");
-            if (story == null || !seenTicker.add(story.slug) || ticker.size() >= 12) continue;
+            if (story == null || !seenTicker.add(story.slug) || ticker.size() >= 4) continue;
             ticker.add(story);
         }
         List<Story> stories = storiesIn(doc);
+        if (ticker.size() < 4) {
+            for (Story story : stories) {
+                if (ticker.size() >= 4) break;
+                if (!containsSlug(ticker, story.slug)) ticker.add(story);
+            }
+        }
         List<Story> headlines = new ArrayList<>();
         Element primary = doc.selectFirst("article.master-feature-card.is-primary");
         Story lead = storyFromElement(primary);
@@ -123,6 +129,29 @@ public final class SiteClient {
             if (stories.size() >= limit) break;
         }
         return stories;
+    }
+
+    public List<Story> search(String query) throws Exception {
+        String q = java.net.URLEncoder.encode(query, "UTF-8");
+        Document doc = page("/?search=1&q=" + q);
+        List<Story> list = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element card : doc.select("a.search-result-card")) {
+            String slug = slug(card.attr("href"));
+            String title = text(card.selectFirst("h2, h3, b"));
+            if (slug == null || title.length() < 4 || !seen.add(slug)) continue;
+            String meta = text(card.selectFirst("small"));
+            String category = meta;
+            String date = "";
+            int dot = meta.indexOf('·');
+            if (dot > 0) {
+                category = meta.substring(0, dot).trim();
+                date = meta.substring(dot + 1).trim();
+            }
+            list.add(new Story(slug, title, imageFrom(card), category, date, "", ""));
+            if (list.size() >= 20) break;
+        }
+        return list;
     }
 
     public List<Story> category(String slug) throws Exception {
