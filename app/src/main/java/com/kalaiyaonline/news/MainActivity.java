@@ -1026,14 +1026,8 @@ public class MainActivity extends AppCompatActivity {
         page.addView(infoBar(home.dateLine));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
         for (Story story : heroes) page.addView(headlineCard(story));
-        View rule = new View(this);
-        rule.setBackgroundColor(0xFFE5E7EB);
-        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
-        ruleLp.topMargin = dp(14);
-        ruleLp.bottomMargin = dp(12);
-        page.addView(rule, ruleLp);
-        feedAd = Ads.attach(this, page);
         page.addView(homeTabs(home));
+        feedAd = Ads.attach(this, page);
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
         for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
     }
@@ -1295,9 +1289,9 @@ public class MainActivity extends AppCompatActivity {
         box.setPadding(dp(10), dp(6), dp(10), dp(6));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFFFFFFFF);
-        bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1), 0xFFE5E7EB);
+        bg.setCornerRadius(dp(18));
         box.setBackground(bg);
+        box.setElevation(dp(2));
         TextView day = new TextView(this);
         day.setTextColor(0xFF0F8A3C);
         style(day, 22, R.font.mukta_extrabold);
@@ -1333,9 +1327,9 @@ public class MainActivity extends AppCompatActivity {
         box.setPadding(dp(10), dp(6), dp(10), dp(6));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFFFFFFFF);
-        bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1), 0xFFE5E7EB);
+        bg.setCornerRadius(dp(18));
         box.setBackground(bg);
+        box.setElevation(dp(2));
         weatherTemp = new TextView(this);
         weatherTemp.setText("—");
         weatherTemp.setTextColor(0xFF0F8A3C);
@@ -1491,7 +1485,11 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout badge = new LinearLayout(this);
         badge.setOrientation(LinearLayout.HORIZONTAL);
         badge.setGravity(Gravity.CENTER);
-        badge.setBackgroundColor(0xFF0F8A3C);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor(0xFF0F8A3C);
+        float r = dp(18);
+        badgeBg.setCornerRadii(new float[]{0, 0, r, r, r, r, 0, 0});
+        badge.setBackground(badgeBg);
         badge.setPadding(dp(12), 0, dp(12), 0);
         View dot = new View(this);
         GradientDrawable dotBg = new GradientDrawable();
@@ -1520,6 +1518,9 @@ public class MainActivity extends AppCompatActivity {
         style(moving, 15, R.font.mukta_semibold);
         moving.setIncludeFontPadding(false);
         clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+        View fade = new View(this);
+        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0x00FFFFFF, 0xFFFFFFFF}));
+        clip.addView(fade, new FrameLayout.LayoutParams(dp(28), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.END));
         LinearLayout.LayoutParams clipLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
         clipLp.leftMargin = dp(12);
         clipLp.rightMargin = dp(12);
@@ -1551,18 +1552,21 @@ public class MainActivity extends AppCompatActivity {
     private View headlineCard(Story story) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(22));
-        card.setCardElevation(0);
-        card.setStrokeWidth(dp(1));
-        card.setStrokeColor(0xFFE8E6E3);
+        card.setCardElevation(dp(3));
+        card.setStrokeWidth(0);
         card.setCardBackgroundColor(0xFFFFFFFF);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        cardLp.bottomMargin = dp(12);
+        cardLp.topMargin = dp(4);
+        cardLp.bottomMargin = dp(14);
         card.setLayoutParams(cardLp);
         LinearLayout inner = new LinearLayout(this);
         inner.setOrientation(LinearLayout.VERTICAL);
         inner.setGravity(Gravity.CENTER_HORIZONTAL);
-        inner.setPadding(dp(16), dp(10), dp(16), dp(12));
+        LinearLayout copy = new LinearLayout(this);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        copy.setGravity(Gravity.CENTER_HORIZONTAL);
+        copy.setPadding(dp(16), dp(14), dp(16), dp(4));
 
         View accent = new View(this);
         GradientDrawable accentBg = new GradientDrawable();
@@ -1572,7 +1576,7 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams(dp(42), dp(5));
         accentLp.gravity = Gravity.CENTER_HORIZONTAL;
         accentLp.bottomMargin = dp(14);
-        inner.addView(accent, accentLp);
+        copy.addView(accent, accentLp);
 
         TextView title = new TextView(this);
         title.setText(accentTitle(story.title));
@@ -1584,7 +1588,7 @@ public class MainActivity extends AppCompatActivity {
             title.setFallbackLineSpacing(false);
             title.setLineHeight(dp(38));
         }
-        inner.addView(title);
+        copy.addView(title);
 
         LinearLayout meta = new LinearLayout(this);
         meta.setOrientation(LinearLayout.HORIZONTAL);
@@ -1624,11 +1628,14 @@ public class MainActivity extends AppCompatActivity {
             style(date, 14, R.font.mukta_semibold);
             meta.addView(date);
         }
-        inner.addView(meta);
+        copy.addView(meta);
+        inner.addView(copy);
 
         View line = new View(this);
         line.setBackgroundColor(0xFFE7E5E4);
         LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        lineLp.leftMargin = dp(16);
+        lineLp.rightMargin = dp(16);
         lineLp.bottomMargin = dp(12);
         inner.addView(line, lineLp);
 
@@ -1642,7 +1649,7 @@ public class MainActivity extends AppCompatActivity {
         });
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
+        photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
         ImageView save = new ImageView(this);
         save.setImageResource(R.drawable.ic_bookmark);
@@ -1660,7 +1667,11 @@ public class MainActivity extends AppCompatActivity {
         FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
         saveLp.setMargins(0, dp(10), dp(10), 0);
         photo.addView(save, saveLp);
-        inner.addView(photo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)));
+        LinearLayout.LayoutParams photoLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210));
+        photoLp.leftMargin = dp(12);
+        photoLp.rightMargin = dp(12);
+        photoLp.bottomMargin = dp(12);
+        inner.addView(photo, photoLp);
         card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
         return card;
@@ -1726,24 +1737,27 @@ public class MainActivity extends AppCompatActivity {
     private View homeTabs(SiteClient.Home home) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(2), 0, 0);
+        box.setPadding(0, dp(6), 0, 0);
+        box.addView(sectionHead("समाचार", null, null));
         LinearLayout track = new LinearLayout(this);
         track.setOrientation(LinearLayout.HORIZONTAL);
         track.setPadding(dp(4), dp(4), dp(4), dp(4));
         GradientDrawable trackBg = new GradientDrawable();
-        trackBg.setCornerRadius(dp(18));
-        trackBg.setColor(0xFFEEF2F0);
+        trackBg.setCornerRadius(dp(16));
+        trackBg.setColor(0xFFFFFFFF);
         track.setBackground(trackBg);
+        track.setElevation(dp(2));
         String[] labels = {"सबै", "स्थानिय", "देश", "अन्तरास्ट्रिय"};
         TextView[] buttons = new TextView[4];
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(0, dp(8), 0, 0);
         Runnable paint = () -> {
             for (int i = 0; i < buttons.length; i++) {
                 boolean on = i == homeTab;
                 buttons[i].setTextColor(on ? 0xFFFFFFFF : 0xFF3F4A45);
                 GradientDrawable chip = new GradientDrawable();
-                chip.setCornerRadius(dp(14));
+                chip.setCornerRadius(dp(12));
                 chip.setColor(on ? 0xFF0F8A3C : 0x00000000);
                 buttons[i].setBackground(chip);
             }
@@ -1753,18 +1767,17 @@ public class MainActivity extends AppCompatActivity {
                 body.addView(message("यो ट्याबमा समाचार भेटिएन।"));
                 return;
             }
-            for (int i = 0; i < list.size(); i++) {
-                body.addView(i == 0 ? heroCard(list.get(i), false) : compact(list.get(i)));
-            }
+            int count = Math.min(list.size(), 5);
+            body.addView(featureCard(list.get(0)));
+            for (int i = 1; i < count; i++) body.addView(compact(list.get(i)));
         };
         for (int i = 0; i < labels.length; i++) {
             TextView tab = new TextView(this);
             tab.setText(labels[i]);
             tab.setGravity(Gravity.CENTER);
             style(tab, 14, R.font.mukta_bold);
-            tab.setPadding(dp(2), dp(8), dp(2), dp(8));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            tab.setLayoutParams(lp);
+            tab.setPadding(dp(2), dp(9), dp(2), dp(9));
+            tab.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             int index = i;
             tab.setOnClickListener(v -> {
                 homeTab = index;
@@ -1779,32 +1792,99 @@ public class MainActivity extends AppCompatActivity {
         return box;
     }
 
+    private View featureCard(Story story) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(18));
+        card.setCardElevation(dp(2));
+        card.setCardBackgroundColor(0xFF102418);
+        card.setUseCompatPadding(false);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(8);
+        card.setLayoutParams(lp);
+        FrameLayout frame = new FrameLayout(this);
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setBackgroundColor(0xFF14532D);
+        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(196)));
+        if (!story.image.isEmpty()) loadImage(story.image, image);
+        View shade = new View(this);
+        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xE6100000}));
+        frame.addView(shade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(120), Gravity.BOTTOM));
+        LinearLayout copy = new LinearLayout(this);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        copy.setPadding(dp(12), dp(10), dp(12), dp(12));
+        TextView kicker = new TextView(this);
+        kicker.setText(story.category.isEmpty() ? "समाचार" : story.category);
+        kicker.setTextColor(0xFFF7C56A);
+        style(kicker, 12, R.font.mukta_bold);
+        copy.addView(kicker);
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFFFFFFFF);
+        title.setMaxLines(2);
+        style(title, 18, R.font.mukta_bold);
+        title.setPadding(0, dp(2), 0, 0);
+        copy.addView(title);
+        frame.addView(copy, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        card.addView(frame);
+        card.setOnClickListener(v -> openStory(story));
+        return card;
+    }
+
+    private View sectionHead(String label, String slug, String more) {
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.setPadding(0, dp(16), 0, dp(8));
+        View mark = new View(this);
+        GradientDrawable markBg = new GradientDrawable();
+        markBg.setCornerRadius(dp(3));
+        markBg.setColor(0xFF0F8A3C);
+        mark.setBackground(markBg);
+        LinearLayout.LayoutParams markLp = new LinearLayout.LayoutParams(dp(4), dp(18));
+        markLp.rightMargin = dp(8);
+        head.addView(mark, markLp);
+        TextView title = new TextView(this);
+        title.setText(label);
+        title.setTextColor(0xFF102418);
+        style(title, 20, R.font.mukta_extrabold);
+        title.setIncludeFontPadding(false);
+        head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (slug != null) {
+            TextView link = new TextView(this);
+            link.setText(more == null ? "सबै" : more);
+            link.setTextColor(0xFF0F8A3C);
+            style(link, 13, R.font.mukta_bold);
+            link.setBackground(pill(0xFFE7F6EC));
+            link.setPadding(dp(10), dp(4), dp(10), dp(4));
+            link.setOnClickListener(v -> openCategory(slug, label));
+            head.addView(link);
+        }
+        return head;
+    }
+
+    private GradientDrawable pill(int color) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(14));
+        return bg;
+    }
+
     private View politicsGrid(List<Story> stories) {
         LinearLayout block = new LinearLayout(this);
         block.setOrientation(LinearLayout.VERTICAL);
-        block.setPadding(0, dp(8), 0, dp(4));
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = new TextView(this);
-        title.setText("राजनीति");
-        title.setTextColor(0xFF0B5C28);
-        style(title, 22, R.font.mukta_extrabold);
-        head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        TextView more = new TextView(this);
-        more.setText("सबै");
-        more.setTextColor(0xFFF15A22);
-        style(more, 14, R.font.mukta_bold);
-        more.setOnClickListener(v -> openCategory("politics", "राजनीति"));
-        head.addView(more);
-        block.addView(head);
+        block.addView(sectionHead("राजनीति", "politics", "सबै"));
         LinearLayout row = null;
-        for (int i = 0; i < stories.size(); i++) {
+        int count = Math.min(stories.size(), 4);
+        for (int i = 0; i < count; i++) {
             if (i % 2 == 0) {
                 row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 block.addView(row);
             }
-            row.addView(overlayCell(stories.get(i)), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            cell.leftMargin = i % 2 == 0 ? 0 : dp(4);
+            cell.rightMargin = i % 2 == 0 ? dp(4) : 0;
+            row.addView(overlayCell(stories.get(i)), cell);
         }
         return block;
     }
@@ -1812,14 +1892,18 @@ public class MainActivity extends AppCompatActivity {
     private View overlayCell(Story story) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(16));
-        card.setCardElevation(dp(2));
-        card.setCardBackgroundColor(0xFF1C1917);
-        card.setUseCompatPadding(true);
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setCardBackgroundColor(0xFF102418);
+        card.setUseCompatPadding(false);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(8);
+        card.setLayoutParams(cardLp);
         FrameLayout frame = new FrameLayout(this);
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(0xFF14532D);
-        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(168)));
+        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(156)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
         View shade = new View(this);
         GradientDrawable fade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xF0000000});
@@ -1841,40 +1925,40 @@ public class MainActivity extends AppCompatActivity {
     private View categoryBlock(String label, String slug, List<Story> stories) {
         LinearLayout block = new LinearLayout(this);
         block.setOrientation(LinearLayout.VERTICAL);
-        block.setPadding(0, dp(16), 0, dp(4));
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = new TextView(this);
-        title.setText(label);
-        title.setTextColor(0xFF0B5C28);
-        style(title, 22, R.font.mukta_extrabold);
-        head.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        TextView more = new TextView(this);
-        more.setText("सबै");
-        more.setTextColor(0xFFF15A22);
-        more.setTextSize(14);
-        more.setOnClickListener(v -> openCategory(slug, label));
-        head.addView(more);
-        block.addView(head);
-        for (Story story : stories) block.addView(compact(story));
+        block.addView(sectionHead(label, slug, "सबै"));
+        if (stories.isEmpty()) return block;
+        block.addView(featureCard(stories.get(0)));
+        int count = Math.min(stories.size(), 4);
+        for (int i = 1; i < count; i++) block.addView(compact(stories.get(i)));
         return block;
     }
 
     private View compact(Story story) {
         MaterialCardView card = new MaterialCardView(this);
-        card.setRadius(dp(14));
-        card.setCardElevation(dp(1));
+        card.setRadius(dp(16));
+        card.setCardElevation(0);
+        card.setStrokeWidth(dp(1));
+        card.setStrokeColor(0xFFE7E5E4);
         card.setCardBackgroundColor(0xFFFFFFFF);
-        card.setUseCompatPadding(true);
+        card.setUseCompatPadding(false);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(8);
+        card.setLayoutParams(cardLp);
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(8), dp(10), dp(8));
+        row.setPadding(dp(8), dp(8), dp(12), dp(8));
         if (!story.image.isEmpty()) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xFFE8F6EE);
-            row.addView(image, new LinearLayout.LayoutParams(dp(92), dp(72)));
+            image.setClipToOutline(true);
+            image.setOutlineProvider(new ViewOutlineProvider() {
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(12));
+                }
+            });
+            row.addView(image, new LinearLayout.LayoutParams(dp(84), dp(68)));
             loadImage(story.image, image);
         }
         TextView title = new TextView(this);
