@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(12), dp(8), dp(12), dp(96));
+        page.setPadding(dp(12), dp(8), dp(12), dp(68));
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(page);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -112,13 +112,13 @@ public class MainActivity extends AppCompatActivity {
             restoreNav();
         });
         FrameLayout.LayoutParams dimLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        dimLp.bottomMargin = dp(80);
+        dimLp.bottomMargin = dp(56);
         screen.addView(dim, dimLp);
 
         morePanel = morePanel();
         morePanel.setVisibility(View.GONE);
         FrameLayout.LayoutParams sheetLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-        sheetLp.bottomMargin = dp(80);
+        sheetLp.bottomMargin = dp(56);
         screen.addView(morePanel, sheetLp);
 
         BottomNavigationView nav = new BottomNavigationView(this);
@@ -128,7 +128,13 @@ public class MainActivity extends AppCompatActivity {
         nav.setItemIconTintList(getColorStateList(R.color.nav_tint));
         nav.setItemTextColor(getColorStateList(R.color.nav_tint));
         nav.setLabelVisibilityMode(BottomNavigationView.LABEL_VISIBILITY_LABELED);
-        nav.setElevation(dp(12));
+        nav.setItemIconSize(dp(22));
+        nav.setItemPaddingTop(dp(4));
+        nav.setItemPaddingBottom(dp(6));
+        nav.setItemActiveIndicatorEnabled(false);
+        nav.setItemTextAppearanceActive(R.style.NavLabel);
+        nav.setItemTextAppearanceInactive(R.style.NavLabel);
+        nav.setElevation(dp(8));
         nav.setOnItemSelectedListener(item -> {
             if (restoringNav) return true;
             int id = item.getItemId();
@@ -150,7 +156,12 @@ public class MainActivity extends AppCompatActivity {
                 restoreNav();
             }
         });
-        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(80), Gravity.BOTTOM);
+        View hairline = new View(this);
+        hairline.setBackgroundColor(0xFFE7E5E4);
+        FrameLayout.LayoutParams lineLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1), Gravity.BOTTOM);
+        lineLp.bottomMargin = dp(56);
+        screen.addView(hairline, lineLp);
+        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56), Gravity.BOTTOM);
         screen.addView(nav, navLp);
         setContentView(screen);
         showHome();

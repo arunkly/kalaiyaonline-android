@@ -9,4 +9,11 @@
         <item name="android:fontFamily">@font/mukta</item>
         <item name="fontFamily">@font/mukta</item>
     </style>
+
+    <style name="NavLabel" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">@font/mukta_semibold</item>
+        <item name="fontFamily">@font/mukta_semibold</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 </resources>
