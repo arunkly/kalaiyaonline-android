@@ -130,9 +130,10 @@ public class MainActivity extends AppCompatActivity {
 
         searchPanel = searchPanel();
         searchPanel.setVisibility(View.GONE);
-        FrameLayout.LayoutParams searchLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        searchLp.topMargin = dp(62);
-        searchLp.bottomMargin = dp(56);
+        FrameLayout.LayoutParams searchLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        searchLp.topMargin = dp(68);
+        searchLp.leftMargin = dp(12);
+        searchLp.rightMargin = dp(12);
         screen.addView(searchPanel, searchLp);
 
         drawer = drawer();
@@ -232,9 +233,11 @@ public class MainActivity extends AppCompatActivity {
         ImageView view = new ImageView(this);
         view.setImageResource(icon);
         view.setPadding(dp(9), dp(9), dp(9), dp(9));
+        view.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(14));
-        bg.setColor(0xFFE8F6EE);
+        bg.setCornerRadius(dp(20));
+        bg.setColor(0xFFFFFFFF);
+        bg.setStroke(dp(1), 0xFFD7E8DC);
         view.setBackground(bg);
         view.setOnClickListener(v -> action.run());
         return view;
@@ -285,8 +288,12 @@ public class MainActivity extends AppCompatActivity {
     private View searchPanel() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundColor(0xFFF6F7F4);
-        box.setPadding(dp(14), dp(12), dp(14), dp(12));
+        box.setPadding(dp(14), dp(14), dp(14), dp(8));
+        GradientDrawable sheet = new GradientDrawable();
+        sheet.setColor(0xFFFFFFFF);
+        sheet.setCornerRadius(dp(22));
+        box.setBackground(sheet);
+        box.setElevation(dp(10));
         box.setOnClickListener(v -> { });
         TextView title = new TextView(this);
         title.setText("समाचार खोज्नुहोस्");
@@ -331,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
         searchResults.setOrientation(LinearLayout.VERTICAL);
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.addView(searchResults);
-        box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(340)));
         return box;
     }
 
@@ -371,12 +378,18 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
         brand.setBackgroundColor(0xFF0F8A3C);
-        brand.setPadding(dp(18), dp(22), dp(18), dp(16));
-        TextView hello = new TextView(this);
-        hello.setText("कलैया अनलाइन");
-        hello.setTextColor(0xFFFFFFFF);
-        style(hello, 20, R.font.mukta_extrabold);
-        brand.addView(hello);
+        brand.setPadding(dp(16), dp(18), dp(16), dp(16));
+        ImageView mark = new ImageView(this);
+        mark.setImageResource(R.drawable.wordmark);
+        mark.setAdjustViewBounds(true);
+        mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mark.setBackgroundColor(0xFFFFFFFF);
+        mark.setPadding(dp(8), dp(4), dp(8), dp(4));
+        GradientDrawable chip = new GradientDrawable();
+        chip.setColor(0xFFFFFFFF);
+        chip.setCornerRadius(dp(10));
+        mark.setBackground(chip);
+        brand.addView(mark, new LinearLayout.LayoutParams(dp(158), dp(40)));
         TextView sub = new TextView(this);
         sub.setText("समाचार श्रेणी");
         sub.setTextColor(0xFFD1FAE5);
@@ -428,7 +441,18 @@ public class MainActivity extends AppCompatActivity {
         text.setTextColor(0xFF1C1917);
         style(text, 17, R.font.mukta_bold);
         text.setPadding(dp(12), 0, 0, 0);
-        row.addView(text);
+        row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView chevron = new TextView(this);
+        chevron.setText("›");
+        chevron.setTextColor(0xFF0F8A3C);
+        chevron.setTextSize(22);
+        row.addView(chevron);
+        View rule = new View(this);
+        rule.setBackgroundColor(0xFFF1F5F3);
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(row);
+        wrap.addView(rule, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
         row.setOnClickListener(v -> {
             closeDrawer(true);
             if ("gallery".equals(slug)) {
@@ -443,7 +467,7 @@ public class MainActivity extends AppCompatActivity {
                 openCategory(slug, label);
             }
         });
-        return row;
+        return wrap;
     }
 
     private void selectNav(int id) {
@@ -1026,7 +1050,7 @@ public class MainActivity extends AppCompatActivity {
         title.setGravity(Gravity.CENTER);
         style(title, 28, R.font.mukta_extrabold);
         title.setIncludeFontPadding(false);
-        title.setLineSpacing(dp(-2), 0.86f);
+        title.setLineSpacing(dp(-8), 0.78f);
         inner.addView(title);
 
         LinearLayout meta = new LinearLayout(this);
