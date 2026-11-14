@@ -154,8 +154,29 @@ public final class SiteClient {
         return list;
     }
 
+    public static final class Feed {
+        public final List<Story> stories;
+        public final int pages;
+
+        Feed(List<Story> stories, int pages) {
+            this.stories = stories;
+            this.pages = pages;
+        }
+    }
+
     public List<Story> category(String slug) throws Exception {
-        return storiesIn(page("/category/" + slug));
+        return categoryPage(slug, 1).stories;
+    }
+
+    public Feed categoryPage(String slug, int pageNo) throws Exception {
+        String path = "/category/" + slug + "?category=" + java.net.URLEncoder.encode(slug, "UTF-8") + "&view=&page_no=" + Math.max(1, pageNo);
+        Document doc = page(path);
+        int pages = 1;
+        java.util.regex.Matcher marker = java.util.regex.Pattern.compile("पृष्ठ\\s*(\\d+)\\s*/\\s*(\\d+)").matcher(doc.body().text());
+        List<Story> stories = storiesIn(doc);
+        if (marker.find()) pages = Math.max(1, Integer.parseInt(marker.group(2)));
+        else if (stories.size() >= 8) pages = pageNo + 1;
+        return new Feed(stories, pages);
     }
 
     public Story article(String slug) throws Exception {

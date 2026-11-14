@@ -79,6 +79,13 @@ public class MainActivity extends AppCompatActivity {
     private ObjectAnimator tickerAnim;
     private int homeGen;
     private int homeTab;
+    private String catSlug = "";
+    private String catLabel = "";
+    private int catPage = 1;
+    private int catGen;
+    private int catSiteFetched;
+    private int catSitePages = 1;
+    private final List<Story> catStories = new ArrayList<>();
     private View drawer;
     private View searchPanel;
     private LinearLayout searchResults;
@@ -885,24 +892,123 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openCategory(String slug, String label) {
+        catSlug = slug;
+        catLabel = label;
+        catPage = 1;
+        catStories.clear();
+        catSiteFetched = 0;
+        catSitePages = 1;
+        loadCategory();
+    }
+
+    private void loadCategory() {
+        final int gen = ++catGen;
+        final String slug = catSlug;
+        final String label = catLabel;
+        final int wanted = catPage;
+        int need = wanted * 7;
+        if (catSiteFetched > 0 && (catStories.size() >= need || catSiteFetched >= catSitePages)) {
+            renderCategory();
+            return;
+        }
         section = "cat:" + slug;
         stopMotion();
         setStatus(label + " लोड हुँदैछ…");
+        final List<Story> start = new ArrayList<>(catStories);
+        final int fetchedStart = catSiteFetched;
+        final int pagesStart = catSitePages;
         io.execute(() -> {
             try {
-                List<Story> list = slug.isEmpty() ? client.home().stories : client.category(slug);
+                List<Story> accumulated = new ArrayList<>(start);
+                int fetched = fetchedStart;
+                int pages = pagesStart;
+                while (accumulated.size() < need && fetched < pages && fetched < 40) {
+                    SiteClient.Feed feed = client.categoryPage(slug, fetched + 1);
+                    pages = Math.max(pages, feed.pages);
+                    for (Story story : feed.stories) {
+                        boolean duplicate = false;
+                        for (Story existing : accumulated) {
+                            if (existing.slug.equals(story.slug)) {
+                                duplicate = true;
+                                break;
+                            }
+                        }
+                        if (!duplicate) accumulated.add(story);
+                    }
+                    fetched++;
+                    if (feed.stories.isEmpty()) break;
+                }
+                List<Story> done = accumulated;
+                int fetchedDone = fetched;
+                int pagesDone = pages;
                 runOnUiThread(() -> {
-                    if (!section.equals("cat:" + slug)) return;
-                    page.removeAllViews();
-                    page.addView(chips());
-                    page.addView(heading(label));
-                    for (Story story : list) page.addView(card(story, false));
-                    if (list.isEmpty()) page.addView(message("समाचार भेटिएन।"));
+                    if (gen != catGen) return;
+                    catStories.clear();
+                    catStories.addAll(done);
+                    catSiteFetched = fetchedDone;
+                    catSitePages = pagesDone;
+                    renderCategory();
                 });
             } catch (Exception error) {
-                runOnUiThread(() -> setStatus("लोड हुन सकेन।"));
+                runOnUiThread(() -> {
+                    if (gen == catGen) setStatus("लोड हुन सकेन।");
+                });
             }
         });
+    }
+
+    private void renderCategory() {
+        section = "cat:" + catSlug;
+        page.removeAllViews();
+        page.addView(chips());
+        page.addView(heading(catLabel));
+        int from = (catPage - 1) * 7;
+        int to = Math.min(from + 7, catStories.size());
+        if (from >= to) page.addView(message("समाचार भेटिएन।"));
+        for (int i = from; i < to; i++) page.addView(card(catStories.get(i), false));
+        boolean next = to < catStories.size() || catSiteFetched < catSitePages;
+        page.addView(categoryPager(catPage > 1, next));
+        if (page.getParent() instanceof android.widget.ScrollView) {
+            ((android.widget.ScrollView) page.getParent()).scrollTo(0, 0);
+        }
+    }
+
+    private View categoryPager(boolean prev, boolean next) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+        row.setPadding(0, dp(6), 0, dp(18));
+        row.addView(pageStep("अघिल्लो", prev, () -> {
+            catPage--;
+            loadCategory();
+        }));
+        TextView mark = new TextView(this);
+        mark.setText("पृष्ठ " + catPage);
+        mark.setTextColor(0xFF0B5C28);
+        mark.setGravity(Gravity.CENTER);
+        style(mark, 15, R.font.mukta_bold);
+        mark.setPadding(dp(14), dp(8), dp(14), dp(8));
+        row.addView(mark);
+        row.addView(pageStep("अर्को", next, () -> {
+            catPage++;
+            loadCategory();
+        }));
+        return row;
+    }
+
+    private View pageStep(String label, boolean enabled, Runnable action) {
+        TextView view = new TextView(this);
+        view.setText(label);
+        view.setGravity(Gravity.CENTER);
+        style(view, 15, R.font.mukta_bold);
+        view.setTextColor(enabled ? 0xFFFFFFFF : 0xFFA8A29E);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(14));
+        bg.setColor(enabled ? 0xFF0F8A3C : 0xFFE7E5E4);
+        view.setBackground(bg);
+        view.setPadding(dp(16), dp(8), dp(16), dp(8));
+        if (enabled) view.setOnClickListener(v -> action.run());
+        return view;
     }
 
     private View chips() {
