@@ -56,18 +56,17 @@ public final class SiteClient {
     public Home home() throws Exception {
         Document doc = page("/");
         String date = text(doc.selectFirst("#searchBsDateText"));
+        List<Story> stories = storiesIn(doc);
         List<Story> ticker = new ArrayList<>();
-        Set<String> seenTicker = new LinkedHashSet<>();
-        for (Element item : doc.select(".aks-ticker-item")) {
-            Story story = fromLink(item, "ताजा");
-            if (story == null || !seenTicker.add(story.slug) || ticker.size() >= 4) continue;
+        for (Story story : stories) {
+            if (ticker.size() >= 4) break;
             ticker.add(story);
         }
-        List<Story> stories = storiesIn(doc);
         if (ticker.size() < 4) {
-            for (Story story : stories) {
-                if (ticker.size() >= 4) break;
-                if (!containsSlug(ticker, story.slug)) ticker.add(story);
+            for (Element item : doc.select(".aks-ticker-item, .aks-ticker a")) {
+                Story story = fromLink(item, "ताजा");
+                if (story == null || containsSlug(ticker, story.slug) || ticker.size() >= 4) continue;
+                ticker.add(story);
             }
         }
         List<Story> headlines = new ArrayList<>();
@@ -338,9 +337,12 @@ public final class SiteClient {
     }
 
     private Story fromLink(Element link, String category) {
-        String slug = slug(link.attr("href"));
+        Element anchor = "a".equals(link.tagName()) ? link : link.selectFirst("a[href]");
+        String href = anchor == null ? link.attr("href") : anchor.attr("href");
+        String slug = slug(href);
         String title = text(link.selectFirst(".aks-ticker-title"));
-        if (title.isEmpty()) title = link.text().replaceAll("\\s+", " ").trim();
+        if (title.isEmpty() && anchor != null) title = text(anchor.selectFirst(".aks-ticker-title"));
+        if (title.isEmpty()) title = (anchor == null ? link : anchor).text().replaceAll("\\s+", " ").trim();
         if (slug == null || title.length() < 8) return null;
         return new Story(slug, title, imageFrom(link), category, "", "", "");
     }

@@ -1068,11 +1068,14 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF08351F, 0xFF0F8A3C});
-        bg.setCornerRadius(dp(14));
+        bar.setClipChildren(true);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFFFFFFF);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), 0xFFE7E5E4);
         bar.setBackground(bg);
-        bar.setPadding(dp(8), dp(6), dp(10), dp(6));
-        bar.setMinimumHeight(dp(46));
+        bar.setPadding(dp(8), dp(7), dp(12), dp(7));
+        bar.setMinimumHeight(dp(48));
         TextView badge = new TextView(this);
         badge.setText("ताजा");
         badge.setTextColor(0xFFFFFFFF);
@@ -1085,29 +1088,30 @@ public class MainActivity extends AppCompatActivity {
         TextView moving = new TextView(this);
         StringBuilder text = new StringBuilder();
         for (int pass = 0; pass < 2; pass++) {
-            for (Story item : items) {
-                text.append(item.title).append("     •     ");
-            }
+            for (Story item : items) text.append("   ").append(item.title).append("     •");
         }
-        moving.setText(text.toString());
-        moving.setTextColor(0xFFFFFFFF);
-        moving.setTextSize(15);
-        style(moving, 15, R.font.mukta_semibold);
+        moving.setText(text.toString().trim());
+        moving.setTextColor(0xFF142033);
         moving.setSingleLine(true);
+        style(moving, 15, R.font.mukta_semibold);
         clip.addView(moving, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
-        bar.addView(clip, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams clipLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        clipLp.leftMargin = dp(10);
+        bar.addView(clip, clipLp);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);
-        lp.bottomMargin = dp(4);
+        lp.bottomMargin = dp(6);
         bar.setLayoutParams(lp);
-        bar.setOnClickListener(v -> openStory(items.get(0)));
         moving.post(() -> {
-            int travel = clip.getWidth() + moving.getWidth();
-            if (travel <= 0) return;
+            moving.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            ViewGroup.LayoutParams params = moving.getLayoutParams();
+            params.width = Math.max(moving.getMeasuredWidth(), clip.getWidth() + dp(40));
+            moving.setLayoutParams(params);
             moving.setTranslationX(clip.getWidth());
             if (tickerAnim != null) tickerAnim.cancel();
-            tickerAnim = ObjectAnimator.ofFloat(moving, "translationX", clip.getWidth(), -moving.getWidth());
-            tickerAnim.setDuration(Math.max(9000, items.size() * 4200L));
+            tickerAnim = ObjectAnimator.ofFloat(moving, "translationX", clip.getWidth(), -params.width);
+            float speed = Math.max(dp(42), 1);
+            tickerAnim.setDuration(Math.max(16000L, (long) ((clip.getWidth() + params.width) / speed * 1000f)));
             tickerAnim.setRepeatCount(ValueAnimator.INFINITE);
             tickerAnim.setInterpolator(new LinearInterpolator());
             tickerAnim.start();
