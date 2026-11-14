@@ -1615,8 +1615,9 @@ public class MainActivity extends AppCompatActivity {
     private View headlineCard(Story story) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(22));
-        card.setCardElevation(dp(3));
+        card.setCardElevation(0);
         card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFFFFFFFF);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1764,9 +1765,11 @@ public class MainActivity extends AppCompatActivity {
     private View heroCard(Story story, boolean lead) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(18));
-        card.setCardElevation(dp(2));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFFFFFFFF);
-        card.setUseCompatPadding(true);
+        card.setUseCompatPadding(false);
         LinearLayout inner = new LinearLayout(this);
         inner.setOrientation(LinearLayout.VERTICAL);
         if (!story.image.isEmpty()) {
@@ -1858,7 +1861,9 @@ public class MainActivity extends AppCompatActivity {
     private View featureCard(Story story) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(18));
-        card.setCardElevation(dp(2));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFF102418);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1957,6 +1962,7 @@ public class MainActivity extends AppCompatActivity {
         card.setRadius(dp(16));
         card.setCardElevation(0);
         card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFF102418);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2000,8 +2006,8 @@ public class MainActivity extends AppCompatActivity {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(16));
         card.setCardElevation(0);
-        card.setStrokeWidth(dp(1));
-        card.setStrokeColor(0xFFE7E5E4);
+        card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFFFFFFFF);
         card.setUseCompatPadding(false);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2058,9 +2064,11 @@ public class MainActivity extends AppCompatActivity {
     private View card(Story story, boolean hero) {
         MaterialCardView card = new MaterialCardView(this);
         card.setRadius(dp(16));
-        card.setCardElevation(dp(2));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
         card.setCardBackgroundColor(0xFFFFFFFF);
-        card.setUseCompatPadding(true);
+        card.setUseCompatPadding(false);
         LinearLayout inner = new LinearLayout(this);
         inner.setOrientation(LinearLayout.VERTICAL);
         if (!story.image.isEmpty()) {
