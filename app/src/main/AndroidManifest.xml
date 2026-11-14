@@ -12,6 +12,10 @@
         android:theme="@style/Theme.Kalaiya"
         android:usesCleartextTraffic="false">
         <activity
+            android:name=".GalleryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        <activity
             android:name=".ArticleActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />

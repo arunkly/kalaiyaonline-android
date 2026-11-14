@@ -125,6 +125,42 @@ public final class SiteClient {
         return list;
     }
 
+    public static final class GalleryPost {
+        public final String title;
+        public final String category;
+        public final String date;
+        public final String body;
+        public final String cover;
+        public final List<String> photos;
+
+        GalleryPost(String title, String category, String date, String body, String cover, List<String> photos) {
+            this.title = title;
+            this.category = category;
+            this.date = date;
+            this.body = body;
+            this.cover = cover;
+            this.photos = photos;
+        }
+    }
+
+    public GalleryPost galleryPost(String url) throws Exception {
+        Document doc = page(url);
+        String title = text(doc.selectFirst("h1"));
+        String category = text(doc.selectFirst(".gallery-breadcrumb b"));
+        Element meta = doc.selectFirst(".gallery-meta-modern span");
+        String date = text(meta);
+        String body = text(doc.selectFirst(".gallery-single-head p"));
+        String cover = imageFrom(doc.selectFirst(".gallery-single-cover"));
+        List<String> photos = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element button : doc.select("[data-lightbox-src]")) {
+            String src = abs(button.attr("data-lightbox-src"));
+            if (!src.isEmpty() && seen.add(src)) photos.add(src);
+        }
+        if (photos.isEmpty() && !cover.isEmpty()) photos.add(cover);
+        return new GalleryPost(title, category, date, body, cover, photos);
+    }
+
     private List<Story> storiesIn(Document doc) {
         List<Story> stories = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();

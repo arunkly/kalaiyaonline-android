@@ -864,6 +864,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openStory(Story story) {
+        if (story.slug.contains("/gallery/") && !story.slug.contains("gallery-category")) {
+            Intent intent = new Intent(this, GalleryActivity.class);
+            intent.putExtra("url", story.slug);
+            intent.putExtra("title", story.title);
+            intent.putExtra("image", story.image);
+            intent.putExtra("category", story.category);
+            startActivity(intent);
+            return;
+        }
         if (story.slug.startsWith("http") && !story.slug.contains("/news/")) return;
         Intent intent = new Intent(this, ArticleActivity.class);
         intent.putExtra("slug", story.slug);
