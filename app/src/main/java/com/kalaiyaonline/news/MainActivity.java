@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private AirBoard air;
     private PatroBoard patro;
     private ConverterBoard converter;
+    private CurrencyBoard fx;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -250,6 +251,7 @@ public class MainActivity extends AppCompatActivity {
         air = new AirBoard(this);
         patro = new PatroBoard(this);
         converter = new ConverterBoard(this);
+        fx = new CurrencyBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -262,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile("☁", "वायु गुणस्तर", 0xFFE5F6F1, this::showAir));
         modules.addView(moduleTile("📅", "नेपाली पात्रो", 0xFFFDECEC, this::showPatro));
         modules.addView(moduleTile("🗓", "मिति रूपान्तरण", 0xFFF4EEF8, this::showConverter));
-        modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, () -> showSoon("मुद्रा रूपान्तरण")));
+        modules.addView(moduleTile("💱", "मुद्रा रूपान्तरण", 0xFFFFF6EA, this::showCurrency));
         modules.addView(moduleTile("अ", "प्रीति ↔ युनिकोड", 0xFFE7F6EC, () -> showSoon("प्रीति ↔ युनिकोड")));
         modules.addView(moduleTile("🩸", "रक्तदान", 0xFFFDECEC, () -> showSoon("रक्तदान")));
         modules.addView(moduleTile("📄", "गोपनीयता नीति", 0xFFF3EEF8, () -> showSoon("गोपनीयता नीति")));
@@ -405,6 +407,19 @@ public class MainActivity extends AppCompatActivity {
         View board = converter.view();
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
+    }
+
+    private void showCurrency() {
+        section = "currency";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("मुद्रा रूपान्तरण"));
+        View board = fx.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        fx.load();
     }
 
     private void setMore(boolean open) {
