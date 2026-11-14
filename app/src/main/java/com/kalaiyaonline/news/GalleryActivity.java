@@ -129,7 +129,7 @@ public class GalleryActivity extends AppCompatActivity {
                 leave(navTarget(id));
             }
         });
-        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this) + dp(28), Gravity.BOTTOM));
+        screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this), Gravity.BOTTOM));
         setContentView(screen);
 
         if (fallbackImage != null && !fallbackImage.isEmpty()) load(fallbackImage, coverImage, 1000);

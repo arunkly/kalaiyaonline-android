@@ -25,7 +25,7 @@ final class DockBar extends FrameLayout {
             R.id.nav_gallery, R.id.nav_directory, R.id.nav_home, R.id.nav_saved, R.id.nav_more
     };
     private static final int[] ICONS = {
-            R.drawable.ic_photo, R.drawable.ic_pin, R.drawable.ic_home, R.drawable.ic_bookmark, R.drawable.ic_more
+            R.drawable.ic_nav_photo, R.drawable.ic_nav_pin, R.drawable.ic_nav_home, R.drawable.ic_nav_save, R.drawable.ic_nav_more
     };
     private static final String[] LABELS = {"फोटो", "डाइरेक्टरी", "गृह", "सेभ", "थप"};
 
@@ -59,15 +59,16 @@ final class DockBar extends FrameLayout {
             slot.setOrientation(LinearLayout.VERTICAL);
             slot.setGravity(Gravity.CENTER);
             ImageView icon = new ImageView(context);
-            icon.setImageDrawable(tinted(ICONS[i], 0xFF44403C));
-            slot.addView(icon, new LinearLayout.LayoutParams(dp(24), dp(24)));
+            icon.setImageDrawable(tinted(ICONS[i], 0xFF1A1A1A));
+            slot.addView(icon, new LinearLayout.LayoutParams(dp(26), dp(26)));
             TextView label = new TextView(context);
             label.setText(LABELS[i]);
-            label.setTextSize(11);
-            label.setTextColor(0xFF44403C);
+            label.setTextSize(12);
+            label.setTextColor(0xFF1A1A1A);
             label.setGravity(Gravity.CENTER);
-            label.setTypeface(ResourcesCompat.getFont(context, R.font.mukta_semibold));
+            label.setTypeface(ResourcesCompat.getFont(context, R.font.mukta_regular));
             label.setIncludeFontPadding(false);
+            label.setPadding(0, dp(2), 0, 0);
             slot.addView(label);
             slot.setOnClickListener(v -> choose(id));
             icons[i] = icon;
@@ -98,7 +99,7 @@ final class DockBar extends FrameLayout {
     }
 
     static int inset(Context context) {
-        return Math.round(72 * context.getResources().getDisplayMetrics().density);
+        return Math.round(104 * context.getResources().getDisplayMetrics().density);
     }
 
     private void choose(int id) {
@@ -107,14 +108,14 @@ final class DockBar extends FrameLayout {
 
     private ImageView circle() {
         ImageView view = new ImageView(getContext());
-        view.setImageDrawable(tinted(R.drawable.ic_home, Color.WHITE));
+        view.setImageDrawable(tinted(R.drawable.ic_nav_home, Color.WHITE));
         view.setScaleType(ImageView.ScaleType.CENTER);
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
         bg.setColor(0xFF0F8A3C);
         view.setBackground(bg);
-        view.setElevation(dp(6));
-        view.setPadding(dp(14), dp(14), dp(14), dp(14));
+        view.setElevation(dp(4));
+        view.setPadding(dp(16), dp(16), dp(16), dp(16));
         return view;
     }
 
@@ -123,8 +124,9 @@ final class DockBar extends FrameLayout {
         for (int i = 0; i < IDS.length; i++) {
             if (IDS[i] == R.id.nav_home) continue;
             boolean on = IDS[i] == selected;
-            icons[i].setImageDrawable(tinted(ICONS[i], on ? 0xFF0F8A3C : 0xFF44403C));
-            labels[side].setTextColor(on ? 0xFF0F8A3C : 0xFF44403C);
+            icons[i].setImageDrawable(tinted(ICONS[i], 0xFF1A1A1A));
+            labels[side].setTextColor(0xFF1A1A1A);
+            labels[side].setTypeface(ResourcesCompat.getFont(getContext(), on ? R.font.mukta_semibold : R.font.mukta_regular));
             side++;
         }
     }
@@ -138,14 +140,14 @@ final class DockBar extends FrameLayout {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = dp(96);
+        int height = dp(104);
         int slotWidth = Math.max(dp(56), width / 5);
         for (LinearLayout slot : slots) {
             slot.measure(MeasureSpec.makeMeasureSpec(slotWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(dp(58), MeasureSpec.EXACTLY));
+                    MeasureSpec.makeMeasureSpec(dp(52), MeasureSpec.EXACTLY));
         }
-        home.measure(MeasureSpec.makeMeasureSpec(dp(56), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(dp(56), MeasureSpec.EXACTLY));
+        home.measure(MeasureSpec.makeMeasureSpec(dp(60), MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(dp(60), MeasureSpec.EXACTLY));
         setMeasuredDimension(width, height);
     }
 
@@ -154,32 +156,33 @@ final class DockBar extends FrameLayout {
         int width = right - left;
         int col = width / 5;
         int slotWidth = slots[0].getMeasuredWidth();
-        int y = dp(40);
+        int y = dp(46);
         int[] columns = {0, 1, 3, 4};
         for (int i = 0; i < slots.length; i++) {
             int x = columns[i] * col + (col - slotWidth) / 2;
             slots[i].layout(x, y, x + slotWidth, y + slots[i].getMeasuredHeight());
         }
         int hx = (width - home.getMeasuredWidth()) / 2;
-        home.layout(hx, dp(6), hx + home.getMeasuredWidth(), dp(6) + home.getMeasuredHeight());
+        home.layout(hx, dp(2), hx + home.getMeasuredWidth(), dp(2) + home.getMeasuredHeight());
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         float width = getWidth();
-        float barTop = dp(34);
+        float top = dp(32);
         float cx = width / 2f;
-        float radius = dp(36);
+        float side = dp(24);
         shape.reset();
         shape.moveTo(0, getHeight());
-        shape.lineTo(0, barTop + dp(16));
-        shape.quadTo(0, barTop, dp(16), barTop);
-        shape.lineTo(cx - radius - dp(12), barTop);
-        shape.cubicTo(cx - radius, barTop, cx - radius, barTop + dp(8), cx - radius + dp(8), barTop + dp(16));
-        shape.cubicTo(cx - dp(16), barTop + radius + dp(2), cx + dp(16), barTop + radius + dp(2), cx + radius - dp(8), barTop + dp(16));
-        shape.cubicTo(cx + radius, barTop + dp(8), cx + radius, barTop, cx + radius + dp(12), barTop);
-        shape.lineTo(width - dp(16), barTop);
-        shape.quadTo(width, barTop, width, barTop + dp(16));
+        shape.lineTo(0, top + side);
+        shape.quadTo(0, top, side, top);
+        shape.lineTo(cx - dp(78), top);
+        shape.cubicTo(cx - dp(52), top, cx - dp(46), top - dp(2), cx - dp(38), top + dp(8));
+        shape.cubicTo(cx - dp(24), top + dp(28), cx - dp(12), top + dp(40), cx, top + dp(40));
+        shape.cubicTo(cx + dp(12), top + dp(40), cx + dp(24), top + dp(28), cx + dp(38), top + dp(8));
+        shape.cubicTo(cx + dp(46), top - dp(2), cx + dp(52), top, cx + dp(78), top);
+        shape.lineTo(width - side, top);
+        shape.quadTo(width, top, width, top + side);
         shape.lineTo(width, getHeight());
         shape.close();
         canvas.drawPath(shape, paint);
