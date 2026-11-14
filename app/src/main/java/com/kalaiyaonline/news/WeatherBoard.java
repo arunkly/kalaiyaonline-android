@@ -1,7 +1,12 @@
 package com.kalaiyaonline.news;
 
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,6 +37,8 @@ final class WeatherBoard {
     private final TextView condition;
     private final TextView meta;
     private final LinearLayout days;
+    private final LinearLayout results;
+    private final EditText search;
     private double lat = 27.033;
     private double lon = 84.983;
 
@@ -39,41 +46,94 @@ final class WeatherBoard {
         this.activity = activity;
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundResource(R.drawable.bg_weather);
-        int pad = dp(14);
-        root.setPadding(pad, pad, pad, dp(12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(12);
+        lp.topMargin = dp(8);
         root.setLayoutParams(lp);
 
-        TextView label = text("मौसम", 16, 0xFF0B5C28, true);
-        root.addView(label);
+        LinearLayout bar = new LinearLayout(activity);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        search = new EditText(activity);
+        search.setHint("स्थान खोज्नुहोस्…");
+        search.setSingleLine(true);
+        search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        search.setBackground(field());
+        search.setPadding(dp(14), dp(10), dp(14), dp(10));
+        search.setTypeface(ResourcesCompat.getFont(activity, R.font.mukta_regular));
+        search.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchPlace();
+                return true;
+            }
+            return false;
+        });
+        bar.addView(search, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView go = text("खोज", 15, 0xFFFFFFFF, true);
+        go.setGravity(Gravity.CENTER);
+        go.setBackground(pill(0xFF0F8A3C));
+        go.setPadding(dp(16), dp(10), dp(16), dp(10));
+        LinearLayout.LayoutParams goLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        goLp.leftMargin = dp(8);
+        go.setLayoutParams(goLp);
+        go.setOnClickListener(v -> searchPlace());
+        bar.addView(go);
+        root.addView(bar);
 
-        place = text("कलैया, बारा", 13, 0xFF78716C, false);
-        root.addView(place);
+        HorizontalScrollView quickScroll = new HorizontalScrollView(activity);
+        quickScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout quick = new LinearLayout(activity);
+        quick.setPadding(0, dp(8), 0, dp(4));
+        quick.addView(quickChip("कलैया", 27.033, 84.983));
+        quick.addView(quickChip("काठमाडौं", 27.717, 85.324));
+        quick.addView(quickChip("वीरगञ्ज", 27.017, 84.867));
+        quick.addView(quickChip("सिमरा", 27.164, 84.980));
+        quickScroll.addView(quick);
+        root.addView(quickScroll);
+
+        results = new LinearLayout(activity);
+        results.setOrientation(LinearLayout.VERTICAL);
+        root.addView(results);
+
+        LinearLayout hero = new LinearLayout(activity);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable heroBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF0B5C28, 0xFF14944A});
+        heroBg.setCornerRadius(dp(22));
+        hero.setBackground(heroBg);
+        hero.setPadding(dp(16), dp(16), dp(16), dp(16));
+        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        heroLp.topMargin = dp(8);
+        hero.setLayoutParams(heroLp);
+
+        hero.addView(text("मौसम", 13, 0xFFD1FAE5, true));
+        place = text("कलैया, बारा", 16, 0xFFFFFFFF, true);
+        place.setPadding(0, dp(2), 0, dp(8));
+        hero.addView(place);
 
         LinearLayout now = new LinearLayout(activity);
         now.setOrientation(LinearLayout.HORIZONTAL);
         now.setGravity(Gravity.CENTER_VERTICAL);
-        temp = text("—°", 36, 0xFF1C1917, true);
-        condition = text("लोड हुँदैछ…", 16, 0xFF0F8A3C, true);
-        condition.setPadding(dp(10), dp(8), 0, 0);
+        temp = text("—°", 42, 0xFFFFFFFF, true);
+        condition = text("लोड हुँदैछ…", 16, 0xFFD1FAE5, true);
+        condition.setPadding(dp(12), dp(10), 0, 0);
         now.addView(temp);
         now.addView(condition);
-        root.addView(now);
+        hero.addView(now);
 
-        meta = text("", 13, 0xFF57534E, false);
-        root.addView(meta);
+        meta = text("", 13, 0xFFE7F8EE, false);
+        meta.setPadding(0, dp(8), 0, 0);
+        hero.addView(meta);
+        root.addView(hero);
+
+        TextView forecast = text("७ दिनको पूर्वानुमान", 16, 0xFF0B5C28, true);
+        forecast.setPadding(dp(2), dp(14), 0, dp(8));
+        root.addView(forecast);
 
         days = new LinearLayout(activity);
         days.setOrientation(LinearLayout.HORIZONTAL);
         HorizontalScrollView scroll = new HorizontalScrollView(activity);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(days);
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        scrollLp.topMargin = dp(10);
-        root.addView(scroll, scrollLp);
-        root.setOnClickListener(v -> load(lat, lon));
+        root.addView(scroll);
     }
 
     ViewGroup view() {
@@ -81,17 +141,94 @@ final class WeatherBoard {
     }
 
     void load(double latitude, double longitude) {
+        loadAt(latitude, longitude, null);
+    }
+
+    private void loadAt(double latitude, double longitude, String knownName) {
         lat = latitude;
         lon = longitude;
-        activity.runOnUiThread(() -> condition.setText("लोड हुँदैछ…"));
+        activity.runOnUiThread(() -> {
+            condition.setText("लोड हुँदैछ…");
+            if (knownName != null) place.setText(knownName);
+            results.removeAllViews();
+        });
         io.execute(() -> {
-            String where = placeName(latitude, longitude);
+            String where = knownName != null ? knownName : placeName(latitude, longitude);
             String open = get(openUrl(latitude, longitude));
             if (open != null && applyOpen(open, where)) return;
             String met = get(metUrl(latitude, longitude));
             if (met != null && applyMet(met, where)) return;
             activity.runOnUiThread(() -> condition.setText("मौसम आएन"));
         });
+    }
+
+    private void searchPlace() {
+        String query = search.getText().toString().trim();
+        if (query.length() < 2) return;
+        hideKeyboard();
+        results.removeAllViews();
+        results.addView(note("खोज्दैछ…"));
+        io.execute(() -> {
+            String body = get("https://geocoding-api.open-meteo.com/v1/search?name=" + enc(query) + "&count=6&language=en&format=json");
+            activity.runOnUiThread(() -> showPlaces(body));
+        });
+    }
+
+    private void showPlaces(String body) {
+        results.removeAllViews();
+        try {
+            JSONArray list = body == null ? null : new JSONObject(body).optJSONArray("results");
+            if (list == null || list.length() == 0) {
+                results.addView(note("स्थान भेटिएन। अङ्ग्रेजी नाम लेख्नुहोस्।"));
+                return;
+            }
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject item = list.getJSONObject(i);
+                String name = item.optString("name");
+                String region = item.optString("admin1");
+                String country = item.optString("country");
+                String label = name;
+                if (!region.isEmpty()) label += ", " + region;
+                else if (!country.isEmpty()) label += ", " + country;
+                double latitude = item.getDouble("latitude");
+                double longitude = item.getDouble("longitude");
+                String title = label;
+                TextView row = text(title, 15, 0xFF1C1917, true);
+                row.setBackground(field());
+                row.setPadding(dp(14), dp(10), dp(14), dp(10));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.topMargin = dp(6);
+                row.setLayoutParams(lp);
+                row.setOnClickListener(v -> {
+                    search.setText(name);
+                    results.removeAllViews();
+                    loadAt(latitude, longitude, title);
+                });
+                results.addView(row);
+            }
+        } catch (Exception error) {
+            results.addView(note("स्थान भेटिएन।"));
+        }
+    }
+
+    private View quickChip(String label, double latitude, double longitude) {
+        TextView view = text(label, 13, 0xFF0B5C28, true);
+        view.setBackground(pill(0xFFE5F6EC));
+        view.setPadding(dp(12), dp(6), dp(12), dp(6));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
+        view.setLayoutParams(lp);
+        view.setOnClickListener(v -> {
+            search.setText("");
+            results.removeAllViews();
+            loadAt(latitude, longitude, label);
+        });
+        return view;
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager manager = (InputMethodManager) activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+        if (manager != null && search != null) manager.hideSoftInputFromWindow(search.getWindowToken(), 0);
     }
 
     private boolean applyOpen(String body, String where) {
@@ -185,10 +322,13 @@ final class WeatherBoard {
                 LinearLayout chip = new LinearLayout(activity);
                 chip.setOrientation(LinearLayout.VERTICAL);
                 chip.setGravity(Gravity.CENTER);
-                chip.setBackgroundResource(R.drawable.bg_chip);
-                chip.setPadding(dp(10), dp(8), dp(10), dp(8));
-                chip.addView(text(labels[i], 12, 0xFF0B5C28, true));
-                chip.addView(text(values[i], 12, 0xFF1C1917, false));
+                chip.setBackground(field());
+                chip.setPadding(dp(12), dp(10), dp(12), dp(10));
+                chip.setMinimumWidth(dp(76));
+                chip.addView(text(labels[i], 13, 0xFF0B5C28, true));
+                String[] parts = values[i].split("  ", 2);
+                chip.addView(text(parts[0], 18, 0xFF1C1917, false));
+                chip.addView(text(parts.length > 1 ? parts[1] : values[i], 12, 0xFF57534E, false));
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 lp.rightMargin = dp(8);
                 days.addView(chip, lp);
@@ -341,6 +481,27 @@ final class WeatherBoard {
         } catch (Exception error) {
             return value;
         }
+    }
+
+    private GradientDrawable field() {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFFFFFFF);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), 0xFFE5E7EB);
+        return bg;
+    }
+
+    private GradientDrawable pill(int color) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(16));
+        return bg;
+    }
+
+    private TextView note(String value) {
+        TextView view = text(value, 13, 0xFF78716C, false);
+        view.setPadding(dp(4), dp(8), dp(4), 0);
+        return view;
     }
 
     private TextView text(String value, int size, int color, boolean bold) {
