@@ -87,6 +87,10 @@ public class MainActivity extends AppCompatActivity {
     private EditText searchBox;
     private boolean drawerOpen;
     private boolean searchOpen;
+    private boolean bellOpen;
+    private View bellPanel;
+    private LinearLayout bellList;
+    private SiteClient.Home latestHome;
 
     private UpdateChecker updates;
     private View morePanel;
@@ -137,6 +141,14 @@ public class MainActivity extends AppCompatActivity {
         searchLp.leftMargin = dp(12);
         searchLp.rightMargin = dp(12);
         screen.addView(searchPanel, searchLp);
+
+        bellPanel = bellPanel();
+        bellPanel.setVisibility(View.GONE);
+        FrameLayout.LayoutParams bellLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        bellLp.topMargin = dp(68);
+        bellLp.leftMargin = dp(12);
+        bellLp.rightMargin = dp(12);
+        screen.addView(bellPanel, bellLp);
 
         drawer = drawer();
         drawer.setVisibility(View.GONE);
@@ -218,6 +230,9 @@ public class MainActivity extends AppCompatActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(12), dp(8), dp(10), dp(6));
         row.addView(logo, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        row.addView(headerButton(R.drawable.ic_bell, this::openBell));
+        View bellGap = new View(this);
+        row.addView(bellGap, new LinearLayout.LayoutParams(dp(8), 1));
         row.addView(headerButton(R.drawable.ic_search, this::openSearch));
         View gap = new View(this);
         row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
@@ -249,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
     private void openSearch() {
         setMore(false);
         closeDrawer(false);
+        closeBell(false);
         searchOpen = true;
         searchPanel.setVisibility(View.VISIBLE);
         dim.setVisibility(View.VISIBLE);
@@ -258,6 +274,7 @@ public class MainActivity extends AppCompatActivity {
     private void openDrawer() {
         setMore(false);
         closeSearch(false);
+        closeBell(false);
         drawerOpen = true;
         drawer.setVisibility(View.VISIBLE);
         drawer.setTranslationX(-dp(300));
@@ -270,13 +287,14 @@ public class MainActivity extends AppCompatActivity {
         restoreNav();
         closeDrawer(true);
         closeSearch(true);
+        closeBell(true);
     }
 
     private void closeDrawer(boolean hideDim) {
         if (!drawerOpen) return;
         drawerOpen = false;
         drawer.animate().translationX(-dp(300)).setDuration(180).withEndAction(() -> drawer.setVisibility(View.GONE)).start();
-        if (hideDim && !searchOpen && !moreOpen) dim.setVisibility(View.GONE);
+        if (hideDim && !searchOpen && !moreOpen && !bellOpen) dim.setVisibility(View.GONE);
     }
 
     private void closeSearch(boolean hideDim) {
@@ -285,7 +303,133 @@ public class MainActivity extends AppCompatActivity {
         searchPanel.setVisibility(View.GONE);
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(searchBox.getWindowToken(), 0);
-        if (hideDim && !drawerOpen && !moreOpen) dim.setVisibility(View.GONE);
+        if (hideDim && !drawerOpen && !moreOpen && !bellOpen) dim.setVisibility(View.GONE);
+    }
+
+    private void openBell() {
+        setMore(false);
+        closeDrawer(false);
+        closeSearch(false);
+        bellOpen = true;
+        bellPanel.setVisibility(View.VISIBLE);
+        dim.setVisibility(View.VISIBLE);
+        fillBell();
+    }
+
+    private void closeBell(boolean hideDim) {
+        if (!bellOpen) return;
+        bellOpen = false;
+        bellPanel.setVisibility(View.GONE);
+        if (hideDim && !drawerOpen && !searchOpen && !moreOpen) dim.setVisibility(View.GONE);
+    }
+
+    private View bellPanel() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(14), dp(16), dp(8));
+        GradientDrawable sheet = new GradientDrawable();
+        sheet.setColor(0xFFFFFFFF);
+        sheet.setCornerRadius(dp(22));
+        box.setBackground(sheet);
+        box.setElevation(dp(12));
+        box.setOnClickListener(v -> { });
+        TextView title = new TextView(this);
+        title.setText("ताजा समाचार");
+        title.setTextColor(0xFF0B5C28);
+        style(title, 20, R.font.mukta_extrabold);
+        box.addView(title);
+        bellList = new LinearLayout(this);
+        bellList.setOrientation(LinearLayout.VERTICAL);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(bellList);
+        LinearLayout.LayoutParams listLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(420));
+        listLp.topMargin = dp(8);
+        box.addView(scroll, listLp);
+        return box;
+    }
+
+    private void fillBell() {
+        bellList.removeAllViews();
+        if (latestHome == null) {
+            bellList.addView(message("लोड हुँदैछ…"));
+            io.execute(() -> {
+                try {
+                    SiteClient.Home home = client.home();
+                    runOnUiThread(() -> {
+                        latestHome = home;
+                        if (bellOpen) showBell(latestSeven(home));
+                    });
+                } catch (Exception error) {
+                    runOnUiThread(() -> {
+                        if (!bellOpen) return;
+                        bellList.removeAllViews();
+                        bellList.addView(message("समाचार ल्याउन सकिएन।"));
+                    });
+                }
+            });
+            return;
+        }
+        showBell(latestSeven(latestHome));
+    }
+
+    private List<Story> latestSeven(SiteClient.Home home) {
+        List<Story> list = new ArrayList<>();
+        for (Story story : home.stories) {
+            if (list.size() >= 7) break;
+            list.add(story);
+        }
+        if (list.size() < 7) {
+            for (Story story : home.ticker) {
+                if (list.size() >= 7) break;
+                boolean seen = false;
+                for (Story item : list) if (item.slug.equals(story.slug)) seen = true;
+                if (!seen) list.add(story);
+            }
+        }
+        return list;
+    }
+
+    private void showBell(List<Story> stories) {
+        bellList.removeAllViews();
+        if (stories.isEmpty()) {
+            bellList.addView(message("समाचार भेटिएन।"));
+            return;
+        }
+        String digits = "०१२३४५६७८९";
+        for (int i = 0; i < stories.size(); i++) {
+            Story story = stories.get(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, dp(8), 0, dp(8));
+            TextView number = new TextView(this);
+            number.setText(String.valueOf(digits.charAt(i + 1)));
+            number.setTextColor(0xFFFFFFFF);
+            number.setGravity(Gravity.CENTER);
+            style(number, 16, R.font.mukta_bold);
+            GradientDrawable badge = new GradientDrawable();
+            badge.setCornerRadius(dp(16));
+            badge.setColor(0xFFF15A22);
+            number.setBackground(badge);
+            row.addView(number, new LinearLayout.LayoutParams(dp(32), dp(32)));
+            TextView title = new TextView(this);
+            title.setText(story.title);
+            title.setTextColor(0xFF1C1917);
+            title.setMaxLines(2);
+            style(title, 16, R.font.mukta_semibold);
+            title.setPadding(dp(10), 0, 0, 0);
+            row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            row.setOnClickListener(v -> {
+                closeBell(true);
+                openStory(story);
+            });
+            bellList.addView(row);
+            if (i < stories.size() - 1) {
+                View line = new View(this);
+                line.setBackgroundColor(0xFFF1F1F1);
+                bellList.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+            }
+        }
     }
 
     private View searchPanel() {
@@ -820,7 +964,9 @@ public class MainActivity extends AppCompatActivity {
             try {
                 SiteClient.Home home = client.home();
                 runOnUiThread(() -> {
-                    if (gen == homeGen) renderHome(home, gen);
+                    if (gen != homeGen) return;
+                    latestHome = home;
+                    if ("home".equals(section)) renderHome(home, gen);
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
