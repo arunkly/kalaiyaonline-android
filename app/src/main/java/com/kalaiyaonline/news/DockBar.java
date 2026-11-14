@@ -41,10 +41,7 @@ final class DockBar extends FrameLayout {
     DockBar(Context context) {
         super(context);
         setWillNotDraw(false);
-        setLayerType(LAYER_TYPE_SOFTWARE, null);
         paint.setColor(Color.WHITE);
-        paint.setStyle(Paint.Style.FILL);
-        paint.setShadowLayer(dp(10), 0, -dp(2), 0x22000000);
         home = circle();
         home.setOnClickListener(v -> choose(R.id.nav_home));
         addView(home, new LayoutParams(dp(56), dp(56), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
@@ -185,6 +182,12 @@ final class DockBar extends FrameLayout {
         shape.quadTo(width, top, width, top + side);
         shape.lineTo(width, getHeight());
         shape.close();
+        paint.setColor(0x14000000);
+        canvas.save();
+        canvas.translate(0, -dp(3));
+        canvas.drawPath(shape, paint);
+        canvas.restore();
+        paint.setColor(Color.WHITE);
         canvas.drawPath(shape, paint);
     }
 

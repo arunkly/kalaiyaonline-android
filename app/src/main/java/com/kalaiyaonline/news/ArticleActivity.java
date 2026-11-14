@@ -517,7 +517,7 @@ public class ArticleActivity extends AppCompatActivity {
 
     private void load(String url, ImageView target) {
         io.execute(() -> {
-            Bitmap bitmap = Bitmaps.load(url, 1400);
+            Bitmap bitmap = Bitmaps.load(url, 960);
             if (bitmap != null) runOnUiThread(() -> {
                 if (!isDestroyed()) target.setImageBitmap(bitmap);
             });

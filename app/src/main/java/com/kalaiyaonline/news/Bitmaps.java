@@ -1,6 +1,7 @@
 package com.kalaiyaonline.news;
 
 import android.graphics.Bitmap;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -14,11 +15,11 @@ final class Bitmaps {
     static Bitmap load(String url, int maxSide) {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection = (HttpURLConnection) new URL(sized(url, maxSide)).openConnection();
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(10000);
             InputStream input = connection.getInputStream();
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             byte[] buffer = new byte[8192];
@@ -34,11 +35,18 @@ final class Bitmaps {
             if (side > 0) while (side / sample > maxSide) sample *= 2;
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inSampleSize = Math.max(1, sample);
+            options.inPreferredConfig = maxSide > 1000 ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
             return BitmapFactory.decodeByteArray(data, 0, data.length, options);
         } catch (Exception ignored) {
             return null;
         } finally {
             if (connection != null) connection.disconnect();
         }
+    }
+
+    private static String sized(String url, int maxSide) {
+        if (url == null || !url.contains("imagekit.io") || url.contains("tr=") || url.contains("/tr:")) return url;
+        int width = Math.max(360, Math.min(maxSide, 960));
+        return url + (url.contains("?") ? "&" : "?") + "tr=w-" + width + ",q-55";
     }
 }

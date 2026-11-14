@@ -55,6 +55,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
     private final SiteClient client = new SiteClient();
     private final ExecutorService io = Executors.newFixedThreadPool(3);
+    private final ExecutorService images = Executors.newFixedThreadPool(2);
     private LinearLayout page;
     private TextView status;
     private String section = "home";
@@ -1665,6 +1666,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         stopMotion();
+        images.shutdownNow();
         if (shellAd != null) shellAd.destroy();
         if (feedAd != null) feedAd.destroy();
         super.onDestroy();
@@ -1734,8 +1736,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadImage(String url, ImageView target) {
-        io.execute(() -> {
-            Bitmap bitmap = Bitmaps.load(url, 1200);
+        images.execute(() -> {
+            Bitmap bitmap = Bitmaps.load(url, 720);
             if (bitmap == null) return;
             runOnUiThread(() -> {
                 if (!isDestroyed()) target.setImageBitmap(bitmap);
