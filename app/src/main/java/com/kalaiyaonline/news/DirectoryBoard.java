@@ -51,27 +51,25 @@ final class DirectoryBoard {
     private int provinceId;
     private int districtId;
     private int cityId;
+    private int page;
 
     DirectoryBoard(AppCompatActivity activity) {
         this.activity = activity;
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
 
-        TextView hero = text("आफ्नो नजिकको सेवा खोज्नुहोस्", 20, 0xFF142033, true);
-        root.addView(hero);
-        TextView intro = text("प्रदेश, जिल्ला र शहर छानेर व्यवसाय खोज्नुहोस्।", 14, 0xFF57534E, false);
-        intro.setPadding(0, 0, 0, dp(8));
-        root.addView(intro);
-
         query = new EditText(activity);
-        query.setHint("के खोज्दै हुनुहुन्छ? जस्तै: अस्पताल, होटल…");
+        query.setHint("डाइरेक्टरी खोज्नुहोस्…");
         query.setSingleLine(true);
         query.setBackground(field());
         query.setPadding(dp(12), dp(10), dp(12), dp(10));
         query.setTypeface(ResourcesCompat.getFont(activity, R.font.mukta_regular));
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) { apply(); }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                page = 0;
+                showPage();
+            }
             public void afterTextChanged(Editable s) {}
         });
         root.addView(query);
@@ -108,7 +106,7 @@ final class DirectoryBoard {
 
     void load() {
         if (loaded) {
-            apply();
+            showPage();
             return;
         }
         status.setText("डाइरेक्टरी लोड हुँदैछ…");
@@ -155,9 +153,10 @@ final class DirectoryBoard {
             if (!item.title.isEmpty()) listings.add(item);
         }
         loaded = true;
+        page = 0;
         paintChips();
         bindLocations();
-        apply();
+        showPage();
     }
 
     private void readPlaces(String json) {
@@ -175,15 +174,14 @@ final class DirectoryBoard {
         }
     }
 
-    private void apply() {
+    private void showPage() {
         if (!loaded) return;
         String needle = query.getText().toString().trim();
         String provinceName = selectedName(province);
         String districtName = selectedName(district);
         String cityName = selectedName(city);
-        String cat = category == 0 ? "" : categories.get(category);
-        list.removeAllViews();
-        int shown = 0;
+        String cat = category == 0 || category >= categories.size() ? "" : categories.get(category);
+        List<Listing> matches = new ArrayList<>();
         for (Listing item : listings) {
             if (!cat.isEmpty() && !item.category.equals(cat)) continue;
             if (!provinceName.isEmpty() && !item.location.contains(provinceName)) continue;
@@ -191,14 +189,31 @@ final class DirectoryBoard {
             if (!cityName.isEmpty() && !item.location.contains(cityName)) continue;
             String blob = item.title + " " + item.blurb + " " + item.category + " " + item.location;
             if (!needle.isEmpty() && !blob.contains(needle)) continue;
-            list.addView(card(item));
-            shown++;
+            matches.add(item);
         }
-        status.setText(shown + " listing");
-        if (shown == 0) list.addView(text("यो फिल्टरमा सूची भेटिएन।", 14, 0xFF57534E, false));
-        TextView note = text("फोन नम्बर र ठेगाना परिवर्तन हुन सक्छ। जानुअघि पुष्टि गर्नुहोस्।", 12, 0xFF78716C, false);
-        note.setPadding(0, dp(12), 0, dp(8));
-        list.addView(note);
+        int pages = Math.max(1, (matches.size() + 6) / 7);
+        if (page >= pages) page = pages - 1;
+        if (page < 0) page = 0;
+        list.removeAllViews();
+        if (matches.isEmpty()) {
+            status.setText("सूची भेटिएन");
+            list.addView(text("यो खोजमा सूची भेटिएन।", 14, 0xFF57534E, false));
+            return;
+        }
+        int start = page * 7;
+        int end = Math.min(matches.size(), start + 7);
+        status.setText((start + 1) + "–" + end + " / " + matches.size());
+        for (int i = start; i < end; i++) list.addView(card(matches.get(i)));
+        LinearLayout pager = new LinearLayout(activity);
+        pager.setOrientation(LinearLayout.HORIZONTAL);
+        pager.setGravity(Gravity.CENTER_VERTICAL);
+        pager.setPadding(0, dp(12), 0, dp(4));
+        if (page > 0) pager.addView(action("अघिल्लो", () -> { page--; showPage(); }));
+        TextView label = text("पृष्ठ " + (page + 1) + " / " + pages, 14, 0xFF142033, true);
+        label.setPadding(dp(8), 0, dp(8), 0);
+        pager.addView(label);
+        if (page + 1 < pages) pager.addView(action("पछिल्लो", () -> { page++; showPage(); }));
+        list.addView(pager);
     }
 
     private View card(Listing item) {
@@ -236,7 +251,7 @@ final class DirectoryBoard {
     private void openDetail(Listing item) {
         list.removeAllViews();
         status.setText("");
-        list.addView(button("← सूची", this::apply));
+        list.addView(button("← सूची", this::showPage));
         TextView title = text(item.title, 22, 0xFF142033, true);
         title.setPadding(0, dp(8), 0, 0);
         list.addView(title);
@@ -294,28 +309,33 @@ final class DirectoryBoard {
             chip.setOnClickListener(v -> {
                 category = index;
                 paintChips();
-                apply();
+                page = 0;
+                showPage();
             });
             chips.addView(chip);
         }
     }
 
     private void bindLocations() {
-        filling = true;
+        province.setOnItemSelectedListener(null);
+        district.setOnItemSelectedListener(null);
+        city.setOnItemSelectedListener(null);
         fill(province, children(0), provinceId, true);
-        int selectedProvince = idOf(province);
-        fill(district, children(selectedProvince), districtId, selectedProvince != 0);
-        int selectedDistrict = idOf(district);
-        fill(city, children(selectedDistrict), cityId, selectedDistrict != 0);
-        filling = false;
+        fill(district, children(provinceId), districtId, provinceId != 0);
+        fill(city, children(districtId), cityId, districtId != 0);
+        province.setOnItemSelectedListener(pick(1));
+        district.setOnItemSelectedListener(pick(2));
+        city.setOnItemSelectedListener(pick(3));
     }
 
     private void refillChildren() {
-        filling = true;
+        district.setOnItemSelectedListener(null);
+        city.setOnItemSelectedListener(null);
         fill(district, children(provinceId), districtId, provinceId != 0);
         districtId = idOf(district);
         fill(city, children(districtId), cityId, districtId != 0);
-        filling = false;
+        district.setOnItemSelectedListener(pick(2));
+        city.setOnItemSelectedListener(pick(3));
     }
 
     private void fill(Spinner spinner, List<Place> rows, int selectedId, boolean enabled) {
@@ -358,6 +378,7 @@ final class DirectoryBoard {
         return new android.widget.AdapterView.OnItemSelectedListener() {
             public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
                 if (filling) return;
+                page = 0;
                 if (level == 1) {
                     provinceId = idOf(province);
                     districtId = 0;
@@ -368,7 +389,7 @@ final class DirectoryBoard {
                     cityId = 0;
                     refillChildren();
                 }
-                apply();
+                showPage();
             }
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         };
@@ -453,7 +474,9 @@ final class DirectoryBoard {
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0");
                 connection.setConnectTimeout(12000);
                 connection.setReadTimeout(12000);
-                bitmap = BitmapFactory.decodeStream(connection.getInputStream());
+                BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 4;
+            bitmap = BitmapFactory.decodeStream(connection.getInputStream(), null, options);
             } catch (Exception ignored) {
             } finally {
                 if (connection != null) connection.disconnect();
