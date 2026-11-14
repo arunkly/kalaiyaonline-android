@@ -1411,7 +1411,8 @@ public class MainActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText(story.title);
         title.setTextColor(0xFF1C1917);
-        title.setTextSize(hero ? 20 : 16);
+        if (hero) title.setTextSize(20);
+        else style(title, 20, R.font.mukta_bold);
         title.setPadding(0, dp(4), 0, 0);
         pad.addView(title);
         String meta = (story.author.isEmpty() ? "कलैया अनलाइन" : story.author) + (story.date.isEmpty() ? "" : " · " + story.date);
