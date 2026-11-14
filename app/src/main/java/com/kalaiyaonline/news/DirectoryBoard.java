@@ -12,6 +12,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.graphics.drawable.Drawable;
+import android.widget.HorizontalScrollView;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -20,12 +22,14 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,6 +41,8 @@ final class DirectoryBoard {
     private final TextView status;
     private final EditText query;
     private final List<Listing> listings = new ArrayList<>();
+    private final LinearLayout chips;
+    private String category = "";
     private int page;
     private int generation;
 
@@ -44,6 +50,14 @@ final class DirectoryBoard {
         this.activity = activity;
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
+
+        chips = new LinearLayout(activity);
+        chips.setOrientation(LinearLayout.HORIZONTAL);
+        chips.setPadding(0, dp(2), 0, dp(8));
+        HorizontalScrollView scroll = new HorizontalScrollView(activity);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.addView(chips);
+        root.addView(scroll);
 
         query = new EditText(activity);
         query.setHint("डाइरेक्टरी खोज्नुहोस्…");
@@ -96,6 +110,7 @@ final class DirectoryBoard {
                 listings.clear();
                 listings.addAll(parsed);
                 page = 0;
+                renderChips();
                 showPage();
             });
         }).start();
@@ -118,12 +133,71 @@ final class DirectoryBoard {
         return rows;
     }
 
+    private void renderChips() {
+        chips.removeAllViews();
+        chips.addView(chip("सबै", "", category.isEmpty()));
+        LinkedHashSet<String> found = new LinkedHashSet<>();
+        for (Listing item : listings) if (!item.category.isEmpty()) found.add(item.category);
+        String[] order = {"अस्पताल", "स्वास्थ्य", "कम्प्युटर", "आईटी", "क्याफे", "खाजा", "बैंक", "विद्यालय", "कलेज", "व्यवसाय", "सरकारी", "होटल", "रेष्ट"};
+        List<String> names = new ArrayList<>();
+        for (String key : order) {
+            for (String name : found) {
+                if (name.contains(key) && !names.contains(name)) names.add(name);
+            }
+        }
+        for (String name : found) if (!names.contains(name)) names.add(name);
+        for (String name : names) chips.addView(chip(name, name, name.equals(category)));
+    }
+
+    private View chip(String label, String value, boolean on) {
+        TextView view = text(label, 14, on ? 0xFFFFFFFF : 0xFF1C1917, true);
+        view.setGravity(Gravity.CENTER_VERTICAL);
+        Drawable icon = DrawableCompat.wrap(activity.getDrawable(iconFor(label))).mutate();
+        DrawableCompat.setTint(icon, on ? 0xFFFFFFFF : 0xFF0F8A3C);
+        icon.setBounds(0, 0, dp(16), dp(16));
+        view.setCompoundDrawables(icon, null, null, null);
+        view.setCompoundDrawablePadding(dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(20));
+        if (on) bg.setColor(0xFF0F8A3C);
+        else {
+            bg.setColor(0xFFFFFFFF);
+            bg.setStroke(dp(1), 0xFFE5E7EB);
+        }
+        view.setBackground(bg);
+        view.setPadding(dp(12), dp(7), dp(14), dp(7));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
+        view.setLayoutParams(lp);
+        view.setOnClickListener(v -> {
+            category = value;
+            page = 0;
+            renderChips();
+            showPage();
+        });
+        return view;
+    }
+
+    private int iconFor(String label) {
+        if (label.contains("अस्पताल") || label.contains("स्वास्थ्य")) return R.drawable.ic_dir_health;
+        if (label.contains("कम्प्युटर") || label.contains("आईटी") || label.contains("IT")) return R.drawable.ic_dir_laptop;
+        if (label.contains("क्याफे") || label.contains("खाजा")) return R.drawable.ic_dir_cafe;
+        if (label.contains("बैंक") || label.contains("वित्त")) return R.drawable.ic_cat_wallet;
+        if (label.contains("विद्यालय") || label.contains("कलेज")) return R.drawable.ic_cat_pen;
+        if (label.contains("व्यवसाय") || label.contains("कम्पनी")) return R.drawable.ic_dir_shop;
+        if (label.contains("सरकारी")) return R.drawable.ic_cat_politics;
+        if (label.contains("होटल") || label.contains("रेष्ट")) return R.drawable.ic_home;
+        if ("सबै".equals(label)) return R.drawable.ic_menu;
+        return R.drawable.ic_pin;
+    }
+
     private void showPage() {
         if (listings.isEmpty()) return;
         generation++;
         String needle = query.getText().toString().trim();
         List<Listing> matches = new ArrayList<>();
         for (Listing item : listings) {
+            if (!category.isEmpty() && !category.equals(item.category)) continue;
             String blob = item.title + " " + item.category + " " + item.location + " " + item.blurb;
             if (needle.isEmpty() || blob.contains(needle)) matches.add(item);
         }
