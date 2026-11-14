@@ -203,7 +203,32 @@ public final class SiteClient {
         }
         Story story = new Story(slug, title, image, category, date, author, body.toString());
         story.views = views;
+        story.related.addAll(relatedFrom(doc, slug));
         return story;
+    }
+
+    private List<Story> relatedFrom(Document doc, String current) {
+        List<Story> list = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        boolean after = false;
+        for (Element el : doc.getAllElements()) {
+            if (!after) {
+                String label = el.ownText().replaceAll("\\s+", " ").trim();
+                if (label.contains("सम्बन्धित समाचार")) after = true;
+                continue;
+            }
+            if (!el.tagName().equals("a")) continue;
+            String next = slug(el.attr("href"));
+            if (next == null || next.equals(current) || !seen.add(next)) continue;
+            String title = text(el.selectFirst("h2, h3, h4, b"));
+            if (title.length() < 8) title = text(el);
+            if (title.length() < 8) continue;
+            String image = imageFrom(el);
+            if (image.isEmpty() && el.parent() != null) image = imageFrom(el.parent());
+            list.add(new Story(next, title, image, "", "", "", ""));
+            if (list.size() >= 4) break;
+        }
+        return list;
     }
 
     public List<Story> gallery() throws Exception {

@@ -15,6 +15,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -41,6 +42,8 @@ public class ArticleActivity extends AppCompatActivity {
     private TextView authorView;
     private TextView viewsView;
     private TextView saveView;
+    private TextView bodyView;
+    private LinearLayout relatedBox;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -181,32 +184,6 @@ public class ArticleActivity extends AppCompatActivity {
         frameLp.topMargin = dp(8);
         page.addView(frame, frameLp);
 
-        TextView body = new TextView(this);
-        body.setText("पूर्ण समाचार लोड हुँदैछ…");
-        body.setTextColor(0xFF292524);
-        body.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
-        body.setLineSpacing(dp(8), 1f);
-        body.setPadding(dp(2), dp(18), dp(2), dp(8));
-        page.addView(body);
-
-        MaterialCardView shareCard = new MaterialCardView(this);
-        shareCard.setRadius(dp(18));
-        shareCard.setCardElevation(0);
-        shareCard.setStrokeWidth(dp(1));
-        shareCard.setStrokeColor(0xFFE7E5E4);
-        shareCard.setCardBackgroundColor(0xFFFFFFFF);
-        LinearLayout shareBox = new LinearLayout(this);
-        shareBox.setOrientation(LinearLayout.VERTICAL);
-        shareBox.setGravity(Gravity.CENTER);
-        shareBox.setPadding(dp(8), dp(14), dp(8), dp(16));
-        TextView shareLabel = new TextView(this);
-        shareLabel.setText("सेयर गर्नुहोस्");
-        shareLabel.setGravity(Gravity.CENTER);
-        shareLabel.setTextColor(0xFF0B5C28);
-        shareLabel.setTextSize(16);
-        shareLabel.setTypeface(bold);
-        shareLabel.setPadding(0, 0, 0, dp(12));
-        shareBox.addView(shareLabel);
         LinearLayout shares = new LinearLayout(this);
         shares.setOrientation(LinearLayout.HORIZONTAL);
         shares.setGravity(Gravity.CENTER);
@@ -216,11 +193,23 @@ public class ArticleActivity extends AppCompatActivity {
         shares.addView(shareButton("Viber", 0xFF7360F2, "com.viber.voip", link, title));
         shares.addView(shareButton("X", 0xFF111111, "com.twitter.android", link, title));
         shares.addView(shareButton("थप", 0xFF0F8A3C, null, link, title));
-        shareBox.addView(shares);
-        shareCard.addView(shareBox);
-        LinearLayout.LayoutParams shareCardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        shareCardLp.topMargin = dp(18);
-        page.addView(shareCard, shareCardLp);
+        LinearLayout.LayoutParams shareLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        shareLp.topMargin = dp(10);
+        shareLp.bottomMargin = dp(4);
+        page.addView(shares, shareLp);
+
+        bodyView = new TextView(this);
+        bodyView.setText("पूर्ण समाचार लोड हुँदैछ…");
+        bodyView.setTextColor(0xFF292524);
+        bodyView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
+        bodyView.setLineSpacing(dp(8), 1f);
+        bodyView.setPadding(dp(2), dp(12), dp(2), dp(8));
+        page.addView(bodyView);
+
+        relatedBox = new LinearLayout(this);
+        relatedBox.setOrientation(LinearLayout.VERTICAL);
+        relatedBox.setVisibility(View.GONE);
+        page.addView(relatedBox);
 
         scroll.addView(page);
         root.addView(scroll);
@@ -236,11 +225,12 @@ public class ArticleActivity extends AppCompatActivity {
                     if (!story.date.isEmpty()) dateView.setText(story.date);
                     if (!story.author.isEmpty()) authorView.setText(story.author);
                     viewsView.setText(story.views.isEmpty() ? "—" : story.views);
-                    body.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
+                    bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
                     if (!story.image.isEmpty()) load(story.image, image);
+                    showRelated(story.related);
                 });
             } catch (Exception error) {
-                runOnUiThread(() -> body.setText("समाचार खोल्न सकिएन।"));
+                runOnUiThread(() -> bodyView.setText("समाचार खोल्न सकिएन।"));
             }
         });
     }
@@ -306,6 +296,75 @@ public class ArticleActivity extends AppCompatActivity {
         view.setBackgroundResource(on ? R.drawable.bg_badge : R.drawable.bg_chip);
     }
 
+    private void showRelated(java.util.List<Story> stories) {
+        relatedBox.removeAllViews();
+        if (stories == null || stories.isEmpty()) {
+            relatedBox.setVisibility(View.GONE);
+            return;
+        }
+        relatedBox.setVisibility(View.VISIBLE);
+        relatedBox.setPadding(0, dp(16), 0, dp(8));
+        TextView head = new TextView(this);
+        head.setText("सम्बन्धित समाचार");
+        head.setTextColor(0xFF0B5C28);
+        head.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        head.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_extrabold));
+        head.setPadding(dp(2), 0, 0, dp(8));
+        relatedBox.addView(head);
+        LinearLayout row = null;
+        int count = Math.min(4, stories.size());
+        for (int i = 0; i < count; i++) {
+            if (i % 2 == 0) {
+                row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                relatedBox.addView(row);
+            }
+            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            cell.setMargins(dp(4), dp(4), dp(4), dp(4));
+            row.addView(overlayCell(stories.get(i)), cell);
+        }
+        if (count % 2 == 1) {
+            row.addView(new View(this), new LinearLayout.LayoutParams(0, dp(1), 1f));
+        }
+    }
+
+    private View overlayCell(Story story) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(14));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setCardBackgroundColor(0xFF14532D);
+        FrameLayout frame = new FrameLayout(this);
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setBackgroundColor(0xFF14532D);
+        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(132)));
+        if (!story.image.isEmpty()) load(story.image, image);
+        View shade = new View(this);
+        GradientDrawable fade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xE6000000});
+        shade.setBackground(fade);
+        frame.addView(shade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(78), Gravity.BOTTOM));
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFFFFFFFF);
+        title.setMaxLines(3);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        title.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
+        title.setPadding(dp(8), dp(6), dp(8), dp(8));
+        frame.addView(title, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        card.addView(frame);
+        card.setOnClickListener(v -> openRelated(story));
+        return card;
+    }
+
+    private void openRelated(Story story) {
+        Intent intent = new Intent(this, ArticleActivity.class);
+        intent.putExtra("slug", story.slug);
+        intent.putExtra("title", story.title);
+        intent.putExtra("image", story.image);
+        startActivity(intent);
+    }
+
     private LinearLayout shareButton(String label, int color, String pkg, String link, TextView title) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -313,21 +372,21 @@ public class ArticleActivity extends AppCompatActivity {
         TextView mark = new TextView(this);
         mark.setText(label.substring(0, 1));
         mark.setTextColor(0xFFFFFFFF);
-        mark.setTextSize(16);
+        mark.setTextSize(12);
         mark.setGravity(Gravity.CENTER);
         mark.setBackgroundResource(R.drawable.bg_dot);
         mark.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-        box.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        box.addView(mark, new LinearLayout.LayoutParams(dp(32), dp(32)));
         TextView name = new TextView(this);
         name.setText(label);
-        name.setTextSize(11);
-        name.setTextColor(0xFF57534E);
+        name.setTextSize(9);
+        name.setTextColor(0xFF78716C);
         name.setGravity(Gravity.CENTER);
-        name.setPadding(0, dp(4), 0, 0);
+        name.setPadding(0, dp(2), 0, 0);
         box.addView(name);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(8);
-        lp.rightMargin = dp(8);
+        lp.leftMargin = dp(5);
+        lp.rightMargin = dp(5);
         box.setLayoutParams(lp);
         box.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
         return box;
