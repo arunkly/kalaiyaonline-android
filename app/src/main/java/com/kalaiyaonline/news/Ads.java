@@ -12,8 +12,8 @@ import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 
 final class Ads {
-    static final String APP_ID = "ca-app-pub-3940256099942544~3347511713";
-    static final String BANNER = "ca-app-pub-3940256099942544/6300978111";
+    static final String APP_ID = "ca-app-pub-6927625499631220~1443076509";
+    static final String BANNER = "ca-app-pub-6927625499631220/5952992145";
     private static boolean started;
 
     private Ads() {}
