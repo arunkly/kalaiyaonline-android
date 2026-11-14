@@ -127,7 +127,7 @@ final class DirectoryBoard {
         List<String> found = new ArrayList<>();
         Matcher cats = Pattern.compile("<a\\b[^>]*href=\"[^\"]*directory_category=[^\"]*\"[^>]*>([\\s\\S]*?)</a>").matcher(html);
         while (cats.find()) {
-            String name = decode(cats.group(1).replaceAll("<[^>]+>", "")).replaceAll("\\s+", " ").trim();
+            String name = cleanCategory(cats.group(1));
             if (name.length() < 2 || "सबै".equals(name) || found.contains(name)) continue;
             found.add(name);
         }
@@ -141,7 +141,7 @@ final class DirectoryBoard {
             item.title = textOf(block, "<h2><a [^>]*>([^<]+)</a>");
             item.page = textOf(block, "href=\"(https://kalaiyaonline.com/directory/[^\"]+)\"");
             item.image = textOf(block, "<img src=\"([^\"]+)\"");
-            item.category = textOf(block, "directory-card-kicker\">([^<]+)");
+            item.category = cleanCategory(textOf(block, "directory-card-kicker\">([^<]+)"));
             item.location = textOf(block, "directory-card-location\">([^<]+)").replace("⌖", "").trim();
             item.blurb = textOf(block, "<p>([^<]+)</p>");
             if (!item.title.isEmpty()) rows.add(item);
@@ -206,7 +206,7 @@ final class DirectoryBoard {
         String needle = query.getText().toString().trim();
         List<Listing> matches = new ArrayList<>();
         for (Listing item : listings) {
-            if (!category.isEmpty() && !category.equals(item.category)) continue;
+            if (!category.isEmpty() && !cleanCategory(category).equals(cleanCategory(item.category))) continue;
             String blob = item.title + " " + item.category + " " + item.location + " " + item.blurb;
             if (needle.isEmpty() || blob.contains(needle)) matches.add(item);
         }
@@ -429,8 +429,35 @@ final class DirectoryBoard {
         return matcher.find() ? decode(matcher.group(1).trim()) : "";
     }
 
+    private String cleanCategory(String value) {
+        String raw = decode(value == null ? "" : value).replaceAll("<[^>]+>", " ");
+        StringBuilder out = new StringBuilder();
+        raw.codePoints().forEach(cp -> {
+            int type = Character.getType(cp);
+            if (type == Character.OTHER_SYMBOL || type == Character.FORMAT || type == Character.SURROGATE) return;
+            out.appendCodePoint(cp);
+        });
+        return out.toString().replaceAll("\\s+", " ").trim();
+    }
+
     private String decode(String value) {
-        return value.replace("\u0026amp;", "\u0026").replace("\u0026quot;", "\"").replace("\u0026#039;", "'");
+        String text = value.replace("\u0026amp;", "\u0026")
+                .replace("\u0026quot;", "\"")
+                .replace("\u0026#039;", "'")
+                .replace("\u0026nbsp;", " ");
+        Matcher marks = Pattern.compile("\u0026#(x?[0-9A-Fa-f]+);").matcher(text);
+        StringBuffer decoded = new StringBuffer();
+        while (marks.find()) {
+            try {
+                String raw = marks.group(1);
+                int point = raw.charAt(0) == 'x' || raw.charAt(0) == 'X' ? Integer.parseInt(raw.substring(1), 16) : Integer.parseInt(raw);
+                marks.appendReplacement(decoded, Matcher.quoteReplacement(new String(Character.toChars(point))));
+            } catch (Exception ignored) {
+                marks.appendReplacement(decoded, "");
+            }
+        }
+        marks.appendTail(decoded);
+        return decoded.toString();
     }
 
     private View button(String label, Runnable action) {
