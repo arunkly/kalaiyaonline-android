@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private PreetiBoard preeti;
     private BloodBoard blood;
     private VideoBoard videos;
+    private DirectoryBoard directory;
     private BottomNavigationView nav;
     private boolean moreOpen;
     private boolean restoringNav;
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             currentNav = id;
             if (id == R.id.nav_home) showHome();
             else if (id == R.id.nav_gallery) showList("gallery");
-            else if (id == R.id.nav_directory) showList("directory");
+            else if (id == R.id.nav_directory) showDirectory();
             return true;
         });
         nav.setOnItemReselectedListener(item -> {
@@ -269,6 +270,7 @@ public class MainActivity extends AppCompatActivity {
         preeti = new PreetiBoard(this);
         blood = new BloodBoard(this);
         videos = new VideoBoard(this);
+        directory = new DirectoryBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -479,6 +481,18 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         videos.load();
+    }
+
+    private void showDirectory() {
+        section = "directory";
+        stopMotion();
+        setMore(false);
+        page.removeAllViews();
+        page.addView(heading("डाइरेक्टरी"));
+        View board = directory.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        directory.load();
     }
 
     private void setMore(boolean open) {
