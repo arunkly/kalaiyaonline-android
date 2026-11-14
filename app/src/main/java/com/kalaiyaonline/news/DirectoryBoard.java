@@ -1,6 +1,7 @@
 package com.kalaiyaonline.news;
 
 import android.content.Intent;
+import android.graphics.Outline;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.GradientDrawable;
@@ -10,7 +11,9 @@ import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -162,7 +165,7 @@ final class DirectoryBoard {
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(0xFFE7E5E4);
         card.addView(image, new LinearLayout.LayoutParams(dp(64), dp(64)));
-        if (!item.image.isEmpty()) loadImage(item.image, image, token);
+        if (!item.image.isEmpty()) loadImage(item.image, image, token, 280);
 
         LinearLayout copy = new LinearLayout(activity);
         copy.setOrientation(LinearLayout.VERTICAL);
@@ -180,39 +183,96 @@ final class DirectoryBoard {
         int token = generation;
         list.removeAllViews();
         status.setText("");
-        list.addView(button("← सूची", this::showPage));
-        TextView title = text(item.title, 20, 0xFF142033, true);
-        title.setPadding(0, dp(10), 0, dp(4));
-        list.addView(title);
-        if (!item.category.isEmpty()) list.addView(text(item.category, 13, 0xFF0B5C28, true));
-        if (!item.location.isEmpty()) list.addView(text(item.location, 14, 0xFF57534E, false));
+
+        TextView back = text("←  सूची", 14, 0xFF0B5C28, true);
+        back.setPadding(dp(12), dp(8), dp(12), dp(8));
+        GradientDrawable backBg = new GradientDrawable();
+        backBg.setCornerRadius(dp(16));
+        backBg.setColor(0xFFE5F6EC);
+        back.setBackground(backBg);
+        back.setOnClickListener(v -> showPage());
+        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        backLp.topMargin = dp(8);
+        back.setLayoutParams(backLp);
+        list.addView(back);
+
+        FrameLayout hero = new FrameLayout(activity);
+        hero.setBackgroundColor(0xFFE7E5E4);
+        hero.setClipToOutline(true);
+        hero.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(18));
+            }
+        });
+        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220));
+        heroLp.topMargin = dp(12);
+        list.addView(hero, heroLp);
         ImageView image = new ImageView(activity);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(160));
-        ip.topMargin = dp(8);
-        list.addView(image, ip);
-        if (!item.image.isEmpty()) loadImage(item.image, image, token);
-        TextView body = text(item.blurb.isEmpty() ? "विवरण लोड हुँदैछ…" : item.blurb, 14, 0xFF44403C, false);
-        body.setPadding(0, dp(8), 0, 0);
-        list.addView(body);
+        hero.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (!item.image.isEmpty()) loadImage(item.image, image, token, 1280);
+
+        LinearLayout sheet = new LinearLayout(activity);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setBackground(cardBg());
+        sheet.setPadding(dp(14), dp(14), dp(14), dp(16));
+        LinearLayout.LayoutParams sheetLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sheetLp.topMargin = dp(12);
+        sheet.setLayoutParams(sheetLp);
+        if (!item.category.isEmpty()) {
+            TextView chip = text(item.category, 12, 0xFF0B5C28, true);
+            chip.setPadding(dp(10), dp(4), dp(10), dp(4));
+            GradientDrawable chipBg = new GradientDrawable();
+            chipBg.setCornerRadius(dp(12));
+            chipBg.setColor(0xFFE5F6EC);
+            chip.setBackground(chipBg);
+            LinearLayout.LayoutParams chipLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            chipLp.bottomMargin = dp(8);
+            chip.setLayoutParams(chipLp);
+            sheet.addView(chip);
+        }
+        sheet.addView(text(item.title, 22, 0xFF142033, true));
+        if (!item.location.isEmpty()) {
+            TextView place = text(item.location, 14, 0xFF57534E, false);
+            place.setPadding(0, dp(4), 0, 0);
+            sheet.addView(place);
+        }
+        TextView body = text(item.blurb.isEmpty() ? "विवरण लोड हुँदैछ…" : item.blurb, 15, 0xFF292524, false);
+        body.setPadding(0, dp(10), 0, 0);
+        body.setLineSpacing(dp(2), 1f);
+        sheet.addView(body);
+        LinearLayout actions = new LinearLayout(activity);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setPadding(0, dp(14), 0, 0);
+        sheet.addView(actions);
+        list.addView(sheet);
+
         new Thread(() -> {
             String html = item.page.isEmpty() ? null : download(item.page);
             activity.runOnUiThread(() -> {
                 if (token != generation || html == null) return;
+                String photo = textOf(html, "data-kp-lightbox-src=\"([^\"]+)\"");
+                if (!photo.isEmpty() && !photo.equals(item.image)) loadImage(photo, image, token, 1280);
                 String about = textOf(html, "kp-short-description\">([^<]+)");
                 String address = textOf(html, "ठेगाना</strong><p>([^<]+)</p>");
                 String phone = textOf(html, "सम्पर्क नम्बर</strong><p>([^<]+)</p>");
+                String rating = textOf(html, "kp-rating-score\"><strong>([^<]+)</strong>");
                 String map = textOf(html, "href=\"(https://maps\\.google\\.com/[^\"]+)\"");
                 String whatsapp = textOf(html, "href=\"(https://wa\\.me/[^\"]+)\"");
                 if (!about.isEmpty()) body.setText(about);
-                if (!address.isEmpty()) list.addView(text("ठेगाना: " + address, 14, 0xFF142033, false));
-                LinearLayout actions = new LinearLayout(activity);
-                actions.setOrientation(LinearLayout.HORIZONTAL);
-                actions.setPadding(0, dp(10), 0, 0);
+                if (!rating.isEmpty()) {
+                    TextView score = text("★  " + rating + " / 5", 14, 0xFFB45309, true);
+                    score.setPadding(0, dp(8), 0, 0);
+                    sheet.addView(score, sheet.indexOfChild(body));
+                }
+                if (!address.isEmpty()) {
+                    TextView line = text("ठेगाना\n" + address, 14, 0xFF142033, false);
+                    line.setPadding(0, dp(12), 0, 0);
+                    sheet.addView(line, sheet.indexOfChild(actions));
+                }
                 if (!phone.isEmpty()) actions.addView(action("फोन", () -> open("tel:" + phone.replace(" ", ""))));
                 if (!whatsapp.isEmpty()) actions.addView(action("WhatsApp", () -> open(whatsapp)));
                 if (!map.isEmpty()) actions.addView(action("नक्सा", () -> open(map)));
-                if (actions.getChildCount() > 0) list.addView(actions);
             });
         }).start();
     }
@@ -238,40 +298,46 @@ final class DirectoryBoard {
         }
     }
 
-    private void loadImage(String url, ImageView target, int token) {
+    private void loadImage(String url, ImageView target, int token, int maxSide) {
         new Thread(() -> {
-            Bitmap bitmap = null;
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-                connection.setConnectTimeout(12000);
-                connection.setReadTimeout(12000);
-                InputStream input = connection.getInputStream();
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
-                input.close();
-                byte[] data = bytes.toByteArray();
-                BitmapFactory.Options bounds = new BitmapFactory.Options();
-                bounds.inJustDecodeBounds = true;
-                BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
-                int sample = 1;
-                int width = Math.max(bounds.outWidth, 1);
-                while (width / sample > 240) sample *= 2;
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inSampleSize = sample;
-                bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-            Bitmap image = bitmap;
-            if (image != null && token == generation) activity.runOnUiThread(() -> {
-                if (token == generation) target.setImageBitmap(image);
+            Bitmap bitmap = fetchBitmap(url, maxSide);
+            if (bitmap != null && token == generation) activity.runOnUiThread(() -> {
+                if (token == generation) target.setImageBitmap(bitmap);
             });
         }).start();
+    }
+
+    private Bitmap fetchBitmap(String url, int maxSide) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.setRequestProperty("Accept", "image/*,*/*");
+            connection.setConnectTimeout(12000);
+            connection.setReadTimeout(15000);
+            InputStream input = connection.getInputStream();
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
+            input.close();
+            byte[] data = bytes.toByteArray();
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+            int sample = 1;
+            int side = Math.max(bounds.outWidth, bounds.outHeight);
+            if (side > 0) while (side / sample > maxSide) sample *= 2;
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = sample;
+            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+            return bitmap != null ? bitmap : BitmapFactory.decodeByteArray(data, 0, data.length);
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private String textOf(String html, String source) {
