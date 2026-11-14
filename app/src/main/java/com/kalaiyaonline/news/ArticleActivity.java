@@ -43,6 +43,10 @@ public class ArticleActivity extends AppCompatActivity {
     private TextView viewsView;
     private TextView saveView;
     private TextView bodyView;
+    private String keptTitle = "";
+    private String keptImage = "";
+    private String keptCategory = "";
+    private String keptDate = "";
     private LinearLayout relatedBox;
 
     @Override
@@ -54,6 +58,10 @@ public class ArticleActivity extends AppCompatActivity {
         String fallbackImage = getIntent().getStringExtra("image");
         String fallbackCategory = getIntent().getStringExtra("category");
         String fallbackDate = getIntent().getStringExtra("date");
+        keptTitle = fallbackTitle == null ? "" : fallbackTitle;
+        keptImage = fallbackImage == null ? "" : fallbackImage;
+        keptCategory = fallbackCategory == null ? "" : fallbackCategory;
+        keptDate = fallbackDate == null ? "" : fallbackDate;
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -168,7 +176,7 @@ public class ArticleActivity extends AppCompatActivity {
         page.addView(meta);
         paintActions();
         saveView.setOnClickListener(v -> {
-            prefs.edit().putBoolean(key("saved"), !saved()).apply();
+            SavedStore.set(this, keptStory(), !saved());
             paintActions();
         });
 
@@ -220,13 +228,25 @@ public class ArticleActivity extends AppCompatActivity {
             try {
                 Story story = client.article(slug);
                 runOnUiThread(() -> {
-                    if (!story.category.isEmpty()) categoryView.setText(story.category);
-                    if (!story.title.isEmpty()) title.setText(story.title);
-                    if (!story.date.isEmpty()) dateView.setText(story.date);
+                    if (!story.category.isEmpty()) {
+                        categoryView.setText(story.category);
+                        keptCategory = story.category;
+                    }
+                    if (!story.title.isEmpty()) {
+                        title.setText(story.title);
+                        keptTitle = story.title;
+                    }
+                    if (!story.date.isEmpty()) {
+                        dateView.setText(story.date);
+                        keptDate = story.date;
+                    }
                     if (!story.author.isEmpty()) authorView.setText(story.author);
                     viewsView.setText(story.views.isEmpty() ? "—" : story.views);
                     bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
-                    if (!story.image.isEmpty()) load(story.image, image);
+                    if (!story.image.isEmpty()) {
+                        keptImage = story.image;
+                        load(story.image, image);
+                    }
                     showRelated(story.related);
                 });
             } catch (Exception error) {
@@ -405,12 +425,12 @@ public class ArticleActivity extends AppCompatActivity {
         }
     }
 
-    private boolean saved() {
-        return prefs.getBoolean(key("saved"), false);
+    private Story keptStory() {
+        return new Story(slug, keptTitle, keptImage, keptCategory, keptDate, "", "");
     }
 
-    private String key(String name) {
-        return name + ":" + slug;
+    private boolean saved() {
+        return SavedStore.isSaved(this, slug);
     }
 
     private void load(String url, ImageView target) {

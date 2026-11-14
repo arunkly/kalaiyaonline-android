@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_home) showHome();
             else if (id == R.id.nav_gallery) showList("gallery");
             else if (id == R.id.nav_directory) showDirectory();
+            else if (id == R.id.nav_saved) showSaved();
             return true;
         });
         nav.setOnItemReselectedListener(item -> {
@@ -779,6 +780,20 @@ public class MainActivity extends AppCompatActivity {
         directory.load();
     }
 
+    private void showSaved() {
+        section = "saved";
+        stopMotion();
+        setMore(false);
+        page.removeAllViews();
+        page.addView(heading("शीर्षक"));
+        List<Story> saved = SavedStore.list(this);
+        if (saved.isEmpty()) {
+            page.addView(message("सेभ गरिएको समाचार छैन।"));
+            return;
+        }
+        for (Story story : saved) page.addView(card(story, false));
+    }
+
     private void setMore(boolean open) {
         moreOpen = open;
         morePanel.setVisibility(open ? View.VISIBLE : View.GONE);
@@ -1225,7 +1240,7 @@ public class MainActivity extends AppCompatActivity {
         paintSave(save, story.slug);
         save.setOnClickListener(v -> {
             boolean now = !isSaved(story.slug);
-            getSharedPreferences("article", MODE_PRIVATE).edit().putBoolean("saved:" + story.slug, now).apply();
+            SavedStore.set(this, story, now);
             paintSave(save, story.slug);
         });
         FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
@@ -1249,7 +1264,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isSaved(String slug) {
-        return getSharedPreferences("article", MODE_PRIVATE).getBoolean("saved:" + slug, false);
+        return SavedStore.isSaved(this, slug);
     }
 
     private void paintSave(ImageView save, String slug) {
