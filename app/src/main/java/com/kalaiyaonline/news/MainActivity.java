@@ -1182,6 +1182,7 @@ public class MainActivity extends AppCompatActivity {
         stopMotion();
         int gen = homeGen;
         setStatus("समाचार लोड हुँदैछ…");
+        prefetchRashifal(gen);
         io.execute(() -> {
             try {
                 SiteClient.Home home = client.home();
@@ -2094,10 +2095,12 @@ public class MainActivity extends AppCompatActivity {
         return card;
     }
 
+    private boolean rashifalLoading;
+
     private View rashifalMount(int gen) {
         rashifalSlot = new LinearLayout(this);
         rashifalSlot.setOrientation(LinearLayout.VERTICAL);
-        if (rashifal != null && !rashifal.signs.isEmpty()) {
+        if (rashifal != null && SiteClient.today().equals(rashifal.date) && !rashifal.signs.isEmpty()) {
             paintRashifal();
             return rashifalSlot;
         }
@@ -2108,22 +2111,73 @@ public class MainActivity extends AppCompatActivity {
         style(wait, 14, R.font.mukta_regular);
         wait.setPadding(0, 0, 0, dp(8));
         rashifalSlot.addView(wait);
+        prefetchRashifal(gen);
+        return rashifalSlot;
+    }
+
+    private void prefetchRashifal(int gen) {
+        if (rashifal != null && SiteClient.today().equals(rashifal.date)) return;
+        SiteClient.Rashifal stored = storedRashifal();
+        if (stored != null) {
+            rashifal = stored;
+            if (rashifalSlot != null && rashifalSlot.getParent() != null) paintRashifal();
+            return;
+        }
+        if (rashifalLoading) return;
+        rashifalLoading = true;
         io.execute(() -> {
             try {
                 SiteClient.Rashifal data = client.rashifal();
                 runOnUiThread(() -> {
-                    if (gen != homeGen || rashifalSlot.getParent() == null) return;
+                    rashifalLoading = false;
                     rashifal = data;
-                    if (rashifalPick >= data.signs.size()) rashifalPick = 0;
-                    paintRashifal();
+                    rememberRashifal(data);
+                    if (gen == homeGen && rashifalSlot != null && rashifalSlot.getParent() != null) paintRashifal();
                 });
             } catch (Exception ignored) {
                 runOnUiThread(() -> {
-                    if (gen == homeGen && rashifalSlot != null) rashifalSlot.setVisibility(View.GONE);
+                    rashifalLoading = false;
+                    if (gen == homeGen && rashifalSlot != null && rashifal == null) rashifalSlot.setVisibility(View.GONE);
                 });
             }
         });
-        return rashifalSlot;
+    }
+
+    private void rememberRashifal(SiteClient.Rashifal data) {
+        try {
+            org.json.JSONArray list = new org.json.JSONArray();
+            for (SiteClient.Sign sign : data.signs) {
+                org.json.JSONObject item = new org.json.JSONObject();
+                item.put("n", sign.name);
+                item.put("l", sign.letters);
+                item.put("t", sign.text);
+                item.put("c", sign.color);
+                item.put("u", sign.number);
+                list.put(item);
+            }
+            getSharedPreferences("kalaiya", MODE_PRIVATE).edit()
+                    .putString("rashifal_day", data.date)
+                    .putString("rashifal_body", list.toString())
+                    .apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private SiteClient.Rashifal storedRashifal() {
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("kalaiya", MODE_PRIVATE);
+            if (!SiteClient.today().equals(prefs.getString("rashifal_day", ""))) return null;
+            org.json.JSONArray list = new org.json.JSONArray(prefs.getString("rashifal_body", "[]"));
+            if (list.length() < 8) return null;
+            java.util.List<SiteClient.Sign> signs = new java.util.ArrayList<>();
+            for (int i = 0; i < list.length(); i++) {
+                org.json.JSONObject item = list.getJSONObject(i);
+                signs.add(new SiteClient.Sign(item.optString("n"), item.optString("l"), item.optString("t"), item.optString("c"), item.optString("u")));
+            }
+            return new SiteClient.Rashifal(SiteClient.today(), signs);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void paintRashifal() {

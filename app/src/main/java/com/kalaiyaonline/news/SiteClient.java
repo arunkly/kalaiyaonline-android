@@ -161,7 +161,7 @@ public final class SiteClient {
                 "गु, गे, गो, सा, सि, सु, से, सो, दा",
                 "दि, दु, थ, झ, ञ, दे, दो, चा, चि"
         };
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(6);
         try {
             java.util.List<java.util.concurrent.Future<Sign>> jobs = new ArrayList<>();
             for (int i = 0; i < 12; i++) {
@@ -169,7 +169,16 @@ public final class SiteClient {
                 jobs.add(pool.submit(() -> readSign(index, names[index], letters[index], today)));
             }
             List<Sign> signs = new ArrayList<>();
-            for (java.util.concurrent.Future<Sign> job : jobs) signs.add(job.get());
+            int ready = 0;
+            for (int i = 0; i < jobs.size(); i++) {
+                try {
+                    signs.add(jobs.get(i).get());
+                    ready++;
+                } catch (Exception ignored) {
+                    signs.add(new Sign(names[i], letters[i], "आज यो राशिफल लोड हुन सकेन।", "", ""));
+                }
+            }
+            if (ready < 8) throw new Exception("rashifal");
             rashifalCache = new Rashifal(today, signs);
             rashifalDay = today;
             return rashifalCache;
@@ -182,12 +191,12 @@ public final class SiteClient {
         String body = Jsoup.connect("https://api.kundlidost.in/api/horoscope/public/" + index + "?lang=hi")
                 .ignoreContentType(true)
                 .userAgent(UA)
-                .timeout(12000)
+                .timeout(7000)
                 .execute()
                 .body();
         org.json.JSONObject json = new org.json.JSONObject(body);
         if (!today.equals(json.optString("date"))) throw new Exception("stale rashifal");
-        String reading = nepaliReading(json.optString("text"));
+        String reading = localNepali(json.optString("text"));
         if (reading.length() < 20) throw new Exception("empty rashifal");
         org.json.JSONObject color = json.optJSONObject("luckyColor");
         String colorName = color == null ? "" : colorName(color.optString("key"));
@@ -195,108 +204,89 @@ public final class SiteClient {
         return new Sign(name, letters, reading, colorName, number);
     }
 
-    private String nepaliReading(String hindi) {
-        String cleaned = hindi.replaceAll("\\s+", " ").trim();
-        StringBuilder out = new StringBuilder();
-        for (String part : chunks(cleaned, 380)) {
-            String line = translateHiNe(part);
-            if (line.isEmpty()) line = localNepali(part);
-            if (out.length() > 0) out.append(' ');
-            out.append(line);
-        }
-        String result = out.toString().replaceAll("\\s+", " ").replace(" ।", "।").trim();
-        if (looksHindi(result)) result = localNepali(cleaned);
-        return result;
-    }
-
-    private static java.util.List<String> chunks(String text, int maxBytes) {
-        java.util.List<String> parts = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        for (String sentence : text.split("(?<=।)")) {
-            String piece = sentence.trim();
-            if (piece.isEmpty()) continue;
-            if (piece.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > maxBytes) {
-                if (current.length() > 0) {
-                    parts.add(current.toString().trim());
-                    current.setLength(0);
-                }
-                for (String bit : piece.split("(?<=,)")) {
-                    String small = bit.trim();
-                    if (!small.isEmpty()) parts.add(small);
-                }
-                continue;
-            }
-            int next = (current + " " + piece).trim().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-            if (current.length() > 0 && next > maxBytes) {
-                parts.add(current.toString().trim());
-                current.setLength(0);
-            }
-            if (current.length() > 0) current.append(' ');
-            current.append(piece);
-        }
-        if (current.length() > 0) parts.add(current.toString().trim());
-        return parts;
-    }
-
-    private String translateHiNe(String hindi) {
-        try {
-            String url = "https://api.mymemory.translated.net/get?langpair=hi|ne&q=" + java.net.URLEncoder.encode(hindi, "UTF-8");
-            String body = Jsoup.connect(url).ignoreContentType(true).userAgent(UA).timeout(15000).execute().body();
-            org.json.JSONObject json = new org.json.JSONObject(body);
-            if (json.optInt("responseStatus") != 200) return "";
-            String text = json.getJSONObject("responseData").optString("translatedText", "").trim();
-            if (text.isEmpty() || text.contains("MYMEMORY WARNING") || text.contains("QUERY LENGTH")) return "";
-            return text;
-        } catch (Exception ignored) {
-            return "";
-        }
-    }
-
-    private static boolean looksHindi(String text) {
-        return text.contains("आपके") || text.contains("आपकी") || text.contains("रहेगा") || text.contains("रहेगी") || text.contains("का दिन") || text.contains("के लिए");
+    public static String today() {
+        return kathmanduDate();
     }
 
     private static String localNepali(String hindi) {
         String[][] map = {
                 {"आज का दिन", "आजको दिन"},
+                {"रहने वाला है", "रहनेछ"},
+                {"बना रहेगा", "रहनेछ"},
+                {"बना रहेगी", "रहनेछ"},
+                {"साझा करने का अवसर मिलेगा", "बाँड्ने मौका मिल्नेछ"},
+                {"संतुलित रखने के लिए", "सन्तुलित राख्न"},
+                {"बनाए रखें", "राख्नुहोस्"},
+                {"न लें", "नलिनुहोस्"},
+                {"हो जाएगा", "हुनेछ"},
+                {"जिससे", "जसले"},
+                {"इसलिए", "त्यसैले"},
+                {"किसी भी", "कुनै पनि"},
+                {"को लेकर", "लिएर"},
                 {"आपके लिए", "तपाईंका लागि"},
-                {"के लिए", "का लागि"},
-                {"के साथ", "सँग"},
-                {"की दृष्टि से", "को हिसाबले"},
                 {"आपकी", "तपाईंको"},
                 {"आपके", "तपाईंका"},
                 {"आपको", "तपाईंलाई"},
+                {"अपनी", "आफ्नो"},
                 {"आप ", "तपाईं "},
-                {"रहने वाला है", "रहनेछ"},
-                {"बना रहेगा", "बनिरहनेछ"},
+                {"के लिए", "का लागि"},
+                {"के साथ", "सँग"},
+                {"के मामले में", "को कुरामा"},
+                {"के मोर्चे पर", "को पक्षमा"},
+                {"की संभावनाएं", "को सम्भावना"},
+                {"को सराहना", "को प्रशंसा"},
+                {"सहकर्मियों", "सहकर्मीहरू"},
+                {"जिम्मेदारियां", "जिम्मेवारी"},
+                {"प्रियजनों", "आफन्त"},
+                {"पुरानी यादें", "पुराना सम्झना"},
+                {"मधुर संवाद", "मिठो कुराकानी"},
+                {"आत्म-संतुष्टि", "आत्मसन्तुष्टि"},
+                {"पदोन्नति", "बढुवा"},
+                {"सूझबूझ", "सूझबुझ"},
+                {"रिश्तों", "सम्बन्ध"},
+                {"संबंधों", "सम्बन्ध"},
+                {"नई ", "नयाँ "},
+                {"नया ", "नयाँ "},
+                {"काफी ", "निकै "},
+                {"बहुत ", "धेरै "},
+                {"छोटी ", "सानो "},
+                {"बेहतर", "राम्रो"},
+                {"अधिक ", "धेरै "},
+                {"धीरे-धीरे", "बिस्तारै"},
+                {"मजबूत होंगी", "बलियो हुनेछन्"},
+                {"मजबूत होंगे", "बलियो हुनेछन्"},
+                {"प्रदान करेंगी", "दिनेछन्"},
+                {"प्रदान करेंगे", "दिनेछन्"},
+                {"बढ़ेगी", "बढ्नेछ"},
+                {"बढ़ेगी", "बढ्नेछ"},
+                {"मिलेगी", "मिलेको"},
+                {"मिलेंगे", "मिलेका"},
                 {"रहेगा", "रहनेछ"},
                 {"रहेगी", "रहनेछ"},
                 {"रहेंगे", "रहनेछन्"},
                 {"होगा", "हुनेछ"},
                 {"होगी", "हुनेछ"},
                 {"होंगे", "हुनेछन्"},
-                {"मिलेंगी", "मिलेका"},
-                {"मिलेगी", "मिलेको"},
+                {"होंगी", "हुनेछन्"},
                 {"करें", "गर्नुहोस्"},
+                {"लें", "लिनुहोस्"},
                 {"नहीं", "छैन"},
-                {"काफी", "निकै"},
-                {"बहुत", "धेरै"},
-                {"नई ", "नयाँ "},
-                {"नया ", "नयाँ "},
-                {"रिश्तों", "सम्बन्ध"},
-                {"संबंधों", "सम्बन्ध"},
                 {" और ", " र "},
-                {"में ", "मा "},
-                {" की ", " को "},
-                {" के ", " का "},
-                {" से ", " बाट "},
-                {" पर ", " मा "},
+                {" में ", "मा "},
+                {" की ", "को "},
+                {" के ", "को "},
+                {" से ", "बाट "},
+                {" पर ", "मा "},
+                {" का ", "को "},
+                {"सुखद है", "सुखद छ"},
+                {"मध्यम है", "मध्यम छ"},
                 {" है", " छ"},
-                {" हैं", " छन्"}
+                {" हैं", " छन्"},
+                {"आहार", "खाना"}
         };
-        String text = hindi;
+        String text = hindi.replaceAll("\\s+", " ").trim();
         for (String[] pair : map) text = text.replace(pair[0], pair[1]);
-        return text;
+        return text.replaceAll(" +", " ").trim();
     }
 
     private static String kathmanduDate() {
