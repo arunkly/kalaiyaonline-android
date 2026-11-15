@@ -161,9 +161,11 @@ public final class SiteClient {
         for (Element card : doc.select("a[href*=/rashifal/]")) {
             String href = card.attr("href");
             if (href.contains("weekly") || href.contains("monthly") || href.contains("yearly")) continue;
-            Element nameNode = card.select("span").last();
-            String name = text(nameNode);
-            if (name.length() < 2 || name.length() > 16 || !seen.add(name)) continue;
+            String key = href;
+            int slash = href.lastIndexOf('/');
+            if (slash >= 0) key = href.substring(slash + 1);
+            String name = rashiName(key);
+            if (name.isEmpty() || !seen.add(name)) continue;
             List<Element> lines = card.select("p");
             if (lines.size() < 2) continue;
             String letters = text(lines.get(0));
@@ -182,6 +184,23 @@ public final class SiteClient {
         rashifalCache = new Rashifal(date, signs);
         rashifalAt = System.currentTimeMillis();
         return rashifalCache;
+    }
+
+    private static String rashiName(String key) {
+        String id = key.toLowerCase();
+        if (id.contains("brischik") || id.contains("vrishchik") || id.contains("scorpio")) return "वृश्चिक";
+        if (id.contains("mesh") || id.contains("aries")) return "मेष";
+        if (id.contains("brish") || id.contains("vrish") || id.contains("taurus")) return "वृष";
+        if (id.contains("mithun") || id.contains("gemini")) return "मिथुन";
+        if (id.contains("kark") || id.contains("cancer")) return "कर्कट";
+        if (id.contains("singha") || id.contains("simha") || id.equals("leo") || id.contains("leo")) return "सिंह";
+        if (id.contains("kanya") || id.contains("virgo")) return "कन्या";
+        if (id.contains("tula") || id.contains("libra")) return "तुला";
+        if (id.contains("dhanu") || id.contains("sagitt")) return "धनु";
+        if (id.contains("makar") || id.contains("capricorn")) return "मकर";
+        if (id.contains("kumbh") || id.contains("aquarius")) return "कुम्भ";
+        if (id.contains("meen") || id.contains("pisces")) return "मीन";
+        return "";
     }
 
     private void addBlock(List<Block> blocks, String label, String slug, Element section, int limit) {

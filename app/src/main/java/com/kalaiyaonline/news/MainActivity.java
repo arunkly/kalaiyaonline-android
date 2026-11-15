@@ -220,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
         });
         screen.addView(nav, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, DockBar.inset(this), Gravity.BOTTOM));
         setContentView(screen);
+        Night.belowStatus(this, screen);
         Night.sync(this);
         showHome();
         consumeOpen(getIntent());
@@ -273,13 +274,16 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(16), dp(10), dp(12), dp(10));
+        row.setPadding(dp(16), dp(8), dp(12), dp(8));
+        row.setClipChildren(true);
         ImageView logo = new ImageView(this);
         logo.setAdjustViewBounds(true);
         logo.setScaleType(ImageView.ScaleType.FIT_START);
+        logo.setMaxWidth(dp(168));
         logo.setImageResource(R.drawable.wordmark);
         Night.allow(logo, false);
-        row.addView(logo, new LinearLayout.LayoutParams(0, dp(38), 1f));
+        row.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)));
+        row.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1f));
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);

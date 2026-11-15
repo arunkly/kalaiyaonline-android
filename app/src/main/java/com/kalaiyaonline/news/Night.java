@@ -7,6 +7,11 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 final class Night {
     private Night() {}
 
@@ -39,6 +44,16 @@ final class Night {
             }
         } catch (RuntimeException ignored) {
         }
+    }
+
+    static void belowStatus(Activity activity, View screen) {
+        WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
+        ViewCompat.setOnApplyWindowInsetsListener(screen, (view, insets) -> {
+            Insets cut = insets.getInsets(WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(view.getPaddingLeft(), cut.top, view.getPaddingRight(), view.getPaddingBottom());
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(screen);
     }
 
     static void allow(View view, boolean enabled) {
