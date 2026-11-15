@@ -264,10 +264,11 @@ public class GalleryActivity extends AppCompatActivity {
     private View headerButton(int icon, Runnable action) {
         ImageView view = new ImageView(this);
         view.setImageResource(icon);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
         view.setPadding(dp(8), dp(8), dp(8), dp(8));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(36), dp(36));
-        lp.leftMargin = dp(1);
-        lp.rightMargin = dp(1);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(46), dp(46));
+        lp.leftMargin = dp(2);
+        lp.rightMargin = dp(2);
         view.setLayoutParams(lp);
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(18));

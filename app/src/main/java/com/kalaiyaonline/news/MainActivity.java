@@ -292,10 +292,11 @@ public class MainActivity extends AppCompatActivity {
     private View headerButton(int icon, Runnable action) {
         ImageView view = new ImageView(this);
         view.setImageResource(icon);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
         view.setPadding(dp(8), dp(8), dp(8), dp(8));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(36), dp(36));
-        lp.leftMargin = dp(1);
-        lp.rightMargin = dp(1);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(46), dp(46));
+        lp.leftMargin = dp(2);
+        lp.rightMargin = dp(2);
         view.setLayoutParams(lp);
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(18));
@@ -1948,8 +1949,9 @@ public class MainActivity extends AppCompatActivity {
                 block.addView(row);
             }
             LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            cell.leftMargin = i % 2 == 0 ? 0 : dp(4);
-            cell.rightMargin = i % 2 == 0 ? dp(4) : 0;
+            cell.leftMargin = i % 2 == 0 ? 0 : dp(6);
+            cell.rightMargin = i % 2 == 0 ? dp(6) : 0;
+            cell.bottomMargin = dp(12);
             row.addView(overlayCell(stories.get(i)), cell);
         }
         return block;
@@ -1970,7 +1972,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setBackgroundColor(0xFF14532D);
-        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(156)));
+        frame.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
         View shade = new View(this);
         GradientDrawable fade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xF0000000});
