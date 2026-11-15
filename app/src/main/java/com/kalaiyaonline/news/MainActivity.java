@@ -84,6 +84,9 @@ public class MainActivity extends AppCompatActivity {
     private String[] weatherLines = new String[0];
     private int weatherIndex;
     private int homeGen;
+    private LinearLayout rashifalSlot;
+    private SiteClient.Rashifal rashifal;
+    private int rashifalPick;
     private int homeTab;
     private String catSlug = "";
     private String catLabel = "";
@@ -1205,7 +1208,15 @@ public class MainActivity extends AppCompatActivity {
         page.addView(homeTabs(home));
         feedAd = Ads.attach(this, page);
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
-        for (SiteClient.Block block : home.blocks) page.addView(categoryBlock(block.label, block.slug, block.stories));
+        boolean placed = false;
+        for (SiteClient.Block block : home.blocks) {
+            page.addView(categoryBlock(block.label, block.slug, block.stories));
+            if ("entertainment".equals(block.slug)) {
+                page.addView(rashifalMount(gen));
+                placed = true;
+            }
+        }
+        if (!placed) page.addView(rashifalMount(gen));
     }
 
     private void showList(String kind) {
@@ -2077,6 +2088,195 @@ public class MainActivity extends AppCompatActivity {
         card.addView(frame);
         card.setOnClickListener(v -> openStory(story));
         return card;
+    }
+
+    private View rashifalMount(int gen) {
+        rashifalSlot = new LinearLayout(this);
+        rashifalSlot.setOrientation(LinearLayout.VERTICAL);
+        if (rashifal != null && !rashifal.signs.isEmpty()) {
+            paintRashifal();
+            return rashifalSlot;
+        }
+        rashifalSlot.addView(sectionHead("राशिफल", null, null));
+        TextView wait = new TextView(this);
+        wait.setText("आजको राशिफल लोड हुँदैछ…");
+        wait.setTextColor(0xFF78716C);
+        style(wait, 14, R.font.mukta_regular);
+        wait.setPadding(0, 0, 0, dp(8));
+        rashifalSlot.addView(wait);
+        io.execute(() -> {
+            try {
+                SiteClient.Rashifal data = client.rashifal();
+                runOnUiThread(() -> {
+                    if (gen != homeGen || rashifalSlot.getParent() == null) return;
+                    rashifal = data;
+                    if (rashifalPick >= data.signs.size()) rashifalPick = 0;
+                    paintRashifal();
+                });
+            } catch (Exception ignored) {
+                runOnUiThread(() -> {
+                    if (gen == homeGen && rashifalSlot != null) rashifalSlot.setVisibility(View.GONE);
+                });
+            }
+        });
+        return rashifalSlot;
+    }
+
+    private void paintRashifal() {
+        if (rashifalSlot == null || rashifal == null || rashifal.signs.isEmpty()) return;
+        rashifalSlot.setVisibility(View.VISIBLE);
+        rashifalSlot.removeAllViews();
+        rashifalSlot.addView(sectionHead("राशिफल", null, null));
+        int picked = Math.max(0, Math.min(rashifalPick, rashifal.signs.size() - 1));
+        rashifalPick = picked;
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        LinearLayout chips = new LinearLayout(this);
+        chips.setOrientation(LinearLayout.HORIZONTAL);
+        chips.setPadding(0, 0, dp(4), dp(10));
+        for (int i = 0; i < rashifal.signs.size(); i++) {
+            SiteClient.Sign sign = rashifal.signs.get(i);
+            boolean on = i == picked;
+            TextView chip = new TextView(this);
+            chip.setText(markFor(sign.name) + "  " + sign.name);
+            chip.setTextColor(on ? 0xFFFFFFFF : 0xFF44403C);
+            chip.setIncludeFontPadding(false);
+            style(chip, 14, R.font.mukta_bold);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(dp(18));
+            bg.setColor(on ? 0xFFF15A22 : 0xFFFFFFFF);
+            if (!on) bg.setStroke(dp(1), 0xFFE7E5E4);
+            chip.setBackground(bg);
+            chip.setPadding(dp(12), dp(7), dp(13), dp(7));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = dp(8);
+            chip.setLayoutParams(lp);
+            int index = i;
+            chip.setOnClickListener(v -> {
+                rashifalPick = index;
+                paintRashifal();
+            });
+            chips.addView(chip);
+        }
+        scroll.addView(chips);
+        rashifalSlot.addView(scroll);
+        int chipAt = picked;
+        scroll.post(() -> {
+            View child = chips.getChildAt(chipAt);
+            if (child != null) scroll.scrollTo(Math.max(0, child.getLeft() - dp(8)), 0);
+        });
+
+        SiteClient.Sign sign = rashifal.signs.get(picked);
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(18));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setStateListAnimator(null);
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.bottomMargin = dp(6);
+        card.setLayoutParams(cardLp);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(14), dp(14), dp(14), dp(14));
+
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView badge = new TextView(this);
+        badge.setText(markFor(sign.name));
+        badge.setTextColor(0xFFF15A22);
+        badge.setGravity(Gravity.CENTER);
+        badge.setIncludeFontPadding(false);
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setCornerRadius(dp(16));
+        badgeBg.setColor(0xFFFFF1EA);
+        badge.setBackground(badgeBg);
+        top.addView(badge, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        LinearLayout names = new LinearLayout(this);
+        names.setOrientation(LinearLayout.VERTICAL);
+        names.setPadding(dp(12), 0, dp(8), 0);
+        TextView name = new TextView(this);
+        name.setText(sign.name + " राशि");
+        name.setTextColor(0xFF1C1917);
+        name.setIncludeFontPadding(false);
+        style(name, 18, R.font.mukta_extrabold);
+        names.addView(name);
+        if (!sign.letters.isEmpty()) {
+            TextView letters = new TextView(this);
+            letters.setText(sign.letters);
+            letters.setTextColor(0xFF78716C);
+            letters.setIncludeFontPadding(false);
+            letters.setMaxLines(1);
+            style(letters, 12, R.font.mukta_regular);
+            letters.setPadding(0, dp(2), 0, 0);
+            names.addView(letters);
+        }
+        top.addView(names, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (!rashifal.date.isEmpty()) {
+            TextView date = new TextView(this);
+            date.setText(rashifal.date.replace("  ", " "));
+            date.setTextColor(0xFF0F8A3C);
+            date.setGravity(Gravity.END);
+            date.setIncludeFontPadding(false);
+            style(date, 11, R.font.mukta_bold);
+            top.addView(date);
+        }
+        body.addView(top);
+
+        TextView reading = new TextView(this);
+        reading.setText(sign.text);
+        reading.setTextColor(0xFF292524);
+        reading.setIncludeFontPadding(false);
+        reading.setLineSpacing(0, 1.15f);
+        style(reading, 16, R.font.mukta_regular);
+        reading.setPadding(0, dp(12), 0, 0);
+        body.addView(reading);
+
+        if (!sign.color.isEmpty() || !sign.number.isEmpty()) {
+            LinearLayout meta = new LinearLayout(this);
+            meta.setOrientation(LinearLayout.HORIZONTAL);
+            meta.setPadding(0, dp(12), 0, 0);
+            if (!sign.color.isEmpty()) meta.addView(rashifalChip("रंग", sign.color));
+            if (!sign.number.isEmpty()) meta.addView(rashifalChip("अंक", sign.number));
+            body.addView(meta);
+        }
+        card.addView(body);
+        rashifalSlot.addView(card);
+    }
+
+    private TextView rashifalChip(String label, String value) {
+        TextView chip = new TextView(this);
+        chip.setText(label + "  " + value);
+        chip.setTextColor(0xFF9A3412);
+        chip.setIncludeFontPadding(false);
+        style(chip, 13, R.font.mukta_bold);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(14));
+        bg.setColor(0xFFFFF1EA);
+        chip.setBackground(bg);
+        chip.setPadding(dp(10), dp(5), dp(10), dp(5));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
+        chip.setLayoutParams(lp);
+        return chip;
+    }
+
+    private String markFor(String name) {
+        if (name.startsWith("मेष")) return "♈";
+        if (name.startsWith("वृष")) return "♉";
+        if (name.startsWith("मिथुन")) return "♊";
+        if (name.startsWith("कर्क")) return "♋";
+        if (name.startsWith("सिंह")) return "♌";
+        if (name.startsWith("कन्या")) return "♍";
+        if (name.startsWith("तुला")) return "♎";
+        if (name.startsWith("वृश्चिक")) return "♏";
+        if (name.startsWith("धनु")) return "♐";
+        if (name.startsWith("मकर")) return "♑";
+        if (name.startsWith("कुम्भ")) return "♒";
+        if (name.startsWith("मीन")) return "♓";
+        return "✦";
     }
 
     private View categoryBlock(String label, String slug, List<Story> stories) {

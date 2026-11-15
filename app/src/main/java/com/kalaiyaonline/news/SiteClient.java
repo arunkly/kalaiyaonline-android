@@ -114,6 +114,76 @@ public final class SiteClient {
         return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks);
     }
 
+    public static final class Sign {
+        public final String name;
+        public final String letters;
+        public final String text;
+        public final String color;
+        public final String number;
+
+        Sign(String name, String letters, String text, String color, String number) {
+            this.name = name;
+            this.letters = letters;
+            this.text = text;
+            this.color = color;
+            this.number = number;
+        }
+    }
+
+    public static final class Rashifal {
+        public final String date;
+        public final List<Sign> signs;
+
+        Rashifal(String date, List<Sign> signs) {
+            this.date = date;
+            this.signs = signs;
+        }
+    }
+
+    private static Rashifal rashifalCache;
+    private static long rashifalAt;
+
+    public Rashifal rashifal() throws Exception {
+        if (rashifalCache != null && System.currentTimeMillis() - rashifalAt < 6L * 60L * 60L * 1000L) return rashifalCache;
+        Document doc = page("https://www.hamropatro.com/rashifal");
+        String date = "";
+        for (Element header : doc.select("header p")) {
+            String line = text(header);
+            if (line.contains("२०") && line.length() < 48) {
+                date = line;
+                break;
+            }
+        }
+        List<Sign> signs = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        java.util.regex.Pattern colorPattern = java.util.regex.Pattern.compile("शुभ रंग\\s+(.+?)\\s+हो");
+        java.util.regex.Pattern numberPattern = java.util.regex.Pattern.compile("शुभ अंक\\s+(\\S+)");
+        for (Element card : doc.select("a[href*=/rashifal/]")) {
+            String href = card.attr("href");
+            if (href.contains("weekly") || href.contains("monthly") || href.contains("yearly")) continue;
+            Element nameNode = card.select("span").last();
+            String name = text(nameNode);
+            if (name.length() < 2 || name.length() > 16 || !seen.add(name)) continue;
+            List<Element> lines = card.select("p");
+            if (lines.size() < 2) continue;
+            String letters = text(lines.get(0));
+            String body = text(lines.get(1));
+            String color = "";
+            String number = "";
+            java.util.regex.Matcher colorMatch = colorPattern.matcher(body);
+            if (colorMatch.find()) color = colorMatch.group(1).trim();
+            java.util.regex.Matcher numberMatch = numberPattern.matcher(body);
+            if (numberMatch.find()) number = numberMatch.group(1).replace("।", "");
+            int cut = body.indexOf("आजको शुभ");
+            String reading = cut > 12 ? body.substring(0, cut).trim() : body;
+            signs.add(new Sign(name, letters, reading, color, number));
+        }
+        if (signs.size() < 12) throw new Exception("rashifal");
+        rashifalCache = new Rashifal(date, signs);
+        rashifalAt = System.currentTimeMillis();
+        return rashifalCache;
+    }
+
     private void addBlock(List<Block> blocks, String label, String slug, Element section, int limit) {
         List<Story> list = storiesFrom(section, limit);
         if (!list.isEmpty()) blocks.add(new Block(label, slug, list));
