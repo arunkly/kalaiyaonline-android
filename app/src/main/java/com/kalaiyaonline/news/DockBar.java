@@ -25,8 +25,8 @@ final class DockBar extends LinearLayout {
             R.drawable.ic_nav_photo, R.drawable.ic_nav_pin, R.drawable.ic_nav_home, R.drawable.ic_nav_save, R.drawable.ic_nav_more
     };
     private static final String[] LABELS = {"फोटो", "डाइरेक्टरी", "गृह", "सेभ", "थप"};
-    private static final int ACTIVE = 0xFF0866FF;
-    private static final int IDLE = 0xFF65676B;
+    private static final int ACTIVE = 0xFFF15A22;
+    private static final int IDLE = 0xFF1A1A1A;
 
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final ImageView[] icons = new ImageView[5];
@@ -47,10 +47,10 @@ final class DockBar extends LinearLayout {
             slot.setGravity(Gravity.CENTER);
             ImageView icon = new ImageView(context);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            slot.addView(icon, new LayoutParams(dp(26), dp(26)));
+            slot.addView(icon, new LayoutParams(dp(24), dp(24)));
             TextView label = new TextView(context);
             label.setText(LABELS[i]);
-            label.setTextSize(11);
+            label.setTextSize(12);
             label.setGravity(Gravity.CENTER);
             label.setIncludeFontPadding(false);
             label.setPadding(0, dp(2), 0, 0);
@@ -95,7 +95,7 @@ final class DockBar extends LinearLayout {
         setBackgroundColor(dark ? 0xFF242526 : 0xFFFFFFFF);
         for (int i = 0; i < IDS.length; i++) {
             boolean on = IDS[i] == selected;
-            int color = on ? ACTIVE : (dark ? 0xFFB0B3B8 : IDLE);
+            int color = on ? ACTIVE : (dark ? 0xFFE7EEEA : IDLE);
             icons[i].setImageDrawable(tinted(ICONS[i], color));
             labels[i].setTextColor(color);
             labels[i].setTypeface(ResourcesCompat.getFont(getContext(), on ? R.font.mukta_semibold : R.font.mukta_regular));
