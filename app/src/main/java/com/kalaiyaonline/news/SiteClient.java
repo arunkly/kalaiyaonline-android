@@ -187,7 +187,7 @@ public final class SiteClient {
     private List<Story> popularNear(Document doc, String current) {
         for (Element section : doc.select("section, aside")) {
             String label = section.attr("aria-label") + " " + text(section.selectFirst("h2, h3, h4"));
-            if (label.contains("लोकप्रिय")) {
+            if (label.contains("लोकप्रिय") && !label.contains("ताजा")) {
                 List<Story> scoped = storiesFrom(section, 7);
                 if (scoped.size() >= 2) return scoped;
             }
@@ -201,38 +201,42 @@ public final class SiteClient {
             }
         }
         if (mark == null) return new ArrayList<>();
-        Element scope = mark.parent();
-        for (int depth = 0; depth < 6 && scope != null; depth++) {
-            List<Story> inside = linksIn(scope, current);
-            if (inside.size() >= 2 && inside.size() <= 10) return inside;
-            if (inside.size() > 10) break;
-            scope = scope.parent();
-        }
         Element node = mark;
+        List<Story> only = null;
         for (int depth = 0; depth < 5 && node != null; depth++) {
-            List<Story> found = new ArrayList<>();
-            Set<String> seen = new LinkedHashSet<>();
+            List<List<Story>> groups = new ArrayList<>();
             Element sib = node.nextElementSibling();
-            while (sib != null && found.size() < 7) {
-                String heading = sib.ownText().replaceAll("\\s+", " ").trim();
-                if (heading.contains("सम्बन्धित") || heading.contains("टिप्पणी")) break;
-                for (Element link : sib.select("a[href*=/news/]")) {
-                    String next = slug(link.attr("href"));
-                    if (next == null || next.equals(current) || !seen.add(next)) continue;
-                    String title = text(link.selectFirst("h2, h3, h4, b"));
-                    if (title.length() < 8) title = text(link);
-                    if (title.length() < 8) continue;
-                    String image = imageFrom(link);
-                    if (image.isEmpty() && link.parent() != null) image = imageFrom(link.parent());
-                    found.add(new Story(next, title, image, "", "", "", ""));
-                    if (found.size() >= 7) break;
+            while (sib != null && groups.size() < 3) {
+                List<List<Story>> nested = new ArrayList<>();
+                for (Element child : sib.children()) {
+                    List<Story> block = linksIn(child, current);
+                    if (block.size() >= 2) nested.add(block);
+                }
+                if (nested.size() >= 2) return cap(nested.get(1));
+                if (nested.size() == 1) groups.add(nested.get(0));
+                else {
+                    List<Story> block = linksIn(sib, current);
+                    if (block.size() >= 2) groups.add(block);
                 }
                 sib = sib.nextElementSibling();
             }
-            if (found.size() >= 2) return found;
+            if (groups.size() >= 2) return cap(groups.get(1));
+            if (groups.size() == 1 && only == null) only = groups.get(0);
             node = node.parent();
         }
-        return new ArrayList<>();
+        return trim(only);
+    }
+
+    private List<Story> cap(List<Story> list) {
+        if (list == null || list.size() <= 7) return list == null ? new ArrayList<>() : list;
+        return new ArrayList<>(list.subList(0, 7));
+    }
+
+    private List<Story> trim(List<Story> list) {
+        if (list == null || list.isEmpty()) return new ArrayList<>();
+        if (list.size() > 8) return new ArrayList<>(list.subList(7, Math.min(list.size(), 14)));
+        if (list.size() > 7) return new ArrayList<>(list.subList(0, 7));
+        return list;
     }
 
     private List<Story> linksIn(Element scope, String current) {
@@ -247,7 +251,7 @@ public final class SiteClient {
             String image = imageFrom(link);
             if (image.isEmpty() && link.parent() != null) image = imageFrom(link.parent());
             found.add(new Story(next, title, image, "", "", "", ""));
-            if (found.size() >= 7) break;
+            if (found.size() >= 16) break;
         }
         return found;
     }
