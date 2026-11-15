@@ -1,6 +1,7 @@
 package com.kalaiyaonline.news;
 
 import android.graphics.drawable.GradientDrawable;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,25 +45,34 @@ final class PatroBoard {
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.addView(chrome());
-        subtitle = text("", 13, 0xFF78716C, false);
+        subtitle = text("", 12, 0xFF78716C, false);
         subtitle.setGravity(Gravity.CENTER);
-        subtitle.setPadding(0, dp(2), 0, dp(4));
+        subtitle.setPadding(0, dp(8), 0, dp(8));
         root.addView(subtitle);
         note = text("", 12, 0xFF9A3412, false);
         note.setVisibility(View.GONE);
         root.addView(note);
         status = text("पात्रो लोड हुँदैछ…", 14, 0xFF0B5C28, true);
-        status.setPadding(0, dp(4), 0, dp(4));
+        status.setGravity(Gravity.CENTER);
+        status.setPadding(0, dp(8), 0, dp(8));
         root.addView(status);
         detail = new LinearLayout(activity);
         detail.setOrientation(LinearLayout.VERTICAL);
         root.addView(detail);
+        LinearLayout sheet = new LinearLayout(activity);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setBackground(round(0xFFFFFFFF, 18, 0xFFE7E5E4));
+        sheet.setPadding(dp(6), dp(8), dp(6), dp(8));
+        LinearLayout.LayoutParams sheetLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sheetLp.topMargin = dp(10);
+        sheet.setLayoutParams(sheetLp);
         week = new GridLayout(activity);
         week.setColumnCount(7);
-        root.addView(week);
+        sheet.addView(week);
         grid = new GridLayout(activity);
         grid.setColumnCount(7);
-        root.addView(grid);
+        sheet.addView(grid);
+        root.addView(sheet);
         upcoming = new LinearLayout(activity);
         upcoming.setOrientation(LinearLayout.VERTICAL);
         root.addView(upcoming);
@@ -77,28 +87,28 @@ final class PatroBoard {
     }
 
     private View chrome() {
-        LinearLayout box = new LinearLayout(activity);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(4), 0, dp(6));
-        LinearLayout yearRow = new LinearLayout(activity);
-        yearRow.setGravity(Gravity.CENTER_VERTICAL);
-        yearRow.addView(arrow("‹", () -> shiftYear(-1)));
-        yearLabel = text(nepali(year), 26, 0xFF142033, true);
-        yearLabel.setGravity(Gravity.CENTER);
-        yearRow.addView(yearLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        yearRow.addView(chip("आज", this::loadToday));
-        yearRow.addView(arrow("›", () -> shiftYear(1)));
-        box.addView(yearRow);
-        LinearLayout monthRow = new LinearLayout(activity);
-        monthRow.setGravity(Gravity.CENTER_VERTICAL);
-        monthRow.setPadding(0, dp(8), 0, 0);
-        monthRow.addView(arrow("‹", () -> shiftMonth(-1)));
-        monthLabel = text("महिना", 18, 0xFF0B5C28, true);
+        LinearLayout row = new LinearLayout(activity);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(2), 0, 0);
+        row.addView(roundBtn("‹", () -> shiftMonth(-1)));
+        LinearLayout center = new LinearLayout(activity);
+        center.setOrientation(LinearLayout.VERTICAL);
+        center.setGravity(Gravity.CENTER);
+        monthLabel = text("महिना", 22, 0xFF142033, true);
         monthLabel.setGravity(Gravity.CENTER);
-        monthRow.addView(monthLabel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        monthRow.addView(arrow("›", () -> shiftMonth(1)));
-        box.addView(monthRow);
-        return box;
+        center.addView(monthLabel);
+        LinearLayout yearLine = new LinearLayout(activity);
+        yearLine.setGravity(Gravity.CENTER);
+        yearLine.addView(tiny("‹", () -> shiftYear(-1)));
+        yearLabel = text(nepali(year), 14, 0xFF0F8A3C, true);
+        yearLabel.setPadding(dp(8), 0, dp(8), 0);
+        yearLine.addView(yearLabel);
+        yearLine.addView(tiny("›", () -> shiftYear(1)));
+        center.addView(yearLine);
+        row.addView(center, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(todayChip());
+        row.addView(roundBtn("›", () -> shiftMonth(1)));
+        return row;
     }
 
     private void shiftYear(int delta) {
@@ -196,19 +206,34 @@ final class PatroBoard {
         detail.removeAllViews();
         Matcher tile = Pattern.compile("patro-date-tile\"><strong>([^<]+)</strong><b>([^<]+)</b><span>([^<]+)</span><small>([^<]+)</small>").matcher(html);
         if (tile.find()) {
-            LinearLayout card = card();
-            card.addView(text(tile.group(1) + "  " + tile.group(2), 18, 0xFF142033, true));
-            card.addView(text(tile.group(3) + " · " + tile.group(4), 14, 0xFF57534E, false));
+            LinearLayout card = new LinearLayout(activity);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setBackground(round(0xFFFFFFFF, 18, 0xFFE7E5E4));
+            card.setPadding(0, 0, dp(14), 0);
+            View accent = new View(activity);
+            accent.setBackground(round(0xFF0F8A3C, 0, 0));
+            card.addView(accent, new LinearLayout.LayoutParams(dp(5), ViewGroup.LayoutParams.MATCH_PARENT));
+            LinearLayout copy = new LinearLayout(activity);
+            copy.setOrientation(LinearLayout.VERTICAL);
+            copy.setPadding(dp(14), dp(12), 0, dp(12));
+            copy.addView(text(tile.group(1) + " " + tile.group(2), 20, 0xFF142033, true));
+            copy.addView(text(tile.group(3) + "  ·  " + tile.group(4), 13, 0xFF57534E, false));
             Matcher sun = Pattern.compile("<b>सूर्योदय</b><strong>([^<]*)</strong>").matcher(html);
             Matcher set = Pattern.compile("<b>सूर्यास्त</b><strong>([^<]*)</strong>").matcher(html);
-            if (sun.find() && set.find()) card.addView(text("सूर्योदय " + sun.group(1) + "   सूर्यास्त " + set.group(1), 13, 0xFF0B5C28, false));
+            if (sun.find() && set.find()) copy.addView(text("सूर्योदय " + sun.group(1) + "    सूर्यास्त " + set.group(1), 12, 0xFF0F8A3C, false));
+            card.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = dp(2);
+            card.setLayoutParams(lp);
             detail.addView(card);
         }
 
         week.removeAllViews();
         for (int i = 0; i < WEEK.length; i++) {
-            TextView label = text(WEEK[i], 12, i == 0 || i == 6 ? 0xFFDC2626 : 0xFF78716C, true);
+            TextView label = text(WEEK[i], 12, i == 0 || i == 6 ? 0xFFE11D48 : 0xFFA8A29E, true);
             label.setGravity(Gravity.CENTER);
+            label.setPadding(0, dp(2), 0, dp(6));
             addCell(week, label);
         }
 
@@ -218,8 +243,8 @@ final class PatroBoard {
         for (Day item : days) addCell(grid, dayCell(item));
 
         upcoming.removeAllViews();
-        TextView head = text("आगामी पर्व", 18, 0xFF142033, true);
-        head.setPadding(0, dp(16), 0, dp(6));
+        TextView head = text("आगामी पर्व", 16, 0xFF142033, true);
+        head.setPadding(dp(2), dp(16), 0, dp(6));
         upcoming.addView(head);
         Matcher events = Pattern.compile("<a href=\"\\?calendar=\\d+&(?:amp;)?month=(\\d+)&(?:amp;)?day=(\\d+)#patro-detail\"><time><b>([^<]*)</b><small>([^<]*)</small></time><span><strong>([^<]*)</strong><small>([^<]*)</small>").matcher(html);
         int shown = 0;
@@ -227,10 +252,30 @@ final class PatroBoard {
             shown++;
             int eventMonth = Integer.parseInt(events.group(1));
             int eventDay = Integer.parseInt(events.group(2));
-            LinearLayout row = card();
-            row.addView(text(events.group(3) + " " + events.group(4), 13, 0xFF0B5C28, true));
-            row.addView(text(events.group(5), 16, 0xFF1C1917, true));
-            row.addView(text(events.group(6), 12, 0xFF78716C, false));
+            LinearLayout row = new LinearLayout(activity);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setBackground(round(0xFFFFFFFF, 14, 0xFFE7E5E4));
+            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rowLp.topMargin = dp(6);
+            row.setLayoutParams(rowLp);
+            LinearLayout when = new LinearLayout(activity);
+            when.setOrientation(LinearLayout.VERTICAL);
+            when.setGravity(Gravity.CENTER);
+            TextView num = text(events.group(3), 16, 0xFF0F8A3C, true);
+            num.setGravity(Gravity.CENTER);
+            when.addView(num);
+            TextView mon = text(events.group(4), 11, 0xFF78716C, false);
+            mon.setGravity(Gravity.CENTER);
+            when.addView(mon);
+            row.addView(when, new LinearLayout.LayoutParams(dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
+            LinearLayout copy = new LinearLayout(activity);
+            copy.setOrientation(LinearLayout.VERTICAL);
+            copy.setPadding(dp(8), 0, 0, 0);
+            copy.addView(text(events.group(5), 15, 0xFF1C1917, true));
+            copy.addView(text(events.group(6), 12, 0xFF78716C, false));
+            row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             row.setOnClickListener(v -> load(eventMonth, eventDay));
             upcoming.addView(row);
         }
@@ -244,23 +289,22 @@ final class PatroBoard {
         boolean today = item.cls.contains("today");
         boolean holiday = item.cls.contains("holiday");
         boolean selected = item.month == month && item.day == day && day > 0;
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(12));
-        bg.setColor(today || selected ? 0xFFE5F6EC : 0xFFFFFFFF);
-        if (today || selected) bg.setStroke(dp(1), 0xFF0F8A3C);
-        cell.setBackground(bg);
-        cell.setPadding(dp(2), dp(6), dp(2), dp(4));
-        cell.setMinimumHeight(dp(58));
-        TextView number = text(item.nepali, 15, holiday ? 0xFFC2410C : 0xFF1C1917, true);
+        if (today || selected) {
+            cell.setBackground(round(0xFFE7F6EE, 12, 0xFF0F8A3C));
+        }
+        cell.setPadding(dp(1), dp(5), dp(1), dp(4));
+        cell.setMinimumHeight(dp(54));
+        TextView number = text(item.nepali, 15, holiday ? 0xFFE11D48 : 0xFF1C1917, true);
         number.setGravity(Gravity.CENTER);
         cell.addView(number);
-        TextView ad = text(item.ad, 9, 0xFF78716C, false);
+        TextView ad = text(item.ad, 8, 0xFFA8A29E, false);
         ad.setGravity(Gravity.CENTER);
         cell.addView(ad);
         if (!item.event.isEmpty()) {
-            TextView event = text(item.event, 9, 0xFFC2410C, false);
+            TextView event = text(item.event, 8, 0xFFF15A22, false);
             event.setGravity(Gravity.CENTER);
-            event.setMaxLines(2);
+            event.setMaxLines(1);
+            event.setEllipsize(TextUtils.TruncateAt.END);
             cell.addView(event);
         }
         cell.setOnClickListener(v -> load(item.month, item.day));
@@ -277,19 +321,19 @@ final class PatroBoard {
             int cellMonth = monthIndex(parts[0]);
             int cellDay = Integer.parseInt(parts[1].replaceAll("\\D", ""));
             if (cellDay < 1) return 0;
-        int year = Integer.parseInt(full.group(3));
-        int bestYear = year;
-        int bestGap = Integer.MAX_VALUE;
-        for (int tryYear = year - 1; tryYear <= year + 1; tryYear++) {
-            int gap = Math.abs(dateNumber(tryYear, cellMonth, cellDay) - anchor);
-            if (gap < bestGap) {
-                bestGap = gap;
-                bestYear = tryYear;
+            int adYear = Integer.parseInt(full.group(3));
+            int bestYear = adYear;
+            int bestGap = Integer.MAX_VALUE;
+            for (int tryYear = adYear - 1; tryYear <= adYear + 1; tryYear++) {
+                int gap = Math.abs(dateNumber(tryYear, cellMonth, cellDay) - anchor);
+                if (gap < bestGap) {
+                    bestGap = gap;
+                    bestYear = tryYear;
+                }
             }
-        }
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(bestYear, cellMonth, cellDay, 12, 0, 0);
-        return calendar.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(bestYear, cellMonth, cellDay, 12, 0, 0);
+            return calendar.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
         } catch (Exception ignored) {
             return 0;
         }
@@ -347,41 +391,43 @@ final class PatroBoard {
         return out.toString();
     }
 
-    private TextView arrow(String label, Runnable action) {
-        TextView chip = text(label, 15, 0xFF0B5C28, true);
+    private TextView roundBtn(String label, Runnable action) {
+        TextView chip = text(label, 18, 0xFF142033, true);
         chip.setGravity(Gravity.CENTER);
-        chip.setMinWidth(dp(44));
-        chip.setPadding(dp(12), dp(6), dp(12), dp(6));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(16));
-        bg.setColor(0xFFE5F6EC);
-        chip.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(6);
+        chip.setBackground(round(0xFFFFFFFF, 20, 0xFFE7E5E4));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        lp.leftMargin = dp(4);
+        lp.rightMargin = dp(4);
         chip.setLayoutParams(lp);
         chip.setOnClickListener(v -> action.run());
         return chip;
     }
 
-    private TextView chip(String label, Runnable action) {
-        TextView chip = arrow(label, action);
-        chip.setMinWidth(dp(52));
+    private TextView tiny(String label, Runnable action) {
+        TextView chip = text(label, 16, 0xFF0F8A3C, true);
+        chip.setPadding(dp(6), 0, dp(6), 0);
+        chip.setOnClickListener(v -> action.run());
         return chip;
     }
 
-    private LinearLayout card() {
-        LinearLayout card = new LinearLayout(activity);
-        card.setOrientation(LinearLayout.VERTICAL);
+    private TextView todayChip() {
+        TextView chip = text("आज", 13, 0xFFF15A22, true);
+        chip.setGravity(Gravity.CENTER);
+        chip.setBackground(round(0xFFFFF1E8, 16, 0));
+        chip.setPadding(dp(12), dp(6), dp(12), dp(6));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(4);
+        chip.setLayoutParams(lp);
+        chip.setOnClickListener(v -> loadToday());
+        return chip;
+    }
+
+    private GradientDrawable round(int color, int radius, int stroke) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFFFFFFFF);
-        bg.setCornerRadius(dp(14));
-        bg.setStroke(dp(1), 0xFFE7E5E4);
-        card.setBackground(bg);
-        card.setPadding(dp(12), dp(10), dp(12), dp(10));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        card.setLayoutParams(lp);
-        return card;
+        bg.setColor(color);
+        bg.setCornerRadius(dp(radius));
+        if (stroke != 0) bg.setStroke(dp(1), stroke);
+        return bg;
     }
 
     private void addCell(GridLayout parent, View child) {
@@ -398,6 +444,7 @@ final class PatroBoard {
         view.setText(value);
         view.setTextSize(size);
         view.setTextColor(color);
+        view.setIncludeFontPadding(false);
         view.setTypeface(ResourcesCompat.getFont(activity, bold ? R.font.mukta_bold : R.font.mukta_regular));
         return view;
     }
