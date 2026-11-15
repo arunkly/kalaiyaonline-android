@@ -2,12 +2,9 @@ package com.kalaiyaonline.news;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -15,7 +12,7 @@ import android.widget.TextView;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
-final class DockBar extends FrameLayout {
+final class DockBar extends LinearLayout {
     interface Listener {
         void onSelect(int id);
         void onReselect(int id);
@@ -28,51 +25,41 @@ final class DockBar extends FrameLayout {
             R.drawable.ic_nav_photo, R.drawable.ic_nav_pin, R.drawable.ic_nav_home, R.drawable.ic_nav_save, R.drawable.ic_nav_more
     };
     private static final String[] LABELS = {"फोटो", "डाइरेक्टरी", "गृह", "सेभ", "थप"};
+    private static final int ACTIVE = 0xFF0866FF;
+    private static final int IDLE = 0xFF65676B;
 
-    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path shape = new Path();
-    private final LinearLayout[] slots = new LinearLayout[4];
+    private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final ImageView[] icons = new ImageView[5];
-    private final TextView[] labels = new TextView[4];
-    private final ImageView home;
+    private final TextView[] labels = new TextView[5];
     private Listener listener;
     private int selected = R.id.nav_home;
 
     DockBar(Context context) {
         super(context);
+        setOrientation(HORIZONTAL);
+        setGravity(Gravity.CENTER_VERTICAL);
         setWillNotDraw(false);
-        paint.setColor(Color.WHITE);
-        home = circle();
-        home.setOnClickListener(v -> choose(R.id.nav_home));
-        addView(home, new LayoutParams(dp(56), dp(56), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
-        int side = 0;
+        setBackgroundColor(0xFFFFFFFF);
         for (int i = 0; i < IDS.length; i++) {
             int id = IDS[i];
-            if (id == R.id.nav_home) {
-                icons[i] = home;
-                continue;
-            }
             LinearLayout slot = new LinearLayout(context);
-            slot.setOrientation(LinearLayout.VERTICAL);
+            slot.setOrientation(VERTICAL);
             slot.setGravity(Gravity.CENTER);
             ImageView icon = new ImageView(context);
-            icon.setImageDrawable(tinted(ICONS[i], 0xFF1A1A1A));
-            slot.addView(icon, new LinearLayout.LayoutParams(dp(26), dp(26)));
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            slot.addView(icon, new LayoutParams(dp(26), dp(26)));
             TextView label = new TextView(context);
             label.setText(LABELS[i]);
-            label.setTextSize(12);
-            label.setTextColor(0xFF1A1A1A);
+            label.setTextSize(11);
             label.setGravity(Gravity.CENTER);
-            label.setTypeface(ResourcesCompat.getFont(context, R.font.mukta_regular));
             label.setIncludeFontPadding(false);
             label.setPadding(0, dp(2), 0, 0);
             slot.addView(label);
             slot.setOnClickListener(v -> choose(id));
             icons[i] = icon;
-            labels[side] = label;
-            slots[side] = slot;
-            side++;
-            addView(slot);
+            labels[i] = label;
+            LayoutParams lp = new LayoutParams(0, LayoutParams.MATCH_PARENT, 1f);
+            addView(slot, lp);
         }
         paintSelection();
     }
@@ -96,35 +83,22 @@ final class DockBar extends FrameLayout {
     }
 
     static int inset(Context context) {
-        return Math.round(104 * context.getResources().getDisplayMetrics().density);
+        return Math.round(64 * context.getResources().getDisplayMetrics().density);
     }
 
     private void choose(int id) {
         setSelectedItemId(id);
     }
 
-    private ImageView circle() {
-        ImageView view = new ImageView(getContext());
-        view.setImageDrawable(tinted(R.drawable.ic_nav_home, Color.WHITE));
-        view.setScaleType(ImageView.ScaleType.CENTER);
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        bg.setColor(0xFF0F8A3C);
-        view.setBackground(bg);
-        view.setElevation(dp(4));
-        view.setPadding(dp(16), dp(16), dp(16), dp(16));
-        return view;
-    }
-
     private void paintSelection() {
-        int side = 0;
+        boolean dark = Night.on(getContext());
+        setBackgroundColor(dark ? 0xFF242526 : 0xFFFFFFFF);
         for (int i = 0; i < IDS.length; i++) {
-            if (IDS[i] == R.id.nav_home) continue;
             boolean on = IDS[i] == selected;
-            icons[i].setImageDrawable(tinted(ICONS[i], Night.on(getContext()) ? 0xFFE7EEEA : 0xFF1A1A1A));
-            labels[side].setTextColor(Night.on(getContext()) ? 0xFFE7EEEA : 0xFF1A1A1A);
-            labels[side].setTypeface(ResourcesCompat.getFont(getContext(), on ? R.font.mukta_semibold : R.font.mukta_regular));
-            side++;
+            int color = on ? ACTIVE : (dark ? 0xFFB0B3B8 : IDLE);
+            icons[i].setImageDrawable(tinted(ICONS[i], color));
+            labels[i].setTextColor(color);
+            labels[i].setTypeface(ResourcesCompat.getFont(getContext(), on ? R.font.mukta_semibold : R.font.mukta_regular));
         }
     }
 
@@ -135,60 +109,10 @@ final class DockBar extends FrameLayout {
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = dp(104);
-        int slotWidth = Math.max(dp(56), width / 5);
-        for (LinearLayout slot : slots) {
-            slot.measure(MeasureSpec.makeMeasureSpec(slotWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(dp(52), MeasureSpec.EXACTLY));
-        }
-        home.measure(MeasureSpec.makeMeasureSpec(dp(60), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(dp(60), MeasureSpec.EXACTLY));
-        setMeasuredDimension(width, height);
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        int width = right - left;
-        int col = width / 5;
-        int slotWidth = slots[0].getMeasuredWidth();
-        int y = dp(46);
-        int[] columns = {0, 1, 3, 4};
-        for (int i = 0; i < slots.length; i++) {
-            int x = columns[i] * col + (col - slotWidth) / 2;
-            slots[i].layout(x, y, x + slotWidth, y + slots[i].getMeasuredHeight());
-        }
-        int hx = (width - home.getMeasuredWidth()) / 2;
-        home.layout(hx, dp(2), hx + home.getMeasuredWidth(), dp(2) + home.getMeasuredHeight());
-    }
-
-    @Override
     protected void onDraw(Canvas canvas) {
-        float width = getWidth();
-        float top = dp(32);
-        float cx = width / 2f;
-        float side = dp(24);
-        shape.reset();
-        shape.moveTo(0, getHeight());
-        shape.lineTo(0, top + side);
-        shape.quadTo(0, top, side, top);
-        shape.lineTo(cx - dp(78), top);
-        shape.cubicTo(cx - dp(52), top, cx - dp(46), top - dp(2), cx - dp(38), top + dp(8));
-        shape.cubicTo(cx - dp(24), top + dp(28), cx - dp(12), top + dp(40), cx, top + dp(40));
-        shape.cubicTo(cx + dp(12), top + dp(40), cx + dp(24), top + dp(28), cx + dp(38), top + dp(8));
-        shape.cubicTo(cx + dp(46), top - dp(2), cx + dp(52), top, cx + dp(78), top);
-        shape.lineTo(width - side, top);
-        shape.quadTo(width, top, width, top + side);
-        shape.lineTo(width, getHeight());
-        shape.close();
-        paint.setColor(0x14000000);
-        canvas.save();
-        canvas.translate(0, -dp(3));
-        canvas.drawPath(shape, paint);
-        canvas.restore();
-        paint.setColor(Night.on(getContext()) ? 0xFF171D19 : Color.WHITE);
-        canvas.drawPath(shape, paint);
+        line.setColor(Night.on(getContext()) ? 0xFF3E4042 : 0xFFCED0D4);
+        line.setStrokeWidth(Math.max(1, dp(1)));
+        canvas.drawLine(0, 0, getWidth(), 0, line);
     }
 
     private int dp(int value) {
