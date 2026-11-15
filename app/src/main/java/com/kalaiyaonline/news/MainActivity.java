@@ -101,6 +101,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean bellOpen;
     private View bellPanel;
     private LinearLayout bellList;
+    private TextView bellFresh;
+    private TextView bellHot;
+    private View bellFreshLine;
+    private View bellHotLine;
+    private int bellMode;
+    private List<Story> popularCache;
     private SiteClient.Home latestHome;
 
     private UpdateChecker updates;
@@ -379,10 +385,20 @@ public class MainActivity extends AppCompatActivity {
         box.setElevation(dp(12));
         box.setOnClickListener(v -> { });
         TextView title = new TextView(this);
-        title.setText("ताजा समाचार");
+        title.setText("सूचना");
         title.setTextColor(0xFF0B5C28);
-        style(title, 20, R.font.mukta_extrabold);
+        style(title, 18, R.font.mukta_extrabold);
         box.addView(title);
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tabLp.topMargin = dp(8);
+        box.addView(tabs, tabLp);
+        bellFresh = bellTab("ताजा समाचार", 0);
+        bellHot = bellTab("लोकप्रिय समाचार", 1);
+        tabs.addView(wrapTab(bellFresh, bellFreshLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tabs.addView(wrapTab(bellHot, bellHotLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        paintBellTabs();
         bellList = new LinearLayout(this);
         bellList.setOrientation(LinearLayout.VERTICAL);
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
@@ -402,7 +418,8 @@ public class MainActivity extends AppCompatActivity {
                     SiteClient.Home home = client.home();
                     runOnUiThread(() -> {
                         latestHome = home;
-                        if (bellOpen) showBell(latestSeven(home));
+                        if (bellOpen && bellMode == 0) showBell(latestSeven(home));
+                        if (bellOpen && bellMode == 1) loadPopular(home);
                     });
                 } catch (Exception error) {
                     runOnUiThread(() -> {
@@ -414,7 +431,45 @@ public class MainActivity extends AppCompatActivity {
             });
             return;
         }
-        showBell(latestSeven(latestHome));
+        if (bellMode == 1) loadPopular(latestHome);
+        else showBell(latestSeven(latestHome));
+    }
+
+    private View wrapTab(TextView label, View line) {
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER_HORIZONTAL);
+        col.addView(label);
+        col.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
+        col.setOnClickListener(v -> {
+            bellMode = label == bellHot ? 1 : 0;
+            paintBellTabs();
+            fillBell();
+        });
+        return col;
+    }
+
+    private TextView bellTab(String label, int mode) {
+        TextView tab = new TextView(this);
+        tab.setText(label);
+        tab.setGravity(Gravity.CENTER);
+        tab.setPadding(dp(4), dp(6), dp(4), dp(6));
+        style(tab, 14, R.font.mukta_bold);
+        return tab;
+    }
+
+    private View tabLine() {
+        View line = new View(this);
+        line.setBackgroundColor(0xFF0B5C28);
+        return line;
+    }
+
+    private void paintBellTabs() {
+        boolean hot = bellMode == 1;
+        bellFresh.setTextColor(hot ? 0xFFA8A29E : 0xFF0B5C28);
+        bellHot.setTextColor(hot ? 0xFF0B5C28 : 0xFFA8A29E);
+        bellFreshLine.setVisibility(hot ? View.INVISIBLE : View.VISIBLE);
+        bellHotLine.setVisibility(hot ? View.VISIBLE : View.INVISIBLE);
     }
 
     private List<Story> latestSeven(SiteClient.Home home) {
@@ -432,6 +487,55 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return list;
+    }
+
+    private void loadPopular(SiteClient.Home home) {
+        if (popularCache != null) {
+            showBell(popularCache);
+            return;
+        }
+        bellList.removeAllViews();
+        bellList.addView(message("लोकप्रिय समाचार लोड हुँदैछ…"));
+        List<Story> pool = new ArrayList<>();
+        for (Story story : home.stories) {
+            if (pool.size() >= 8) break;
+            pool.add(story);
+        }
+        io.execute(() -> {
+            for (Story story : pool) {
+                if (!story.views.isEmpty()) continue;
+                try {
+                    Story full = client.article(story.slug);
+                    story.views = full.views;
+                } catch (Exception ignored) {
+                }
+            }
+            pool.sort((a, b) -> Integer.compare(viewCount(b.views), viewCount(a.views)));
+            List<Story> top = new ArrayList<>();
+            for (int i = 0; i < pool.size() && top.size() < 7; i++) top.add(pool.get(i));
+            popularCache = top;
+            runOnUiThread(() -> {
+                if (bellOpen && bellMode == 1) showBell(top);
+            });
+        });
+    }
+
+    private int viewCount(String raw) {
+        if (raw == null || raw.isEmpty()) return 0;
+        String digits = "०१२३४५६७८९";
+        StringBuilder number = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            int at = digits.indexOf(c);
+            if (at >= 0) number.append(at);
+            else if (c >= '0' && c <= '9') number.append(c);
+        }
+        if (number.length() == 0) return 0;
+        try {
+            return Integer.parseInt(number.toString());
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     private void showBell(List<Story> stories) {
@@ -457,6 +561,20 @@ public class MainActivity extends AppCompatActivity {
             badge.setColor(0xFFF15A22);
             number.setBackground(badge);
             row.addView(number, new LinearLayout.LayoutParams(dp(32), dp(32)));
+            ImageView photo = new ImageView(this);
+            photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            photo.setBackgroundColor(0xFFF5F5F4);
+            photo.setClipToOutline(true);
+            photo.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(8));
+                }
+            });
+            LinearLayout.LayoutParams photoLp = new LinearLayout.LayoutParams(dp(64), dp(48));
+            photoLp.leftMargin = dp(10);
+            row.addView(photo, photoLp);
+            if (!story.image.isEmpty()) loadImage(story.image, photo);
             TextView title = new TextView(this);
             title.setText(story.title);
             title.setTextColor(0xFF1C1917);
