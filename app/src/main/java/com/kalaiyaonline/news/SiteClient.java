@@ -202,6 +202,7 @@ public final class SiteClient {
         }
         Story story = new Story(slug, title, image, category, date, author, body.toString());
         story.views = views;
+        story.authorImage = authorImage(doc);
         story.related.addAll(relatedFrom(doc, slug));
         return story;
     }
@@ -329,6 +330,14 @@ public final class SiteClient {
         String date = text(article.selectFirst(".master-meta-date, .category-card-meta, .ctnb-meta, .hlg-date"));
         String author = text(article.selectFirst(".reporter-meta-name"));
         return new Story(slug, title, imageFrom(article), category, date, author, "");
+    }
+
+    private String authorImage(Document doc) {
+        Element img = doc.selectFirst("img[src*=/reporters/], img[data-src*=/reporters/], .article-reporter img, .reporter-meta img, .reporter-card img, a[href*=reporter] img");
+        if (img == null) return "";
+        String src = img.attr("src");
+        if (src.isEmpty()) src = img.attr("data-src");
+        return abs(src);
     }
 
     private static boolean containsSlug(List<Story> list, String slug) {

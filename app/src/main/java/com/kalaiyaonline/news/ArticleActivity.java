@@ -12,6 +12,8 @@ import android.text.TextUtils;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.graphics.Outline;
+import android.view.ViewOutlineProvider;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,7 +45,8 @@ public class ArticleActivity extends AppCompatActivity {
     private TextView dateView;
     private TextView authorView;
     private TextView viewsView;
-    private TextView saveView;
+    private ImageView saveView;
+    private ImageView authorPhoto;
     private TextView bodyView;
     private String keptTitle = "";
     private String keptImage = "";
@@ -120,63 +123,67 @@ public class ArticleActivity extends AppCompatActivity {
 
         dateView = new TextView(this);
         dateView.setText(fallbackDate == null ? "" : fallbackDate);
-        dateView.setTextColor(0xFF78716C);
-        dateView.setGravity(Gravity.CENTER);
-        dateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        dateView.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_regular));
-        dateView.setPadding(0, dp(6), 0, dp(4));
-        page.addView(dateView);
+        dateView.setTextColor(0xFF57534E);
+        dateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        dateView.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_semibold));
+        dateView.setMaxLines(1);
+        dateView.setEllipsize(TextUtils.TruncateAt.END);
+        dateView.setPadding(dp(6), 0, dp(6), 0);
 
         LinearLayout meta = new LinearLayout(this);
         meta.setOrientation(LinearLayout.HORIZONTAL);
         meta.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        metaLp.topMargin = dp(10);
+        metaLp.topMargin = dp(8);
         metaLp.bottomMargin = dp(8);
         meta.setLayoutParams(metaLp);
-        meta.setGravity(Gravity.CENTER);
 
-        ImageView authorIcon = new ImageView(this);
-        authorIcon.setImageResource(R.drawable.ic_user);
-        authorIcon.setPadding(dp(6), dp(6), dp(6), dp(6));
-        GradientDrawable authorBg = new GradientDrawable();
-        authorBg.setShape(GradientDrawable.OVAL);
-        authorBg.setColor(0xFF0F8A3C);
-        authorIcon.setBackground(authorBg);
-        meta.addView(authorIcon, new LinearLayout.LayoutParams(dp(32), dp(32)));
+        authorPhoto = new ImageView(this);
+        authorPhoto.setImageResource(R.mipmap.ic_launcher);
+        authorPhoto.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        authorPhoto.setClipToOutline(true);
+        authorPhoto.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        meta.addView(authorPhoto, new LinearLayout.LayoutParams(dp(28), dp(28)));
 
         authorView = new TextView(this);
         authorView.setText("कलैया अनलाइन");
         authorView.setTextColor(0xFF1C1917);
-        authorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        authorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         authorView.setTypeface(bold);
         authorView.setMaxLines(1);
         authorView.setEllipsize(TextUtils.TruncateAt.END);
-        authorView.setPadding(dp(8), 0, dp(8), 0);
-        meta.addView(authorView);
+        authorView.setPadding(dp(6), 0, dp(2), 0);
+        meta.addView(authorView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
+        meta.addView(metaDivider());
+        meta.addView(dateView);
         meta.addView(metaDivider());
 
         ImageView eye = new ImageView(this);
         eye.setImageResource(R.drawable.ic_eye);
-        LinearLayout.LayoutParams eyeLp = new LinearLayout.LayoutParams(dp(18), dp(18));
-        eyeLp.leftMargin = dp(8);
+        LinearLayout.LayoutParams eyeLp = new LinearLayout.LayoutParams(dp(15), dp(15));
+        eyeLp.leftMargin = dp(6);
         meta.addView(eye, eyeLp);
 
         viewsView = new TextView(this);
         viewsView.setText("—");
         viewsView.setTextColor(0xFF0B5C28);
-        viewsView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        viewsView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         viewsView.setTypeface(bold);
-        viewsView.setPadding(dp(4), 0, dp(8), 0);
+        viewsView.setMaxLines(1);
+        viewsView.setPadding(dp(3), 0, dp(4), 0);
         meta.addView(viewsView);
 
-        meta.addView(metaDivider());
-
-        saveView = roundAction("सेभ", R.drawable.ic_bookmark, 0xFF0F8A3C);
-        LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveView.getLayoutParams();
-        saveLp.leftMargin = dp(8);
-        meta.addView(saveView);
+        saveView = new ImageView(this);
+        saveView.setImageResource(R.drawable.ic_bookmark);
+        saveView.setPadding(dp(7), dp(7), dp(7), dp(7));
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(dp(32), dp(32));
+        saveLp.leftMargin = dp(4);
+        meta.addView(saveView, saveLp);
         page.addView(meta);
         paintActions();
         saveView.setOnClickListener(v -> {
@@ -200,11 +207,11 @@ public class ArticleActivity extends AppCompatActivity {
         shares.setOrientation(LinearLayout.HORIZONTAL);
         shares.setGravity(Gravity.CENTER);
         String link = SiteClient.ORIGIN + "/news/" + slug;
-        shares.addView(shareButton("WhatsApp", 0xFF25D366, "com.whatsapp", link, title));
-        shares.addView(shareButton("Facebook", 0xFF1877F2, "com.facebook.katana", link, title));
-        shares.addView(shareButton("Viber", 0xFF7360F2, "com.viber.voip", link, title));
-        shares.addView(shareButton("X", 0xFF111111, "com.twitter.android", link, title));
-        shares.addView(shareButton("थप", 0xFF0F8A3C, null, link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, link, title));
         LinearLayout.LayoutParams shareLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         shareLp.topMargin = dp(10);
         shareLp.bottomMargin = dp(4);
@@ -263,6 +270,7 @@ public class ArticleActivity extends AppCompatActivity {
                         keptDate = story.date;
                     }
                     if (!story.author.isEmpty()) authorView.setText(story.author);
+                    if (!story.authorImage.isEmpty()) load(story.authorImage, authorPhoto);
                     viewsView.setText(story.views.isEmpty() ? "—" : story.views);
                     bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
                     if (!story.image.isEmpty()) {
@@ -389,16 +397,31 @@ public class ArticleActivity extends AppCompatActivity {
     }
 
     private void paintActions() {
-        paintOne(saveView, saved());
+        boolean on = saved();
+        Drawable icon = DrawableCompat.wrap(saveView.getDrawable()).mutate();
+        DrawableCompat.setTint(icon, on ? 0xFFFFFFFF : 0xFF0F8A3C);
+        saveView.setImageDrawable(icon);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(on ? 0xFF0F8A3C : 0xFFF3F6F4);
+        saveView.setBackground(bg);
     }
 
-    private void paintOne(TextView view, boolean on) {
-        int tint = on ? 0xFFFFFFFF : (Integer) view.getTag(0x7f010001);
-        Drawable drawable = (Drawable) view.getTag();
-        DrawableCompat.setTint(drawable, tint);
-        view.setCompoundDrawables(drawable, null, null, null);
-        view.setTextColor(on ? 0xFFFFFFFF : 0xFF1C1917);
-        view.setBackgroundResource(on ? R.drawable.bg_badge : R.drawable.bg_chip);
+    private View shareIcon(int icon, int color, String pkg, String link, TextView title) {
+        ImageView mark = new ImageView(this);
+        mark.setImageResource(icon);
+        mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mark.setPadding(dp(9), dp(9), dp(9), dp(9));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(color);
+        mark.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(42));
+        lp.leftMargin = dp(6);
+        lp.rightMargin = dp(6);
+        mark.setLayoutParams(lp);
+        mark.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
+        return mark;
     }
 
     private void showRelated(java.util.List<Story> stories) {
@@ -468,33 +491,6 @@ public class ArticleActivity extends AppCompatActivity {
         intent.putExtra("title", story.title);
         intent.putExtra("image", story.image);
         startActivity(intent);
-    }
-
-    private LinearLayout shareButton(String label, int color, String pkg, String link, TextView title) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setGravity(Gravity.CENTER);
-        TextView mark = new TextView(this);
-        mark.setText(label.substring(0, 1));
-        mark.setTextColor(0xFFFFFFFF);
-        mark.setTextSize(12);
-        mark.setGravity(Gravity.CENTER);
-        mark.setBackgroundResource(R.drawable.bg_dot);
-        mark.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-        box.addView(mark, new LinearLayout.LayoutParams(dp(32), dp(32)));
-        TextView name = new TextView(this);
-        name.setText(label);
-        name.setTextSize(9);
-        name.setTextColor(0xFF78716C);
-        name.setGravity(Gravity.CENTER);
-        name.setPadding(0, dp(2), 0, 0);
-        box.addView(name);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(5);
-        lp.rightMargin = dp(5);
-        box.setLayoutParams(lp);
-        box.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
-        return box;
     }
 
     private void share(String pkg, String title, String link) {
