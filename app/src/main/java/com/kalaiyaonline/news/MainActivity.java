@@ -806,21 +806,21 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         gridLp.topMargin = dp(12);
         box.addView(modules, gridLp);
-        modules.addView(moduleTile(R.drawable.ic_mod_video, "भिडियो", this::showVideos));
-        modules.addView(moduleTile(R.drawable.ic_mod_live, "लाइभ", () -> showSoon("लाइभ")));
-        modules.addView(moduleTile(R.drawable.ic_mod_sun, "मौसम", this::showWeather));
-        modules.addView(moduleTile(R.drawable.ic_mod_cloud, "वायु गुणस्तर", this::showAir));
-        modules.addView(moduleTile(R.drawable.ic_calendar, "नेपाली पात्रो", this::showPatro));
-        modules.addView(moduleTile(R.drawable.ic_mod_swap, "मिति रूपान्तरण", this::showConverter));
-        modules.addView(moduleTile(R.drawable.ic_mod_fx, "मुद्रा रूपान्तरण", this::showCurrency));
-        modules.addView(moduleTile(R.drawable.ic_mod_type, "प्रीति «» युनिकोड", this::showPreeti));
-        modules.addView(moduleTile(R.drawable.ic_mod_blood, "रक्तदान", this::showBlood));
-        modules.addView(moduleTile(R.drawable.ic_mod_doc, "गोपनीयता नीति", () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
-        modules.addView(moduleTile(R.drawable.ic_mod_lock, "लगइन / खाता", () -> openWeb("https://kalaiyaonline.com/account.php")));
+        modules.addView(moduleTile(R.drawable.ic_mod_video, 0xFFFFE8E6, "भिडियो", this::showVideos));
+        modules.addView(moduleTile(R.drawable.ic_mod_live, 0xFFFFE4EA, "लाइभ", () -> showSoon("लाइभ")));
+        modules.addView(moduleTile(R.drawable.ic_mod_sun, 0xFFFFF4D6, "मौसम", this::showWeather));
+        modules.addView(moduleTile(R.drawable.ic_mod_cloud, 0xFFE3F4FF, "वायु गुणस्तर", this::showAir));
+        modules.addView(moduleTile(R.drawable.ic_mod_calendar, 0xFFFFE8E6, "नेपाली पात्रो", this::showPatro));
+        modules.addView(moduleTile(R.drawable.ic_mod_swap, 0xFFE7F0FF, "मिति रूपान्तरण", this::showConverter));
+        modules.addView(moduleTile(R.drawable.ic_mod_fx, 0xFFE5F8EE, "मुद्रा रूपान्तरण", this::showCurrency));
+        modules.addView(moduleTile(R.drawable.ic_mod_type, 0xFFF3E8FF, "प्रीति «» युनिकोड", this::showPreeti));
+        modules.addView(moduleTile(R.drawable.ic_mod_blood, 0xFFFFE4E6, "रक्तदान", this::showBlood));
+        modules.addView(moduleTile(R.drawable.ic_mod_doc, 0xFFE8F0FF, "गोपनीयता नीति", () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
+        modules.addView(moduleTile(R.drawable.ic_mod_lock, 0xFFFFF3D6, "लगइन / खाता", () -> openWeb("https://kalaiyaonline.com/account.php")));
         return box;
     }
 
-    private View moduleTile(int icon, String label, Runnable action) {
+    private View moduleTile(int icon, int wash, String label, Runnable action) {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
@@ -831,16 +831,14 @@ public class MainActivity extends AppCompatActivity {
         tile.setBackground(bg);
         tile.setPadding(dp(4), dp(10), dp(4), dp(8));
         ImageView mark = new ImageView(this);
-        Drawable glyph = DrawableCompat.wrap(getDrawable(icon)).mutate();
-        DrawableCompat.setTint(glyph, 0xFFF15A22);
-        mark.setImageDrawable(glyph);
+        mark.setImageResource(icon);
         mark.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         mark.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable bubble = new GradientDrawable();
         bubble.setShape(GradientDrawable.OVAL);
-        bubble.setColor(0xFFFFF1E8);
+        bubble.setColor(wash);
         mark.setBackground(bubble);
-        tile.addView(mark, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        tile.addView(mark, new LinearLayout.LayoutParams(dp(42), dp(42)));
         TextView name = new TextView(this);
         name.setText(label);
         name.setTextColor(0xFF142033);
