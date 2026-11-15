@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
     private PreetiBoard preeti;
     private BloodBoard blood;
     private VideoBoard videos;
+    private LiveBoard live;
     private DirectoryBoard directory;
     private DockBar nav;
     private boolean moreOpen;
@@ -896,6 +897,7 @@ public class MainActivity extends AppCompatActivity {
         preeti = new PreetiBoard(this);
         blood = new BloodBoard(this);
         videos = new VideoBoard(this);
+        live = new LiveBoard(this);
         directory = new DirectoryBoard(this);
         GridLayout modules = new GridLayout(this);
         modules.setColumnCount(4);
@@ -903,7 +905,7 @@ public class MainActivity extends AppCompatActivity {
         gridLp.topMargin = dp(12);
         box.addView(modules, gridLp);
         modules.addView(moduleTile(R.drawable.ic_mod_video, 0xFFFFE8E6, "भिडियो", this::showVideos));
-        modules.addView(moduleTile(R.drawable.ic_mod_live, 0xFFFFE4EA, "लाइभ", () -> showSoon("लाइभ")));
+        modules.addView(moduleTile(R.drawable.ic_mod_live, 0xFFFFE4EA, "लाइभ", this::showLive));
         modules.addView(moduleTile(R.drawable.ic_mod_sun, 0xFFFFF4D6, "मौसम", this::showWeather));
         modules.addView(moduleTile(R.drawable.ic_mod_cloud, 0xFFE3F4FF, "वायु गुणस्तर", this::showAir));
         modules.addView(moduleTile(R.drawable.ic_mod_calendar, 0xFFFFE8E6, "नेपाली पात्रो", this::showPatro));
@@ -1110,6 +1112,19 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         videos.load();
+    }
+
+    private void showLive() {
+        section = "live";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("लाइभ"));
+        View board = live.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        live.load();
     }
 
     private void showDirectory() {
