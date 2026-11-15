@@ -141,66 +141,93 @@ public final class SiteClient {
     }
 
     private static Rashifal rashifalCache;
-    private static long rashifalAt;
+    private static String rashifalDay;
 
     public Rashifal rashifal() throws Exception {
-        if (rashifalCache != null && System.currentTimeMillis() - rashifalAt < 6L * 60L * 60L * 1000L) return rashifalCache;
-        Document doc = page("https://www.hamropatro.com/rashifal");
-        String date = "";
-        for (Element header : doc.select("header p")) {
-            String line = text(header);
-            if (line.contains("२०") && line.length() < 48) {
-                date = line;
-                break;
+        String today = kathmanduDate();
+        if (rashifalCache != null && today.equals(rashifalDay)) return rashifalCache;
+        String[] names = {"मेष", "वृष", "मिथुन", "कर्कट", "सिंह", "कन्या", "तुला", "वृश्चिक", "धनु", "मकर", "कुम्भ", "मीन"};
+        String[] letters = {
+                "चु, चे, चो, ला, लि, लु, ले, लो, अ",
+                "इ, उ, ए, ओ, वा, वि, वु, वे, वो",
+                "का, कि, कु, घ, ङ, छ, के, को, हा",
+                "हि, हु, हे, हो, डा, डि, डु, डे, डो",
+                "मा, मि, मु, मे, मो, टा, टि, टु, टे",
+                "टो, पा, पि, पु, ष, ण, ठ, पे, पो",
+                "रा, रि, रु, रे, रो, ता, ति, तु, ते",
+                "तो, ना, नि, नु, ने, नो, या, यि, यु",
+                "ये, यो, भा, भि, भु, धा, फा, ढा, भे",
+                "भो, जा, जि, जु, जे, जो, ख, खि, खु",
+                "गु, गे, गो, सा, सि, सु, से, सो, दा",
+                "दि, दु, थ, झ, ञ, दे, दो, चा, चि"
+        };
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+        try {
+            java.util.List<java.util.concurrent.Future<Sign>> jobs = new ArrayList<>();
+            for (int i = 0; i < 12; i++) {
+                final int index = i;
+                jobs.add(pool.submit(() -> readSign(index, names[index], letters[index], today)));
             }
+            List<Sign> signs = new ArrayList<>();
+            for (java.util.concurrent.Future<Sign> job : jobs) signs.add(job.get());
+            rashifalCache = new Rashifal(today, signs);
+            rashifalDay = today;
+            return rashifalCache;
+        } finally {
+            pool.shutdownNow();
         }
-        List<Sign> signs = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
-        java.util.regex.Pattern colorPattern = java.util.regex.Pattern.compile("शुभ रंग\\s+(.+?)\\s+हो");
-        java.util.regex.Pattern numberPattern = java.util.regex.Pattern.compile("शुभ अंक\\s+(\\S+)");
-        for (Element card : doc.select("a[href*=/rashifal/]")) {
-            String href = card.attr("href");
-            if (href.contains("weekly") || href.contains("monthly") || href.contains("yearly")) continue;
-            String key = href;
-            int slash = href.lastIndexOf('/');
-            if (slash >= 0) key = href.substring(slash + 1);
-            String name = rashiName(key);
-            if (name.isEmpty() || !seen.add(name)) continue;
-            List<Element> lines = card.select("p");
-            if (lines.size() < 2) continue;
-            String letters = text(lines.get(0));
-            String body = text(lines.get(1));
-            String color = "";
-            String number = "";
-            java.util.regex.Matcher colorMatch = colorPattern.matcher(body);
-            if (colorMatch.find()) color = colorMatch.group(1).trim();
-            java.util.regex.Matcher numberMatch = numberPattern.matcher(body);
-            if (numberMatch.find()) number = numberMatch.group(1).replace("।", "");
-            int cut = body.indexOf("आजको शुभ");
-            String reading = cut > 12 ? body.substring(0, cut).trim() : body;
-            signs.add(new Sign(name, letters, reading, color, number));
-        }
-        if (signs.size() < 12) throw new Exception("rashifal");
-        rashifalCache = new Rashifal(date, signs);
-        rashifalAt = System.currentTimeMillis();
-        return rashifalCache;
     }
 
-    private static String rashiName(String key) {
-        String id = key.toLowerCase();
-        if (id.contains("brischik") || id.contains("vrishchik") || id.contains("scorpio")) return "वृश्चिक";
-        if (id.contains("mesh") || id.contains("aries")) return "मेष";
-        if (id.contains("brish") || id.contains("vrish") || id.contains("taurus")) return "वृष";
-        if (id.contains("mithun") || id.contains("gemini")) return "मिथुन";
-        if (id.contains("kark") || id.contains("cancer")) return "कर्कट";
-        if (id.contains("singha") || id.contains("simha") || id.equals("leo") || id.contains("leo")) return "सिंह";
-        if (id.contains("kanya") || id.contains("virgo")) return "कन्या";
-        if (id.contains("tula") || id.contains("libra")) return "तुला";
-        if (id.contains("dhanu") || id.contains("sagitt")) return "धनु";
-        if (id.contains("makar") || id.contains("capricorn")) return "मकर";
-        if (id.contains("kumbh") || id.contains("aquarius")) return "कुम्भ";
-        if (id.contains("meen") || id.contains("pisces")) return "मीन";
-        return "";
+    private Sign readSign(int index, String name, String letters, String today) throws Exception {
+        String body = Jsoup.connect("https://api.kundlidost.in/api/horoscope/public/" + index + "?lang=hi")
+                .ignoreContentType(true)
+                .userAgent(UA)
+                .timeout(12000)
+                .execute()
+                .body();
+        org.json.JSONObject json = new org.json.JSONObject(body);
+        if (!today.equals(json.optString("date"))) throw new Exception("stale rashifal");
+        String reading = json.optString("text").replaceAll("\\s+", " ").trim();
+        if (reading.length() < 20) throw new Exception("empty rashifal");
+        org.json.JSONObject color = json.optJSONObject("luckyColor");
+        String colorName = color == null ? "" : colorName(color.optString("key"));
+        String number = nepaliDigits(String.valueOf(json.optInt("luckyNumber")));
+        return new Sign(name, letters, reading, colorName, number);
+    }
+
+    private static String kathmanduDate() {
+        java.util.Calendar calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kathmandu"));
+        return String.format(java.util.Locale.US, "%04d-%02d-%02d",
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH) + 1,
+                calendar.get(java.util.Calendar.DAY_OF_MONTH));
+    }
+
+    private static String colorName(String key) {
+        String id = key == null ? "" : key.toLowerCase();
+        if (id.contains("red")) return "रातो";
+        if (id.contains("blue")) return "निलो";
+        if (id.contains("green")) return "हरियो";
+        if (id.contains("yellow")) return "पहेंलो";
+        if (id.contains("orange")) return "सुन्तला";
+        if (id.contains("purple") || id.contains("violet")) return "बैजनी";
+        if (id.contains("pink")) return "गुलाबी";
+        if (id.contains("white")) return "सेतो";
+        if (id.contains("black")) return "कालो";
+        if (id.contains("gold")) return "सुनौलो";
+        if (id.contains("silver") || id.contains("grey") || id.contains("gray")) return "खरानी";
+        if (id.contains("brown")) return "खैरो";
+        return key == null ? "" : key;
+    }
+
+    private static String nepaliDigits(String raw) {
+        String digits = "०१२३४५६७८९";
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c >= '0' && c <= '9') out.append(digits.charAt(c - '0'));
+        }
+        return out.toString();
     }
 
     private void addBlock(List<Block> blocks, String label, String slug, Element section, int limit) {

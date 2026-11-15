@@ -2218,15 +2218,13 @@ public class MainActivity extends AppCompatActivity {
             names.addView(letters);
         }
         top.addView(names, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        if (!rashifal.date.isEmpty()) {
-            TextView date = new TextView(this);
-            date.setText(rashifal.date.replace("  ", " "));
-            date.setTextColor(0xFF0F8A3C);
-            date.setGravity(Gravity.END);
-            date.setIncludeFontPadding(false);
-            style(date, 11, R.font.mukta_bold);
-            top.addView(date);
-        }
+        TextView date = new TextView(this);
+        date.setText(rashifalDateLabel());
+        date.setTextColor(0xFF0F8A3C);
+        date.setGravity(Gravity.END);
+        date.setIncludeFontPadding(false);
+        style(date, 11, R.font.mukta_bold);
+        top.addView(date);
         body.addView(top);
 
         TextView reading = new TextView(this);
@@ -2248,6 +2246,19 @@ public class MainActivity extends AppCompatActivity {
         }
         card.addView(body);
         rashifalSlot.addView(card);
+    }
+
+    private String rashifalDateLabel() {
+        java.util.Calendar calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kathmandu"));
+        String[] names = {"", "आइतबार", "सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"};
+        String week = names[calendar.get(java.util.Calendar.DAY_OF_WEEK)];
+        if (latestHome != null && latestHome.dateLine != null && !latestHome.dateLine.isEmpty()) {
+            String line = latestHome.dateLine.trim();
+            int cut = line.indexOf('|');
+            if (cut > 0) line = line.substring(0, cut).trim();
+            if (!line.isEmpty()) return line + " · " + week;
+        }
+        return week;
     }
 
     private TextView rashifalChip(String label, String value) {
