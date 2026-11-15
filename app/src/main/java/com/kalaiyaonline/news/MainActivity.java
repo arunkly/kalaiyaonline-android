@@ -831,12 +831,14 @@ public class MainActivity extends AppCompatActivity {
         tile.setBackground(bg);
         tile.setPadding(dp(4), dp(10), dp(4), dp(8));
         ImageView mark = new ImageView(this);
-        mark.setImageResource(icon);
+        Drawable glyph = DrawableCompat.wrap(getDrawable(icon)).mutate();
+        DrawableCompat.setTint(glyph, 0xFFF15A22);
+        mark.setImageDrawable(glyph);
         mark.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         mark.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable bubble = new GradientDrawable();
         bubble.setShape(GradientDrawable.OVAL);
-        bubble.setColor(0xFFF1F7F3);
+        bubble.setColor(0xFFFFF1E8);
         mark.setBackground(bubble);
         tile.addView(mark, new LinearLayout.LayoutParams(dp(40), dp(40)));
         TextView name = new TextView(this);
