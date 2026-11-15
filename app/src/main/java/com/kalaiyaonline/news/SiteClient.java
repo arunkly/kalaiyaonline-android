@@ -55,8 +55,20 @@ public final class SiteClient {
         }
     }
 
+    public int homeKbps = -1;
+
     public Home home() throws Exception {
-        Document doc = page("/");
+        long start = System.nanoTime();
+        org.jsoup.Connection.Response response = Jsoup.connect(ORIGIN + "/")
+                .userAgent(UA)
+                .header("Accept-Language", "ne,en;q=0.8")
+                .referrer(ORIGIN + "/")
+                .timeout(20000)
+                .followRedirects(true)
+                .execute();
+        long ms = Math.max(1L, (System.nanoTime() - start) / 1_000_000L);
+        homeKbps = (int) Math.min(Integer.MAX_VALUE, (response.bodyAsBytes().length * 8L) / ms);
+        Document doc = response.parse();
         String date = text(doc.selectFirst("#searchBsDateText"));
         List<Story> stories = storiesIn(doc);
         List<Story> ticker = new ArrayList<>();

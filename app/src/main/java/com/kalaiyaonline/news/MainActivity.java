@@ -79,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
     private FrameLayout tickerHost;
+    private FrameLayout slowHost;
+    private int slowKbps = -1;
     private TextView weatherFlip;
     private TextView weatherTemp;
     private String[] weatherLines = new String[0];
@@ -143,6 +145,9 @@ public class MainActivity extends AppCompatActivity {
         tickerHost = new FrameLayout(this);
         tickerHost.setVisibility(View.GONE);
         root.addView(tickerHost, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        slowHost = new FrameLayout(this);
+        slowHost.setVisibility(View.GONE);
+        root.addView(slowHost, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -1189,6 +1194,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (gen != homeGen) return;
                     latestHome = home;
+                    slowKbps = client.homeKbps;
                     if ("home".equals(section)) renderHome(home, gen);
                 });
             } catch (Exception error) {
@@ -1222,6 +1228,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (!placed) page.addView(rashifalMount(gen));
+        paintSlowBar();
     }
 
     private void showList(String kind) {
@@ -1664,6 +1671,42 @@ public class MainActivity extends AppCompatActivity {
         }
         tickerHost.addView(ticker(items));
         tickerHost.setVisibility(View.VISIBLE);
+    }
+
+    private void paintSlowBar() {
+        if (slowHost == null) return;
+        if (!"home".equals(section) || slowKbps < 0 || slowKbps >= 500) {
+            slowHost.setVisibility(View.GONE);
+            return;
+        }
+        slowHost.removeAllViews();
+        boolean night = Night.on(this);
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setMinimumHeight(dp(34));
+        bar.setPadding(dp(12), dp(6), dp(12), dp(6));
+        bar.setBackgroundColor(night ? 0xFF3A2612 : 0xFFFFF4E8);
+        View stripe = new View(this);
+        stripe.setBackgroundColor(0xFFF15A22);
+        bar.addView(stripe, new LinearLayout.LayoutParams(dp(3), dp(16)));
+        TextView label = new TextView(this);
+        label.setText("इन्टरनेट ढिलो छ  ·  गति " + speedLabel(slowKbps));
+        label.setTextColor(night ? 0xFFFFD7BA : 0xFF9A3412);
+        label.setIncludeFontPadding(false);
+        label.setMaxLines(1);
+        style(label, 13, R.font.mukta_bold);
+        label.setPadding(dp(8), 0, 0, 0);
+        bar.addView(label, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        slowHost.addView(bar);
+        slowHost.setVisibility(View.VISIBLE);
+    }
+
+    private String speedLabel(int kbps) {
+        if (kbps >= 1000) {
+            return nepaliNumber(kbps / 1000) + "." + nepaliNumber((kbps % 1000) / 100) + " एमबीपीएस";
+        }
+        return nepaliNumber(Math.max(1, kbps)) + " केबीपीएस";
     }
 
     private View ticker(List<Story> items) {
@@ -2409,6 +2452,7 @@ public class MainActivity extends AppCompatActivity {
         infoHandler.removeCallbacksAndMessages(null);
         if (weatherFlip != null) weatherFlip.animate().cancel();
         if (tickerHost != null && !"home".equals(section)) tickerHost.setVisibility(View.GONE);
+        if (slowHost != null && !"home".equals(section)) slowHost.setVisibility(View.GONE);
         pager = null;
     }
 
