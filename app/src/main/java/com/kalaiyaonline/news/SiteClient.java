@@ -187,12 +187,116 @@ public final class SiteClient {
                 .body();
         org.json.JSONObject json = new org.json.JSONObject(body);
         if (!today.equals(json.optString("date"))) throw new Exception("stale rashifal");
-        String reading = json.optString("text").replaceAll("\\s+", " ").trim();
+        String reading = nepaliReading(json.optString("text"));
         if (reading.length() < 20) throw new Exception("empty rashifal");
         org.json.JSONObject color = json.optJSONObject("luckyColor");
         String colorName = color == null ? "" : colorName(color.optString("key"));
         String number = nepaliDigits(String.valueOf(json.optInt("luckyNumber")));
         return new Sign(name, letters, reading, colorName, number);
+    }
+
+    private String nepaliReading(String hindi) {
+        String cleaned = hindi.replaceAll("\\s+", " ").trim();
+        StringBuilder out = new StringBuilder();
+        for (String part : chunks(cleaned, 380)) {
+            String line = translateHiNe(part);
+            if (line.isEmpty()) line = localNepali(part);
+            if (out.length() > 0) out.append(' ');
+            out.append(line);
+        }
+        String result = out.toString().replaceAll("\\s+", " ").replace(" ।", "।").trim();
+        if (looksHindi(result)) result = localNepali(cleaned);
+        return result;
+    }
+
+    private static java.util.List<String> chunks(String text, int maxBytes) {
+        java.util.List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String sentence : text.split("(?<=।)")) {
+            String piece = sentence.trim();
+            if (piece.isEmpty()) continue;
+            if (piece.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > maxBytes) {
+                if (current.length() > 0) {
+                    parts.add(current.toString().trim());
+                    current.setLength(0);
+                }
+                for (String bit : piece.split("(?<=,)")) {
+                    String small = bit.trim();
+                    if (!small.isEmpty()) parts.add(small);
+                }
+                continue;
+            }
+            int next = (current + " " + piece).trim().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+            if (current.length() > 0 && next > maxBytes) {
+                parts.add(current.toString().trim());
+                current.setLength(0);
+            }
+            if (current.length() > 0) current.append(' ');
+            current.append(piece);
+        }
+        if (current.length() > 0) parts.add(current.toString().trim());
+        return parts;
+    }
+
+    private String translateHiNe(String hindi) {
+        try {
+            String url = "https://api.mymemory.translated.net/get?langpair=hi|ne&q=" + java.net.URLEncoder.encode(hindi, "UTF-8");
+            String body = Jsoup.connect(url).ignoreContentType(true).userAgent(UA).timeout(15000).execute().body();
+            org.json.JSONObject json = new org.json.JSONObject(body);
+            if (json.optInt("responseStatus") != 200) return "";
+            String text = json.getJSONObject("responseData").optString("translatedText", "").trim();
+            if (text.isEmpty() || text.contains("MYMEMORY WARNING") || text.contains("QUERY LENGTH")) return "";
+            return text;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static boolean looksHindi(String text) {
+        return text.contains("आपके") || text.contains("आपकी") || text.contains("रहेगा") || text.contains("रहेगी") || text.contains("का दिन") || text.contains("के लिए");
+    }
+
+    private static String localNepali(String hindi) {
+        String[][] map = {
+                {"आज का दिन", "आजको दिन"},
+                {"आपके लिए", "तपाईंका लागि"},
+                {"के लिए", "का लागि"},
+                {"के साथ", "सँग"},
+                {"की दृष्टि से", "को हिसाबले"},
+                {"आपकी", "तपाईंको"},
+                {"आपके", "तपाईंका"},
+                {"आपको", "तपाईंलाई"},
+                {"आप ", "तपाईं "},
+                {"रहने वाला है", "रहनेछ"},
+                {"बना रहेगा", "बनिरहनेछ"},
+                {"रहेगा", "रहनेछ"},
+                {"रहेगी", "रहनेछ"},
+                {"रहेंगे", "रहनेछन्"},
+                {"होगा", "हुनेछ"},
+                {"होगी", "हुनेछ"},
+                {"होंगे", "हुनेछन्"},
+                {"मिलेंगी", "मिलेका"},
+                {"मिलेगी", "मिलेको"},
+                {"करें", "गर्नुहोस्"},
+                {"नहीं", "छैन"},
+                {"काफी", "निकै"},
+                {"बहुत", "धेरै"},
+                {"नई ", "नयाँ "},
+                {"नया ", "नयाँ "},
+                {"रिश्तों", "सम्बन्ध"},
+                {"संबंधों", "सम्बन्ध"},
+                {" और ", " र "},
+                {"में ", "मा "},
+                {" की ", " को "},
+                {" के ", " का "},
+                {" से ", " बाट "},
+                {" पर ", " मा "},
+                {" है", " छ"},
+                {" हैं", " छन्"}
+        };
+        String text = hindi;
+        for (String[] pair : map) text = text.replace(pair[0], pair[1]);
+        return text;
     }
 
     private static String kathmanduDate() {
