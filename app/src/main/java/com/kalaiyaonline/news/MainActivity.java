@@ -2153,9 +2153,11 @@ public class MainActivity extends AppCompatActivity {
                 item.put("t", sign.text);
                 item.put("c", sign.color);
                 item.put("u", sign.number);
+                item.put("m", sign.time);
                 list.put(item);
             }
             getSharedPreferences("kalaiya", MODE_PRIVATE).edit()
+                    .putString("rashifal_src", "site")
                     .putString("rashifal_day", data.date)
                     .putString("rashifal_body", list.toString())
                     .apply();
@@ -2166,13 +2168,14 @@ public class MainActivity extends AppCompatActivity {
     private SiteClient.Rashifal storedRashifal() {
         try {
             android.content.SharedPreferences prefs = getSharedPreferences("kalaiya", MODE_PRIVATE);
+            if (!"site".equals(prefs.getString("rashifal_src", ""))) return null;
             if (!SiteClient.today().equals(prefs.getString("rashifal_day", ""))) return null;
             org.json.JSONArray list = new org.json.JSONArray(prefs.getString("rashifal_body", "[]"));
             if (list.length() < 8) return null;
             java.util.List<SiteClient.Sign> signs = new java.util.ArrayList<>();
             for (int i = 0; i < list.length(); i++) {
                 org.json.JSONObject item = list.getJSONObject(i);
-                signs.add(new SiteClient.Sign(item.optString("n"), item.optString("l"), item.optString("t"), item.optString("c"), item.optString("u")));
+                signs.add(new SiteClient.Sign(item.optString("n"), item.optString("l"), item.optString("t"), item.optString("c"), item.optString("u"), item.optString("m")));
             }
             return new SiteClient.Rashifal(SiteClient.today(), signs);
         } catch (Exception ignored) {
@@ -2296,6 +2299,7 @@ public class MainActivity extends AppCompatActivity {
             meta.setPadding(0, dp(12), 0, 0);
             if (!sign.color.isEmpty()) meta.addView(rashifalChip("रंग", sign.color));
             if (!sign.number.isEmpty()) meta.addView(rashifalChip("अंक", sign.number));
+            if (!sign.time.isEmpty()) meta.addView(rashifalChip("समय", sign.time));
             body.addView(meta);
         }
         card.addView(body);

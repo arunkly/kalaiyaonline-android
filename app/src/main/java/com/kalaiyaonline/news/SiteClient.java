@@ -121,12 +121,15 @@ public final class SiteClient {
         public final String color;
         public final String number;
 
-        Sign(String name, String letters, String text, String color, String number) {
+        public final String time;
+
+        Sign(String name, String letters, String text, String color, String number, String time) {
             this.name = name;
             this.letters = letters;
             this.text = text;
             this.color = color;
             this.number = number;
+            this.time = time == null ? "" : time;
         }
     }
 
@@ -146,7 +149,9 @@ public final class SiteClient {
     public Rashifal rashifal() throws Exception {
         String today = kathmanduDate();
         if (rashifalCache != null && today.equals(rashifalDay)) return rashifalCache;
-        String[] names = {"मेष", "वृष", "मिथुन", "कर्कट", "सिंह", "कन्या", "तुला", "वृश्चिक", "धनु", "मकर", "कुम्भ", "मीन"};
+        Document doc = page("https://kalaiyaonline.com/?rashifal=all");
+        if (doc.title().contains("One moment")) throw new Exception("rashifal");
+        String[] order = {"मेष", "वृष", "मिथुन", "कर्कट", "सिंह", "कन्या", "तुला", "वृश्चिक", "धनु", "मकर", "कुम्भ", "मीन"};
         String[] letters = {
                 "चु, चे, चो, ला, लि, लु, ले, लो, अ",
                 "इ, उ, ए, ओ, वा, वि, वु, वे, वो",
@@ -161,132 +166,98 @@ public final class SiteClient {
                 "गु, गे, गो, सा, सि, सु, से, सो, दा",
                 "दि, दु, थ, झ, ञ, दे, दो, चा, चि"
         };
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(6);
-        try {
-            java.util.List<java.util.concurrent.Future<Sign>> jobs = new ArrayList<>();
-            for (int i = 0; i < 12; i++) {
-                final int index = i;
-                jobs.add(pool.submit(() -> readSign(index, names[index], letters[index], today)));
-            }
-            List<Sign> signs = new ArrayList<>();
-            int ready = 0;
-            for (int i = 0; i < jobs.size(); i++) {
-                try {
-                    signs.add(jobs.get(i).get());
-                    ready++;
-                } catch (Exception ignored) {
-                    signs.add(new Sign(names[i], letters[i], "आज यो राशिफल लोड हुन सकेन।", "", ""));
-                }
-            }
-            if (ready < 8) throw new Exception("rashifal");
-            rashifalCache = new Rashifal(today, signs);
-            rashifalDay = today;
-            return rashifalCache;
-        } finally {
-            pool.shutdownNow();
+        java.util.Map<String, Sign> found = new java.util.LinkedHashMap<>();
+        for (Element card : rashifalCards(doc)) {
+            String blob = text(card);
+            String name = rashiIn(blob);
+            if (name.isEmpty() || found.containsKey(name)) continue;
+            String reading = rashifalReading(blob, name);
+            if (reading.length() < 12) continue;
+            int index = java.util.Arrays.asList(order).indexOf(name);
+            found.put(name, new Sign(name, index < 0 ? "" : letters[index], reading,
+                    rashifalColor(blob), nepaliDigits(rashifalNumber(blob)), rashifalTime(blob)));
         }
+        List<Sign> signs = new ArrayList<>();
+        for (String name : order) if (found.containsKey(name)) signs.add(found.get(name));
+        if (signs.size() < 8) throw new Exception("rashifal");
+        rashifalCache = new Rashifal(today, signs);
+        rashifalDay = today;
+        return rashifalCache;
     }
 
-    private Sign readSign(int index, String name, String letters, String today) throws Exception {
-        String body = Jsoup.connect("https://api.kundlidost.in/api/horoscope/public/" + index + "?lang=hi")
-                .ignoreContentType(true)
-                .userAgent(UA)
-                .timeout(7000)
-                .execute()
-                .body();
-        org.json.JSONObject json = new org.json.JSONObject(body);
-        if (!today.equals(json.optString("date"))) throw new Exception("stale rashifal");
-        String reading = localNepali(json.optString("text"));
-        if (reading.length() < 20) throw new Exception("empty rashifal");
-        org.json.JSONObject color = json.optJSONObject("luckyColor");
-        String colorName = color == null ? "" : colorName(color.optString("key"));
-        String number = nepaliDigits(String.valueOf(json.optInt("luckyNumber")));
-        return new Sign(name, letters, reading, colorName, number);
+    private List<Element> rashifalCards(Document doc) {
+        List<Element> cards = new ArrayList<>();
+        for (Element el : doc.select("[id^=rashi-]")) {
+            Element card = el;
+            for (int i = 0; i < 4 && text(card).length() < 50 && card.parent() != null; i++) card = card.parent();
+            if (text(card).contains("राशि") && text(card).length() < 1200) cards.add(card);
+        }
+        for (Element el : doc.select("div, section, article, li")) {
+            String body = text(el);
+            if (body.length() < 40 || body.length() > 900 || !body.contains("राशि")) continue;
+            if (!body.contains("भाग्य") && !body.contains("शुभ रंग") && !body.contains("भविष्यफल")) continue;
+            boolean nested = false;
+            for (Element child : el.children()) {
+                String childText = text(child);
+                if (childText.length() > 40 && childText.contains("राशि") && (childText.contains("भाग्य") || childText.contains("शुभ रंग"))) {
+                    nested = true;
+                    break;
+                }
+            }
+            if (!nested) cards.add(el);
+        }
+        return cards;
+    }
+
+    private static String rashiIn(String blob) {
+        String[] keys = {"वृश्चिक", "मिथुन", "कर्कट", "कन्या", "मेष", "वृष", "सिंह", "तुला", "धनु", "मकर", "कुम्भ", "मीन"};
+        for (String key : keys) if (blob.contains(key)) return key;
+        return "";
+    }
+
+    private static String rashifalReading(String blob, String name) {
+        int cut = blob.length();
+        for (String mark : new String[]{"भाग्यशाली", "शुभ रंग", "शुभ समय", "यो राशिफल", "सेयर गर्नु"}) {
+            int at = blob.indexOf(mark);
+            if (at > 8 && at < cut) cut = at;
+        }
+        String reading = blob.substring(0, cut)
+                .replace(name + " राशि", "")
+                .replace("आजको भविष्यफल", "")
+                .replace(name, "")
+                .replaceAll("[\\u2648-\\u2653]", "");
+        return reading.replaceAll("\\s+", " ").trim();
+    }
+
+    private static String rashifalNumber(String blob) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("अंक\\s*[:：]?\\s*([०-९0-9]+)").matcher(blob);
+        return matcher.find() ? matcher.group(1) : "";
+    }
+
+    private static String rashifalColor(String blob) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("रंग\\s*[:：]?\\s*([^\\s०-९0-9,।*]+)").matcher(blob);
+        if (!matcher.find()) return "";
+        String color = matcher.group(1);
+        if (color.equals("शुभ") || color.length() > 18) return "";
+        return color;
+    }
+
+    private static String rashifalTime(String blob) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("समय\\s*[:：]?\\s*([0-9०-९]{1,2}[:ः.][0-9०-९]{2}\\s*[–—\\-]\\s*[0-9०-९]{1,2}[:ः.][0-9०-९]{2})").matcher(blob);
+        if (!matcher.find()) return "";
+        String digits = "०१२३४५६७८९";
+        String raw = matcher.group(1);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c >= '0' && c <= '9') out.append(digits.charAt(c - '0'));
+            else out.append(c);
+        }
+        return out.toString().replaceAll("\\s+", " ").trim();
     }
 
     public static String today() {
         return kathmanduDate();
-    }
-
-    private static String localNepali(String hindi) {
-        String[][] map = {
-                {"आज का दिन", "आजको दिन"},
-                {"रहने वाला है", "रहनेछ"},
-                {"बना रहेगा", "रहनेछ"},
-                {"बना रहेगी", "रहनेछ"},
-                {"साझा करने का अवसर मिलेगा", "बाँड्ने मौका मिल्नेछ"},
-                {"संतुलित रखने के लिए", "सन्तुलित राख्न"},
-                {"बनाए रखें", "राख्नुहोस्"},
-                {"न लें", "नलिनुहोस्"},
-                {"हो जाएगा", "हुनेछ"},
-                {"जिससे", "जसले"},
-                {"इसलिए", "त्यसैले"},
-                {"किसी भी", "कुनै पनि"},
-                {"को लेकर", "लिएर"},
-                {"आपके लिए", "तपाईंका लागि"},
-                {"आपकी", "तपाईंको"},
-                {"आपके", "तपाईंका"},
-                {"आपको", "तपाईंलाई"},
-                {"अपनी", "आफ्नो"},
-                {"आप ", "तपाईं "},
-                {"के लिए", "का लागि"},
-                {"के साथ", "सँग"},
-                {"के मामले में", "को कुरामा"},
-                {"के मोर्चे पर", "को पक्षमा"},
-                {"की संभावनाएं", "को सम्भावना"},
-                {"को सराहना", "को प्रशंसा"},
-                {"सहकर्मियों", "सहकर्मीहरू"},
-                {"जिम्मेदारियां", "जिम्मेवारी"},
-                {"प्रियजनों", "आफन्त"},
-                {"पुरानी यादें", "पुराना सम्झना"},
-                {"मधुर संवाद", "मिठो कुराकानी"},
-                {"आत्म-संतुष्टि", "आत्मसन्तुष्टि"},
-                {"पदोन्नति", "बढुवा"},
-                {"सूझबूझ", "सूझबुझ"},
-                {"रिश्तों", "सम्बन्ध"},
-                {"संबंधों", "सम्बन्ध"},
-                {"नई ", "नयाँ "},
-                {"नया ", "नयाँ "},
-                {"काफी ", "निकै "},
-                {"बहुत ", "धेरै "},
-                {"छोटी ", "सानो "},
-                {"बेहतर", "राम्रो"},
-                {"अधिक ", "धेरै "},
-                {"धीरे-धीरे", "बिस्तारै"},
-                {"मजबूत होंगी", "बलियो हुनेछन्"},
-                {"मजबूत होंगे", "बलियो हुनेछन्"},
-                {"प्रदान करेंगी", "दिनेछन्"},
-                {"प्रदान करेंगे", "दिनेछन्"},
-                {"बढ़ेगी", "बढ्नेछ"},
-                {"बढ़ेगी", "बढ्नेछ"},
-                {"मिलेगी", "मिलेको"},
-                {"मिलेंगे", "मिलेका"},
-                {"रहेगा", "रहनेछ"},
-                {"रहेगी", "रहनेछ"},
-                {"रहेंगे", "रहनेछन्"},
-                {"होगा", "हुनेछ"},
-                {"होगी", "हुनेछ"},
-                {"होंगे", "हुनेछन्"},
-                {"होंगी", "हुनेछन्"},
-                {"करें", "गर्नुहोस्"},
-                {"लें", "लिनुहोस्"},
-                {"नहीं", "छैन"},
-                {" और ", " र "},
-                {" में ", "मा "},
-                {" की ", "को "},
-                {" के ", "को "},
-                {" से ", "बाट "},
-                {" पर ", "मा "},
-                {" का ", "को "},
-                {"सुखद है", "सुखद छ"},
-                {"मध्यम है", "मध्यम छ"},
-                {" है", " छ"},
-                {" हैं", " छन्"},
-                {"आहार", "खाना"}
-        };
-        String text = hindi.replaceAll("\\s+", " ").trim();
-        for (String[] pair : map) text = text.replace(pair[0], pair[1]);
-        return text.replaceAll(" +", " ").trim();
     }
 
     private static String kathmanduDate() {
