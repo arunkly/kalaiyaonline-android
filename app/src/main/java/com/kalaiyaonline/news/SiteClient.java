@@ -225,8 +225,10 @@ public final class SiteClient {
                 .replace(name + " राशि", "")
                 .replace("आजको भविष्यफल", "")
                 .replace(name, "")
-                .replaceAll("[\\u2648-\\u2653]", "");
-        return reading.replaceAll("\\s+", " ").trim();
+                .replaceAll("[\\u2648-\\u2653]", "")
+                .replaceAll("^[\\s\\S]{0,24}?सेयर\\s*", "")
+                .replaceAll("^[\\s↗↑➤►▶]+", "");
+        return reading.replaceAll("\\s+", " ").replaceAll("[\\s🍀☘🌿]+$", "").trim();
     }
 
     private static String rashifalNumber(String blob) {

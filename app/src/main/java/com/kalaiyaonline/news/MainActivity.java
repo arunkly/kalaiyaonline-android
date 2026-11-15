@@ -2157,7 +2157,7 @@ public class MainActivity extends AppCompatActivity {
                 list.put(item);
             }
             getSharedPreferences("kalaiya", MODE_PRIVATE).edit()
-                    .putString("rashifal_src", "site")
+                    .putString("rashifal_src", "site2")
                     .putString("rashifal_day", data.date)
                     .putString("rashifal_body", list.toString())
                     .apply();
@@ -2168,7 +2168,7 @@ public class MainActivity extends AppCompatActivity {
     private SiteClient.Rashifal storedRashifal() {
         try {
             android.content.SharedPreferences prefs = getSharedPreferences("kalaiya", MODE_PRIVATE);
-            if (!"site".equals(prefs.getString("rashifal_src", ""))) return null;
+            if (!"site2".equals(prefs.getString("rashifal_src", ""))) return null;
             if (!SiteClient.today().equals(prefs.getString("rashifal_day", ""))) return null;
             org.json.JSONArray list = new org.json.JSONArray(prefs.getString("rashifal_body", "[]"));
             if (list.length() < 8) return null;
@@ -2299,7 +2299,6 @@ public class MainActivity extends AppCompatActivity {
             meta.setPadding(0, dp(12), 0, 0);
             if (!sign.color.isEmpty()) meta.addView(rashifalChip("रंग", sign.color));
             if (!sign.number.isEmpty()) meta.addView(rashifalChip("अंक", sign.number));
-            if (!sign.time.isEmpty()) meta.addView(rashifalChip("समय", sign.time));
             body.addView(meta);
         }
         card.addView(body);
