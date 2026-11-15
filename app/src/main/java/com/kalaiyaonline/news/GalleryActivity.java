@@ -99,6 +99,7 @@ public class GalleryActivity extends AppCompatActivity {
         LinearLayout.LayoutParams coverLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         coverLp.topMargin = dp(14);
         page.addView(cover, coverLp);
+        page.addView(shareRow(galleryLink(url), title));
 
         TextView body = label("फोटो लोड हुँदैछ…", 16, 0xFF44403C, false);
         body.setPadding(dp(2), dp(14), dp(2), dp(8));
@@ -143,6 +144,57 @@ public class GalleryActivity extends AppCompatActivity {
                 runOnUiThread(() -> body.setText("ग्यालरी खोल्न सकिएन।"));
             }
         });
+    }
+
+    private String galleryLink(String url) {
+        if (url == null || url.isEmpty()) return SiteClient.ORIGIN + "/gallery";
+        if (url.startsWith("http")) return url;
+        return SiteClient.ORIGIN + (url.startsWith("/") ? url : "/" + url);
+    }
+
+    private View shareRow(String link, TextView title) {
+        LinearLayout shares = new LinearLayout(this);
+        shares.setOrientation(LinearLayout.HORIZONTAL);
+        shares.setGravity(Gravity.CENTER);
+        shares.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
+        shares.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, link, title));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(12);
+        shares.setLayoutParams(lp);
+        return shares;
+    }
+
+    private View shareIcon(int icon, int color, String pkg, String link, TextView title) {
+        ImageView mark = new ImageView(this);
+        mark.setImageResource(icon);
+        mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mark.setPadding(dp(9), dp(9), dp(9), dp(9));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(color);
+        mark.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(42));
+        lp.leftMargin = dp(6);
+        lp.rightMargin = dp(6);
+        mark.setLayoutParams(lp);
+        mark.setOnClickListener(v -> sendShare(pkg, title.getText().toString(), link));
+        return mark;
+    }
+
+    private void sendShare(String pkg, String title, String link) {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, title + "\n" + link);
+        if (pkg != null) send.setPackage(pkg);
+        try {
+            startActivity(pkg == null ? Intent.createChooser(send, "सेयर") : send);
+        } catch (Exception error) {
+            send.setPackage(null);
+            startActivity(Intent.createChooser(send, "सेयर"));
+        }
     }
 
     private void show(SiteClient.GalleryPost post, TextView category, TextView title, TextView date, TextView body, ImageView coverImage, GridLayout grid) {

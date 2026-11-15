@@ -257,6 +257,19 @@ final class DirectoryBoard {
         if (!item.category.isEmpty()) copy.addView(text(item.category, 12, 0xFF0B5C28, false));
         if (!item.location.isEmpty()) copy.addView(text(item.location, 12, 0xFF78716C, false));
         card.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        ImageView share = new ImageView(activity);
+        share.setImageResource(R.drawable.ic_share_more);
+        share.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        share.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable shareBg = new GradientDrawable();
+        shareBg.setShape(GradientDrawable.OVAL);
+        shareBg.setColor(0xFF0F8A3C);
+        share.setBackground(shareBg);
+        LinearLayout.LayoutParams shareLp = new LinearLayout.LayoutParams(dp(36), dp(36));
+        shareLp.leftMargin = dp(8);
+        share.setLayoutParams(shareLp);
+        share.setOnClickListener(v -> sendShare(null, item.title, listingLink(item)));
+        card.addView(share);
         card.setOnClickListener(v -> openDetail(item));
         return card;
     }
@@ -321,6 +334,7 @@ final class DirectoryBoard {
             place.setPadding(0, dp(4), 0, 0);
             sheet.addView(place);
         }
+        sheet.addView(shareRow(item));
         TextView body = text(item.blurb.isEmpty() ? "विवरण लोड हुँदैछ…" : item.blurb, 15, 0xFF292524, false);
         body.setPadding(0, dp(10), 0, 0);
         body.setLineSpacing(dp(2), 1f);
@@ -359,6 +373,55 @@ final class DirectoryBoard {
                 if (!map.isEmpty()) actions.addView(action("नक्सा", () -> open(map)));
             });
         }).start();
+    }
+
+    private String listingLink(Listing item) {
+        if (item.page != null && item.page.startsWith("http")) return item.page;
+        return SiteClient.ORIGIN + "/?directory=all";
+    }
+
+    private View shareRow(Listing item) {
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+        row.setPadding(0, dp(12), 0, dp(4));
+        String link = listingLink(item);
+        row.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", item.title, link));
+        row.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", item.title, link));
+        row.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", item.title, link));
+        row.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", item.title, link));
+        row.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, item.title, link));
+        return row;
+    }
+
+    private View shareIcon(int icon, int color, String pkg, String title, String link) {
+        ImageView mark = new ImageView(activity);
+        mark.setImageResource(icon);
+        mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mark.setPadding(dp(9), dp(9), dp(9), dp(9));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(color);
+        mark.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        lp.leftMargin = dp(5);
+        lp.rightMargin = dp(5);
+        mark.setLayoutParams(lp);
+        mark.setOnClickListener(v -> sendShare(pkg, title, link));
+        return mark;
+    }
+
+    private void sendShare(String pkg, String title, String link) {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, title + "\n" + link);
+        if (pkg != null) send.setPackage(pkg);
+        try {
+            activity.startActivity(pkg == null ? Intent.createChooser(send, "सेयर") : send);
+        } catch (Exception error) {
+            send.setPackage(null);
+            activity.startActivity(Intent.createChooser(send, "सेयर"));
+        }
     }
 
     private String download(String address) {
