@@ -53,6 +53,9 @@ public class ArticleActivity extends AppCompatActivity {
     private String keptCategory = "";
     private String keptDate = "";
     private LinearLayout relatedBox;
+    private LinearLayout tagHost;
+    private LinearLayout feelHost;
+    private Story loaded;
     private AdView articleAd;
 
     @Override
@@ -225,6 +228,16 @@ public class ArticleActivity extends AppCompatActivity {
         bodyView.setPadding(dp(2), dp(12), dp(2), dp(8));
         page.addView(bodyView);
 
+        tagHost = new LinearLayout(this);
+        tagHost.setOrientation(LinearLayout.VERTICAL);
+        tagHost.setVisibility(View.GONE);
+        page.addView(tagHost);
+
+        feelHost = new LinearLayout(this);
+        feelHost.setOrientation(LinearLayout.VERTICAL);
+        feelHost.setVisibility(View.GONE);
+        page.addView(feelHost);
+
         relatedBox = new LinearLayout(this);
         relatedBox.setOrientation(LinearLayout.VERTICAL);
         relatedBox.setVisibility(View.GONE);
@@ -278,6 +291,9 @@ public class ArticleActivity extends AppCompatActivity {
                         keptImage = story.image;
                         load(story.image, image);
                     }
+                    loaded = story;
+                    paintTags();
+                    paintFeelings();
                     showRelated(story.related);
                 });
             } catch (Exception error) {
@@ -425,6 +441,159 @@ public class ArticleActivity extends AppCompatActivity {
         mark.setLayoutParams(lp);
         mark.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
         return mark;
+    }
+
+    private void paintTags() {
+        tagHost.removeAllViews();
+        if (loaded == null || loaded.tags.isEmpty()) {
+            tagHost.setVisibility(View.GONE);
+            return;
+        }
+        tagHost.setVisibility(View.VISIBLE);
+        tagHost.setPadding(0, dp(8), 0, dp(2));
+        android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(2), 0, dp(2));
+        for (String tag : loaded.tags) {
+            TextView chip = new TextView(this);
+            chip.setText(tag);
+            chip.setTextColor(0xFF0B5C28);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            chip.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
+            chip.setIncludeFontPadding(false);
+            chip.setMaxLines(1);
+            chip.setPadding(dp(12), dp(7), dp(12), dp(7));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xFFF3F6F4);
+            bg.setCornerRadius(dp(16));
+            bg.setStroke(dp(1), 0xFFD7E5DC);
+            chip.setBackground(bg);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = dp(8);
+            chip.setLayoutParams(lp);
+            row.addView(chip);
+        }
+        scroll.addView(row);
+        tagHost.addView(scroll);
+    }
+
+    private void paintFeelings() {
+        feelHost.removeAllViews();
+        if (loaded == null) {
+            feelHost.setVisibility(View.GONE);
+            return;
+        }
+        feelHost.setVisibility(View.VISIBLE);
+        String voted = prefs.getString("feel-" + slug, "");
+        int[] shown = loaded.feelings.clone();
+        String note = loaded.feelingNote;
+        if (!voted.isEmpty() && feelingTotal(shown) == 0) {
+            int picked = feelingIndex(voted);
+            if (picked >= 0) shown[picked] = 100;
+            note = "तपाईंको प्रतिक्रिया सेभ भयो।";
+        }
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(22));
+        card.setCardElevation(0);
+        card.setStrokeWidth(dp(1));
+        card.setStrokeColor(0xFFE7E5E4);
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(10), dp(14), dp(10), dp(12));
+        TextView title = new TextView(this);
+        title.setText("यो खबर पढेर तपाईंलाई कस्तो महसुस भयो ?");
+        title.setTextColor(0xFF1C1917);
+        title.setGravity(Gravity.CENTER);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        title.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_extrabold));
+        title.setIncludeFontPadding(false);
+        box.addView(title);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(12), 0, 0);
+        String[] emoji = {"👍", "❤️", "😂", "😮", "😢", "😠"};
+        String[] labels = {"मन पर्यो", "माया लाग्यो", "हाँस्यो", "अचम्मित", "दुखी", "रिस उठ्यो"};
+        String[] keys = {"like", "love", "haha", "wow", "sad", "angry"};
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER_HORIZONTAL);
+            cell.setPadding(dp(2), dp(8), dp(2), dp(8));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(keys[i].equals(voted) ? 0xFFFFF4E8 : 0xFFFCFCFD);
+            bg.setCornerRadius(dp(14));
+            bg.setStroke(dp(1), keys[i].equals(voted) ? 0xFFF15A22 : 0xFFE7E5E4);
+            cell.setBackground(bg);
+            TextView face = new TextView(this);
+            face.setText(emoji[i]);
+            face.setGravity(Gravity.CENTER);
+            face.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+            face.setIncludeFontPadding(false);
+            cell.addView(face);
+            TextView label = new TextView(this);
+            label.setText(labels[i]);
+            label.setGravity(Gravity.CENTER);
+            label.setTextColor(0xFF1C1917);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+            label.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
+            label.setMaxLines(2);
+            label.setIncludeFontPadding(false);
+            label.setPadding(dp(1), dp(4), dp(1), 0);
+            cell.addView(label);
+            TextView percent = new TextView(this);
+            percent.setText(shown[i] + "%");
+            percent.setGravity(Gravity.CENTER);
+            percent.setTextColor(0xFF78716C);
+            percent.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+            percent.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_semibold));
+            percent.setIncludeFontPadding(false);
+            percent.setPadding(0, dp(2), 0, 0);
+            cell.addView(percent);
+            cell.setOnClickListener(v -> chooseFeeling(keys[index], loaded.feelingUrls[index]));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            lp.leftMargin = dp(3);
+            lp.rightMargin = dp(3);
+            cell.setLayoutParams(lp);
+            row.addView(cell);
+        }
+        box.addView(row);
+        if (note != null && !note.isEmpty()) {
+            TextView foot = new TextView(this);
+            foot.setText(note);
+            foot.setGravity(Gravity.CENTER);
+            foot.setTextColor(0xFF64748B);
+            foot.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            foot.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_semibold));
+            foot.setIncludeFontPadding(false);
+            foot.setPadding(0, dp(12), 0, dp(2));
+            box.addView(foot);
+        }
+        card.addView(box);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.topMargin = dp(12);
+        feelHost.addView(card, cardLp);
+    }
+
+    private void chooseFeeling(String key, String url) {
+        prefs.edit().putString("feel-" + slug, key).apply();
+        paintFeelings();
+        if (url != null && !url.isEmpty()) io.execute(() -> client.ping(url));
+    }
+
+    private int feelingIndex(String key) {
+        String[] keys = {"like", "love", "haha", "wow", "sad", "angry"};
+        for (int i = 0; i < keys.length; i++) if (keys[i].equals(key)) return i;
+        return -1;
+    }
+
+    private int feelingTotal(int[] values) {
+        int total = 0;
+        for (int value : values) total += value;
+        return total;
     }
 
     private void showRelated(java.util.List<Story> stories) {

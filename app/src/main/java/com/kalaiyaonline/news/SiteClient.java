@@ -477,7 +477,150 @@ public final class SiteClient {
         story.views = views;
         story.authorImage = authorImage(doc);
         story.related.addAll(relatedFrom(doc, slug));
+        tagsFrom(doc, story);
+        feelingsFrom(doc, story);
         return story;
+    }
+
+    private void tagsFrom(Document doc, Story story) {
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element link : doc.select("a[rel=tag], a[href*=/tag/], a[href*=/tags/], a[href*=?tag=], a[href*=&tag=], a[href*=/topic/], a[href*=keyword], a[class*=keyword], a[class*=chip], .article-tags a, .post-tags a, .news-tags a, .tag-list a, .tags a, a.tag, a.tag-chip, a.article-tag")) {
+            addTag(story, seen, text(link), link.attr("href"));
+        }
+        if (!story.tags.isEmpty()) return;
+        for (Element box : doc.select("[class*=tag]")) {
+            String kind = box.className().toLowerCase();
+            if (!kind.contains("tag")) continue;
+            if (kind.contains("stage") || kind.contains("percentage")) continue;
+            for (Element child : box.select("a, span")) {
+                addTag(story, seen, child.ownText(), child.hasAttr("href") ? child.attr("href") : "");
+            }
+        }
+        if (!story.tags.isEmpty()) return;
+        for (Element head : doc.select("h2, h3, h4, h5, strong")) {
+            String label = head.ownText().replaceAll("\\s+", " ").trim();
+            if (!label.equals("ट्याग") && !label.equals("ट्यागहरू") && !label.equalsIgnoreCase("tags")) continue;
+            Element box = head.parent() == null ? head : head.parent();
+            for (Element link : box.select("a, span")) {
+                if (link == head) continue;
+                addTag(story, seen, text(link), link.hasAttr("href") ? link.attr("href") : "");
+            }
+        }
+    }
+
+    private void addTag(Story story, Set<String> seen, String label, String href) {
+        String name = label == null ? "" : label.replaceAll("\\s+", " ").trim();
+        if (name.length() < 2 || name.length() > 28) return;
+        if (name.contains("सेयर") || name.contains("प्रतिक्रिया") || name.contains("टिप्पणी")) return;
+        if (name.contains("%") || name.contains("महसुस")) return;
+        if (!seen.add(name)) return;
+        story.tags.add(name);
+        story.tagUrls.add(href == null ? "" : abs(href));
+        if (story.tags.size() > 8) {
+            story.tags.remove(story.tags.size() - 1);
+            story.tagUrls.remove(story.tagUrls.size() - 1);
+        }
+    }
+
+    private void feelingsFrom(Document doc, Story story) {
+        String[][] words = {
+                {"मन पर्यो", "मन पऱ्यो"},
+                {"माया लाग्यो"},
+                {"हाँस्यो", "हांस्यो"},
+                {"अचम्मित"},
+                {"दुखी", "दुःखी"},
+                {"रिस उठ्यो"}
+        };
+        Element box = null;
+        int best = Integer.MAX_VALUE;
+        for (Element el : doc.select("section, div, form, article")) {
+            String blob = flat(text(el));
+            if (!blob.contains("महसुस") && !blob.contains("माया लाग्यो")) continue;
+            int hits = 0;
+            for (String[] group : words) for (String word : group) if (blob.contains(flat(word))) { hits++; break; }
+            if (hits >= 4 && blob.length() < best && blob.length() < 1600) {
+                best = blob.length();
+                box = el;
+            }
+        }
+        String blob = box == null ? "" : flat(text(box));
+        if (blob.isEmpty() && doc.body() != null) {
+            String all = flat(doc.body().text());
+            int at = all.indexOf("महसुस");
+            if (at >= 0) blob = all.substring(Math.max(0, at - 10), Math.min(all.length(), at + 360));
+        }
+        for (int i = 0; i < words.length; i++) story.feelings[i] = feelingPercent(blob, words[i]);
+        story.feelingNote = blob.contains("कुनै प्रतिक्रिया छैन") || feelingTotal(story) == 0
+                ? "अहिलेसम्म कुनै प्रतिक्रिया छैन।" : "";
+        if (box == null) return;
+        for (Element button : box.select("button, a, [role=button]")) {
+            String label = flat(text(button));
+            if (label.length() > 40) continue;
+            for (int i = 0; i < words.length; i++) {
+                boolean hit = false;
+                for (String word : words[i]) if (label.contains(flat(word))) hit = true;
+                if (!hit || !story.feelingUrls[i].isEmpty()) continue;
+                story.feelingUrls[i] = feelingTarget(button);
+            }
+        }
+    }
+
+    private static int feelingTotal(Story story) {
+        int total = 0;
+        for (int value : story.feelings) total += value;
+        return total;
+    }
+
+    private String feelingTarget(Element button) {
+        String href = button.attr("href");
+        if (!href.isEmpty() && !href.startsWith("#") && !href.startsWith("javascript:")) return abs(href);
+        Element form = button;
+        while (form != null && !"form".equals(form.tagName())) form = form.parent();
+        if (form != null && !form.attr("action").isEmpty()) return abs(form.attr("action"));
+        String onclick = button.attr("onclick");
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("['\"]([^'\"]*(?:react|emoji|feel)[^'\"]*)['\"]").matcher(onclick);
+        if (matcher.find()) return abs(matcher.group(1));
+        return "";
+    }
+
+    private static int feelingPercent(String blob, String[] words) {
+        for (String word : words) {
+            String key = flat(word);
+            int at = blob.indexOf(key);
+            if (at < 0) continue;
+            String tail = blob.substring(at + key.length(), Math.min(blob.length(), at + key.length() + 14));
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("([0-9०-९]+)").matcher(tail);
+            if (matcher.find()) return toInt(matcher.group(1));
+        }
+        return 0;
+    }
+
+    private static int toInt(String raw) {
+        String digits = "०१२३४५६७८९";
+        StringBuilder number = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            int at = digits.indexOf(c);
+            if (c >= '0' && c <= '9') number.append(c);
+            else if (at >= 0) number.append(at);
+        }
+        try {
+            return Integer.parseInt(number.toString());
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private static String flat(String value) {
+        return value == null ? "" : value.replace("\u200c", "").replace("\u200d", "").replaceAll("\\s+", " ").trim();
+    }
+
+    public void ping(String url) {
+        try {
+            if (url == null || url.isEmpty()) return;
+            Jsoup.connect(url).userAgent(UA).ignoreContentType(true).timeout(8000).followRedirects(true).execute();
+        } catch (Exception ignored) {
+        }
     }
 
     private List<Story> relatedFrom(Document doc, String current) {
