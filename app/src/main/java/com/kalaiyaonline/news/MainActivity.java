@@ -494,48 +494,26 @@ public class MainActivity extends AppCompatActivity {
             showBell(popularCache);
             return;
         }
+        if (home.popular != null && !home.popular.isEmpty()) {
+            popularCache = home.popular;
+            showBell(popularCache);
+            return;
+        }
         bellList.removeAllViews();
         bellList.addView(message("लोकप्रिय समाचार लोड हुँदैछ…"));
-        List<Story> pool = new ArrayList<>();
-        for (Story story : home.stories) {
-            if (pool.size() >= 8) break;
-            pool.add(story);
-        }
+        String slug = home.stories.isEmpty() ? "" : home.stories.get(0).slug;
         io.execute(() -> {
-            for (Story story : pool) {
-                if (!story.views.isEmpty()) continue;
-                try {
-                    Story full = client.article(story.slug);
-                    story.views = full.views;
-                } catch (Exception ignored) {
-                }
-            }
-            pool.sort((a, b) -> Integer.compare(viewCount(b.views), viewCount(a.views)));
             List<Story> top = new ArrayList<>();
-            for (int i = 0; i < pool.size() && top.size() < 7; i++) top.add(pool.get(i));
-            popularCache = top;
+            try {
+                if (!slug.isEmpty()) top = client.popular(slug);
+            } catch (Exception ignored) {
+            }
+            List<Story> ready = top;
+            popularCache = ready;
             runOnUiThread(() -> {
-                if (bellOpen && bellMode == 1) showBell(top);
+                if (bellOpen && bellMode == 1) showBell(ready);
             });
         });
-    }
-
-    private int viewCount(String raw) {
-        if (raw == null || raw.isEmpty()) return 0;
-        String digits = "०१२३४५६७८९";
-        StringBuilder number = new StringBuilder();
-        for (int i = 0; i < raw.length(); i++) {
-            char c = raw.charAt(i);
-            int at = digits.indexOf(c);
-            if (at >= 0) number.append(at);
-            else if (c >= '0' && c <= '9') number.append(c);
-        }
-        if (number.length() == 0) return 0;
-        try {
-            return Integer.parseInt(number.toString());
-        } catch (Exception ignored) {
-            return 0;
-        }
     }
 
     private void showBell(List<Story> stories) {
@@ -1835,22 +1813,6 @@ public class MainActivity extends AppCompatActivity {
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         photo.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210)));
         if (!story.image.isEmpty()) loadImage(story.image, image);
-        ImageView save = new ImageView(this);
-        save.setImageResource(R.drawable.ic_bookmark);
-        save.setPadding(dp(8), dp(8), dp(8), dp(8));
-        GradientDrawable saveBg = new GradientDrawable();
-        saveBg.setCornerRadius(dp(14));
-        saveBg.setColor(0xFFFFFFFF);
-        save.setBackground(saveBg);
-        paintSave(save, story.slug);
-        save.setOnClickListener(v -> {
-            boolean now = !isSaved(story.slug);
-            SavedStore.set(this, story, now);
-            paintSave(save, story.slug);
-        });
-        FrameLayout.LayoutParams saveLp = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END | Gravity.TOP);
-        saveLp.setMargins(0, dp(10), dp(10), 0);
-        photo.addView(save, saveLp);
         LinearLayout.LayoutParams photoLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(210));
         photoLp.leftMargin = dp(12);
         photoLp.rightMargin = dp(12);
@@ -1870,16 +1832,6 @@ public class MainActivity extends AppCompatActivity {
             text.setSpan(new ForegroundColorSpan(0xFF1B2A4A), split, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return text;
-    }
-
-    private boolean isSaved(String slug) {
-        return SavedStore.isSaved(this, slug);
-    }
-
-    private void paintSave(ImageView save, String slug) {
-        Drawable icon = DrawableCompat.wrap(save.getDrawable()).mutate();
-        DrawableCompat.setTint(icon, isSaved(slug) ? 0xFF0F8A3C : 0xFF44403C);
-        save.setImageDrawable(icon);
     }
 
     private View heroCard(Story story, boolean lead) {

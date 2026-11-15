@@ -35,11 +35,12 @@ public final class SiteClient {
         public final List<Story> tabNational;
         public final List<Story> tabWorld;
         public final List<Story> politics;
+        public final List<Story> popular;
         public final List<Block> blocks;
 
         Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories,
              List<Story> tabAll, List<Story> tabLocal, List<Story> tabNational, List<Story> tabWorld,
-             List<Story> politics, List<Block> blocks) {
+             List<Story> politics, List<Story> popular, List<Block> blocks) {
             this.dateLine = dateLine;
             this.ticker = ticker;
             this.headlines = headlines;
@@ -49,6 +50,7 @@ public final class SiteClient {
             this.tabNational = tabNational;
             this.tabWorld = tabWorld;
             this.politics = politics;
+            this.popular = popular;
             this.blocks = blocks;
         }
     }
@@ -109,7 +111,7 @@ public final class SiteClient {
                 addBlock(blocks, "लेख / बिचार", "lekhabichar", section, 3);
             }
         }
-        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, blocks);
+        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks);
     }
 
     private void addBlock(List<Block> blocks, String label, String slug, Element section, int limit) {
@@ -176,6 +178,78 @@ public final class SiteClient {
         if (marker.find()) pages = Math.max(1, Integer.parseInt(marker.group(2)));
         else if (stories.size() >= 8) pages = pageNo + 1;
         return new Feed(stories, pages);
+    }
+
+    public List<Story> popular(String slug) throws Exception {
+        return popularNear(page("/news/" + slug), slug);
+    }
+
+    private List<Story> popularNear(Document doc, String current) {
+        for (Element section : doc.select("section, aside")) {
+            String label = section.attr("aria-label") + " " + text(section.selectFirst("h2, h3, h4"));
+            if (label.contains("लोकप्रिय")) {
+                List<Story> scoped = storiesFrom(section, 7);
+                if (scoped.size() >= 2) return scoped;
+            }
+        }
+        Element mark = null;
+        for (Element el : doc.getAllElements()) {
+            String own = el.ownText().replaceAll("\\s+", " ").trim();
+            if (own.equals("लोकप्रिय समाचार") || own.equals("लोकप्रिय")) {
+                mark = el;
+                break;
+            }
+        }
+        if (mark == null) return new ArrayList<>();
+        Element scope = mark.parent();
+        for (int depth = 0; depth < 6 && scope != null; depth++) {
+            List<Story> inside = linksIn(scope, current);
+            if (inside.size() >= 2 && inside.size() <= 10) return inside;
+            if (inside.size() > 10) break;
+            scope = scope.parent();
+        }
+        Element node = mark;
+        for (int depth = 0; depth < 5 && node != null; depth++) {
+            List<Story> found = new ArrayList<>();
+            Set<String> seen = new LinkedHashSet<>();
+            Element sib = node.nextElementSibling();
+            while (sib != null && found.size() < 7) {
+                String heading = sib.ownText().replaceAll("\\s+", " ").trim();
+                if (heading.contains("सम्बन्धित") || heading.contains("टिप्पणी")) break;
+                for (Element link : sib.select("a[href*=/news/]")) {
+                    String next = slug(link.attr("href"));
+                    if (next == null || next.equals(current) || !seen.add(next)) continue;
+                    String title = text(link.selectFirst("h2, h3, h4, b"));
+                    if (title.length() < 8) title = text(link);
+                    if (title.length() < 8) continue;
+                    String image = imageFrom(link);
+                    if (image.isEmpty() && link.parent() != null) image = imageFrom(link.parent());
+                    found.add(new Story(next, title, image, "", "", "", ""));
+                    if (found.size() >= 7) break;
+                }
+                sib = sib.nextElementSibling();
+            }
+            if (found.size() >= 2) return found;
+            node = node.parent();
+        }
+        return new ArrayList<>();
+    }
+
+    private List<Story> linksIn(Element scope, String current) {
+        List<Story> found = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element link : scope.select("a[href*=/news/]")) {
+            String next = slug(link.attr("href"));
+            if (next == null || next.equals(current) || !seen.add(next)) continue;
+            String title = text(link.selectFirst("h2, h3, h4, b"));
+            if (title.length() < 8) title = text(link);
+            if (title.length() < 8) continue;
+            String image = imageFrom(link);
+            if (image.isEmpty() && link.parent() != null) image = imageFrom(link.parent());
+            found.add(new Story(next, title, image, "", "", "", ""));
+            if (found.size() >= 7) break;
+        }
+        return found;
     }
 
     public Story article(String slug) throws Exception {
