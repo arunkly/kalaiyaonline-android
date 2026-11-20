@@ -49,6 +49,7 @@ final class SocialBoard {
         this.activity = activity;
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFFF0F2F5);
     }
 
     View view() {
@@ -123,8 +124,10 @@ final class SocialBoard {
         LinearLayout head = new LinearLayout(activity);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(avatar(firstImage(scope), Account.name(), dp(44)));
-        EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको status के छ?" : area.attr("placeholder"), true);
+        head.addView(avatar(firstImage(form), Account.name(), dp(40)));
+        EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको स्टाटस के छ?" : area.attr("placeholder"), true);
+        status.setBackground(pill(0xFFF0F2F5));
+        status.setMinLines(2);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         statusLp.leftMargin = dp(10);
         status.setLayoutParams(statusLp);
@@ -172,7 +175,7 @@ final class SocialBoard {
         if (submit != null && submit.text().contains("प्रकाशित")) label = submit.text();
         Element button = submit;
         Element formEl = form;
-        box.addView(wideButton(label, 0xFF0F8A3C, () -> {
+        box.addView(wideButton(label, 0xFF1877F2, () -> {
             if (!key.isEmpty()) fields.put(key, status.getText().toString().trim());
             if (link.getVisibility() == View.VISIBLE && link.getTag() instanceof String) fields.put((String) link.getTag(), link.getText().toString().trim());
             else if (link.getVisibility() == View.VISIBLE && !link.getText().toString().trim().isEmpty() && !key.isEmpty()) {
@@ -191,41 +194,42 @@ final class SocialBoard {
     }
 
     private View modes(EditText status, EditText link, LinearLayout polls, LinearLayout emoji) {
-        LinearLayout grid = new LinearLayout(activity);
-        grid.setOrientation(LinearLayout.VERTICAL);
-        String[] labels = {"स्टाटस", "समाचार Link", "Poll", "Emoji"};
+        LinearLayout line = new LinearLayout(activity);
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        View rule = new View(activity);
+        rule.setBackgroundColor(0xFFE4E6EB);
+        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        ruleLp.topMargin = dp(10);
+        ruleLp.bottomMargin = dp(4);
+        rule.setLayoutParams(ruleLp);
+        String[] labels = {"स्टाटस", "लिंक", "पोल", "इमोजी"};
+        int[] colors = {0xFF1877F2, 0xFF0F8A3C, 0xFFF97316, 0xFFEAB308};
         TextView[] chips = new TextView[4];
         Runnable[] apply = new Runnable[4];
         apply[0] = () -> { link.setVisibility(View.GONE); polls.setVisibility(View.GONE); emoji.setVisibility(View.GONE); };
         apply[1] = () -> { link.setVisibility(View.VISIBLE); polls.setVisibility(View.GONE); emoji.setVisibility(View.GONE); };
         apply[2] = () -> { link.setVisibility(View.GONE); polls.setVisibility(polls.getChildCount() == 0 ? View.GONE : View.VISIBLE); emoji.setVisibility(View.GONE); };
         apply[3] = () -> { link.setVisibility(View.GONE); polls.setVisibility(View.GONE); emoji.setVisibility(View.VISIBLE); };
-        for (int row = 0; row < 2; row++) {
-            LinearLayout line = new LinearLayout(activity);
-            line.setOrientation(LinearLayout.HORIZONTAL);
-            for (int col = 0; col < 2; col++) {
-                int index = row * 2 + col;
-                TextView chip = note(labels[index], 14, index == 0 ? 0xFFC2410C : 0xFF334155, true);
-                chip.setGravity(Gravity.CENTER);
-                chip.setBackground(stroke(index == 0 ? 0xFFFDE7D6 : 0xFFFFFFFF, index == 0 ? 0xFFF3C7A6 : 0xFFE5E7EB));
-                chip.setPadding(dp(8), dp(10), dp(8), dp(10));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-                lp.setMargins(dp(4), dp(4), dp(4), dp(4));
-                chip.setLayoutParams(lp);
-                chips[index] = chip;
-                chip.setOnClickListener(v -> {
-                    for (int n = 0; n < chips.length; n++) {
-                        boolean on = chips[n] == v;
-                        chips[n].setTextColor(on ? 0xFFC2410C : 0xFF334155);
-                        chips[n].setBackground(stroke(on ? 0xFFFDE7D6 : 0xFFFFFFFF, on ? 0xFFF3C7A6 : 0xFFE5E7EB));
-                    }
-                    apply[index].run();
-                });
-                line.addView(chip);
-            }
-            grid.addView(line);
+        LinearLayout wrap = new LinearLayout(activity);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(rule);
+        for (int index = 0; index < labels.length; index++) {
+            TextView chip = note(labels[index], 13, colors[index], true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(4), dp(8), dp(4), dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            chip.setLayoutParams(lp);
+            chips[index] = chip;
+            int pick = index;
+            chip.setOnClickListener(v -> {
+                for (int n = 0; n < chips.length; n++) chips[n].setAlpha(chips[n] == v ? 1f : 0.45f);
+                apply[pick].run();
+            });
+            line.addView(chip);
         }
-        return grid;
+        wrap.addView(line);
+        return wrap;
     }
 
     private View emojiGrid(LinearLayout host, EditText status, Element scope) {
@@ -262,19 +266,16 @@ final class SocialBoard {
         List<Element> options = select.select("option");
         int[] index = {0};
         for (int i = 0; i < options.size(); i++) if (options.get(i).hasAttr("selected")) index[0] = i;
-        TextView view = note(options.isEmpty() ? "सबैले देख्ने" : options.get(index[0]).text(), 15, 0xFF334155, true);
-        view.setGravity(Gravity.CENTER_VERTICAL);
-        view.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
-        view.setPadding(dp(14), dp(12), dp(14), dp(12));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
+        TextView view = note(options.isEmpty() ? "सबैले देख्ने ▾" : options.get(index[0]).text() + " ▾", 13, 0xFF65676B, true);
+        view.setPadding(dp(4), dp(6), dp(4), dp(2));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         view.setLayoutParams(lp);
         if (!options.isEmpty() && !name.isEmpty()) fields.put(name, options.get(index[0]).hasAttr("value") ? options.get(index[0]).attr("value") : options.get(index[0]).text());
         view.setOnClickListener(v -> {
             if (options.isEmpty()) return;
             index[0] = (index[0] + 1) % options.size();
             Element option = options.get(index[0]);
-            view.setText(option.text());
+            view.setText(option.text() + " ▾");
             if (!name.isEmpty()) fields.put(name, option.hasAttr("value") ? option.attr("value") : option.text());
         });
         return view;
@@ -361,13 +362,26 @@ final class SocialBoard {
         LinearLayout who = new LinearLayout(activity);
         who.setOrientation(LinearLayout.VERTICAL);
         who.setPadding(dp(10), 0, 0, 0);
-        if (!author.isEmpty()) who.addView(note(author, 16, 0xFF142033, true));
+        if (!author.isEmpty()) who.addView(note(author, 15, 0xFF050505, true));
         String meta = meta(post, author);
-        if (!meta.isEmpty()) who.addView(note(meta, 12, 0xFF78716C, false));
-        head.addView(who);
+        if (!meta.isEmpty()) who.addView(note(meta, 12, 0xFF65676B, false));
+        head.addView(who, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        for (Element form : post.select("form")) {
+            Element button = form.selectFirst("button, input[type=submit]");
+            if (button == null || !button.text().contains("हटाउनुहोस्")) continue;
+            TextView danger = note("हटाउनुहोस्", 12, 0xFFBE123C, true);
+            danger.setPadding(dp(8), dp(4), 0, dp(4));
+            danger.setOnClickListener(v -> send(form, button, fieldsOf(form)));
+            head.addView(danger);
+            break;
+        }
         box.addView(head);
         String body = body(post, author, meta);
-        if (!body.isEmpty()) box.addView(note(body, 16, 0xFF1C1917, false));
+        if (!body.isEmpty()) {
+            TextView copy = note(body, 16, 0xFF050505, false);
+            copy.setPadding(0, dp(10), 0, dp(4));
+            box.addView(copy);
+        }
         for (Element image : post.select("img")) {
             String src = image.attr("abs:src");
             if (src.isEmpty() || src.equals(photo)) continue;
@@ -382,31 +396,33 @@ final class SocialBoard {
         }
         LinearLayout tools = new LinearLayout(activity);
         tools.setOrientation(LinearLayout.HORIZONTAL);
-        tools.setPadding(0, dp(8), 0, dp(4));
+        tools.setGravity(Gravity.CENTER_VERTICAL);
+        tools.setPadding(0, dp(4), 0, dp(2));
+        View rule = new View(activity);
+        rule.setBackgroundColor(0xFFE4E6EB);
+        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        ruleLp.topMargin = dp(8);
+        rule.setLayoutParams(ruleLp);
+        box.addView(rule);
         for (Element form : post.select("form")) {
             String text = form.text();
             if (text.contains("हटाउनुहोस्") || text.contains("टिप्पणी") || text.contains("पठाउनुहोस्") || text.contains("साथी")) continue;
             Element button = form.selectFirst("button, input[type=submit]");
             if (button == null) continue;
-            TextView action = note(button.text().isEmpty() ? "मन पराउनुहोस्" : button.text(), 14, 0xFF334155, true);
-            action.setPadding(0, dp(6), dp(16), dp(6));
+            TextView action = note(button.text().isEmpty() ? "मन" : button.text(), 14, 0xFF65676B, true);
+            action.setGravity(Gravity.CENTER);
+            action.setPadding(dp(4), dp(8), dp(4), dp(8));
+            action.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             action.setOnClickListener(v -> send(form, button, fieldsOf(form)));
             tools.addView(action);
         }
+        TextView comment = note("टिप्पणी", 14, 0xFF65676B, true);
+        comment.setGravity(Gravity.CENTER);
+        comment.setPadding(dp(4), dp(8), dp(4), dp(8));
+        comment.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tools.addView(comment);
         if (tools.getChildCount() > 0) box.addView(tools);
         box.addView(shares(post));
-        for (Element form : post.select("form")) {
-            Element button = form.selectFirst("button, input[type=submit]");
-            if (button == null || !button.text().contains("हटाउनुहोस्")) continue;
-            TextView danger = note(button.text(), 14, 0xFFBE123C, true);
-            danger.setBackground(stroke(0xFFFFF1F2, 0xFFFECDD3));
-            danger.setPadding(dp(12), dp(8), dp(12), dp(8));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = dp(8);
-            danger.setLayoutParams(lp);
-            danger.setOnClickListener(v -> send(form, button, fieldsOf(form)));
-            box.addView(danger);
-        }
         Element reply = null;
         for (Element form : post.select("form")) {
             if (form.selectFirst("input[placeholder*=टिप्पणी], textarea[placeholder*=टिप्पणी], input[placeholder*=comment]") != null) reply = form;
@@ -434,12 +450,10 @@ final class SocialBoard {
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 grid.addView(row);
             }
-            TextView chip = note(link.text().trim().isEmpty() ? "सेयर" : link.text().trim(), 14, 0xFF334155, true);
+            TextView chip = note(link.text().trim().isEmpty() ? "सेयर" : link.text().trim(), 13, 0xFF65676B, true);
             chip.setGravity(Gravity.CENTER);
-            chip.setBackground(stroke(0xFFF8FAFC, 0xFFE5E7EB));
-            chip.setPadding(dp(8), dp(10), dp(8), dp(10));
+            chip.setPadding(dp(6), dp(6), dp(6), dp(6));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            lp.setMargins(dp(4), dp(4), dp(4), dp(4));
             chip.setLayoutParams(lp);
             String href = link.attr("abs:href");
             String label = link.text().toLowerCase();
@@ -466,7 +480,7 @@ final class SocialBoard {
         Element button = form.selectFirst("button, input[type=submit]");
         TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
         send.setGravity(Gravity.CENTER);
-        send.setBackground(pill(0xFFF97316));
+        send.setBackground(pill(0xFF1877F2));
         send.setPadding(dp(14), dp(12), dp(14), dp(12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.leftMargin = dp(8);
@@ -483,71 +497,102 @@ final class SocialBoard {
 
     private View members(Document doc) {
         List<Element> buttons = new ArrayList<>();
-        for (Element button : doc.select("button, a, input[type=submit]")) {
-            if (button.text().contains("साथी")) buttons.add(button);
-        }
+        for (Element button : doc.select("button, a, input[type=submit]")) if (friendButton(button)) buttons.add(button);
         if (buttons.isEmpty()) return null;
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        TextView title = note("दर्ता भएका सदस्यहरू", 18, 0xFF142033, true);
-        title.setGravity(Gravity.CENTER);
-        box.addView(title);
+        LinearLayout titleRow = new LinearLayout(activity);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = note("दर्ता भएका सदस्यहरू", 16, 0xFF050505, true);
+        titleRow.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         for (Element link : doc.select("a")) {
-            if (link.text().contains("सबै हेर्नुहोस्")) {
-                TextView more = note(link.text(), 14, 0xFF0F8A3C, true);
-                more.setGravity(Gravity.CENTER);
-                more.setBackground(pill(0xFFE7F6EE));
-                more.setPadding(dp(14), dp(8), dp(14), dp(8));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                lp.gravity = Gravity.CENTER_HORIZONTAL;
-                lp.topMargin = dp(8);
-                more.setLayoutParams(lp);
-                more.setOnClickListener(v -> open(link.attr("abs:href")));
-                box.addView(more);
-                break;
-            }
+            if (!link.text().contains("सबै हेर्नुहोस्")) continue;
+            TextView more = note("सबै", 14, 0xFF1877F2, true);
+            more.setOnClickListener(v -> open(link.attr("abs:href")));
+            titleRow.addView(more);
+            break;
         }
+        box.addView(titleRow);
         HorizontalScrollView scroll = new HorizontalScrollView(activity);
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(activity);
         row.setPadding(0, dp(10), 0, 0);
+        List<Element> seen = new ArrayList<>();
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
         for (Element button : buttons) {
-            Element card = button.parent();
-            for (int i = 0; i < 4 && card != null && card.parent() != null; i++) {
-                if (card.select("img").size() > 0 && card.text().length() < 90) break;
-                card = card.parent();
-            }
+            Element card = personCard(button);
+            if (card == null || seen.contains(card)) continue;
+            String name = personName(card, button);
+            String photo = "";
+            Element image = card.selectFirst("img");
+            if (image != null) photo = image.attr("abs:src");
+            String key = name.toLowerCase() + "|" + photo;
+            if (name.isEmpty() || names.contains(key)) continue;
+            names.add(key);
+            seen.add(card);
             LinearLayout person = new LinearLayout(activity);
             person.setOrientation(LinearLayout.VERTICAL);
             person.setGravity(Gravity.CENTER_HORIZONTAL);
-            person.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
-            person.setPadding(dp(8), dp(10), dp(8), dp(10));
-            String name = shortText(card.selectFirst("b, strong"));
-            if (name.isEmpty()) name = button.parent() == null ? "" : button.parent().text().replace(button.text(), "").trim();
-            person.addView(avatar(firstImage(card), name, dp(52)));
-            TextView label = note(name, 12, 0xFF142033, true);
+            person.setBackground(stroke(0xFFFFFFFF, 0xFFE4E6EB));
+            person.setPadding(dp(8), dp(12), dp(8), dp(10));
+            person.addView(avatar(photo, name, dp(72)));
+            TextView label = note(name, 13, 0xFF050505, true);
             label.setGravity(Gravity.CENTER);
             label.setMaxLines(2);
-            label.setPadding(0, dp(6), 0, dp(6));
+            label.setPadding(0, dp(8), 0, dp(8));
             person.addView(label);
-            TextView add = note(button.text().trim().isEmpty() ? "+ साथी" : button.text().trim(), 13, 0xFF0F8A3C, true);
+            TextView add = note("+ साथी", 13, 0xFF1877F2, true);
             add.setGravity(Gravity.CENTER);
-            add.setBackground(pill(0xFFE7F6EE));
+            add.setBackground(pill(0xFFE7F3FF));
             add.setPadding(dp(8), dp(6), dp(8), dp(6));
+            LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            add.setLayoutParams(addLp);
             Element form = button.closest("form");
             add.setOnClickListener(v -> {
                 if (form != null) send(form, button, fieldsOf(form));
                 else if (button.hasAttr("href")) open(button.attr("abs:href"));
             });
             person.addView(add);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(108), ViewGroup.LayoutParams.WRAP_CONTENT);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(124), ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.rightMargin = dp(8);
             person.setLayoutParams(lp);
             row.addView(person);
         }
+        if (row.getChildCount() == 0) return null;
         scroll.addView(row);
         box.addView(scroll);
         return box;
+    }
+
+    private boolean friendButton(Element button) {
+        String own = button.ownText().replaceAll("\\s+", " ").trim();
+        if (own.isEmpty() && button.children().isEmpty()) own = button.text().replaceAll("\\s+", " ").trim();
+        if (own.length() > 18 || own.contains("दर्ता") || own.contains("हेर्नु")) return false;
+        return own.equals("+ साथी") || own.equals("साथी") || own.endsWith("साथी");
+    }
+
+    private Element personCard(Element button) {
+        Element card = button.parent() == null ? button : button.parent();
+        while (card.parent() != null && friendCount(card.parent()) <= 1) card = card.parent();
+        return card;
+    }
+
+    private int friendCount(Element scope) {
+        int count = 0;
+        for (Element button : scope.select("button, a, input[type=submit]")) if (friendButton(button)) count++;
+        return count;
+    }
+
+    private String personName(Element card, Element button) {
+        Element image = card.selectFirst("img");
+        String alt = image == null ? "" : image.attr("alt").replaceAll("\\s+", " ").trim();
+        if (alt.length() >= 2 && alt.length() <= 40 && !alt.toLowerCase().contains("logo")) return alt;
+        for (Element el : card.getAllElements()) {
+            if (el == button || friendButton(el) || !el.children().isEmpty()) continue;
+            String text = el.ownText().replaceAll("\\s+", " ").trim();
+            if (text.length() >= 2 && text.length() <= 32 && !text.contains("साथी") && !text.contains("+")) return text;
+        }
+        return "";
     }
 
     private View referral(Document doc) {
@@ -701,11 +746,16 @@ final class SocialBoard {
         if (child == null || child.getParent() != null) return new View(activity);
         LinearLayout card = new LinearLayout(activity);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(12), dp(14), dp(12));
-        card.setBackground(stroke(Night.on(activity) ? 0xFF1A2420 : 0xFFFFFFFF, 0xFFE6EBE8));
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Night.on(activity) ? 0xFF242526 : 0xFFFFFFFF);
+        bg.setCornerRadius(dp(12));
+        card.setBackground(bg);
         card.addView(child);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(10);
+        lp.bottomMargin = dp(8);
+        lp.leftMargin = dp(8);
+        lp.rightMargin = dp(8);
         card.setLayoutParams(lp);
         return card;
     }
