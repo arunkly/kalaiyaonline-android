@@ -11,6 +11,8 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.util.TypedValue;
 import android.graphics.Outline;
 import android.view.ViewOutlineProvider;
@@ -21,6 +23,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
@@ -33,6 +36,7 @@ import com.google.android.material.card.MaterialCardView;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -57,6 +61,10 @@ public class ArticleActivity extends AppCompatActivity {
     private LinearLayout feelHost;
     private Story loaded;
     private AdView articleAd;
+    private TextView listenButton;
+    private TextToSpeech speech;
+    private boolean speaking;
+    private boolean preparing;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -220,6 +228,7 @@ public class ArticleActivity extends AppCompatActivity {
         shareLp.topMargin = dp(10);
         shareLp.bottomMargin = dp(4);
         page.addView(shares, shareLp);
+        page.addView(listenControl());
 
         bodyView = new TextView(this);
         bodyView.setText("पूर्ण समाचार लोड हुँदैछ…");
@@ -301,6 +310,136 @@ public class ArticleActivity extends AppCompatActivity {
                 runOnUiThread(() -> bodyView.setText("समाचार खोल्न सकिएन।"));
             }
         });
+    }
+
+    private View listenControl() {
+        listenButton = new TextView(this);
+        listenButton.setText("सुन्नुहोस्");
+        listenButton.setTextColor(0xFF0F8A3C);
+        listenButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        listenButton.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
+        listenButton.setGravity(Gravity.CENTER);
+        listenButton.setPadding(dp(18), dp(8), dp(18), dp(8));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(20));
+        bg.setColor(0xFFE8F6EE);
+        listenButton.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        lp.topMargin = dp(6);
+        lp.bottomMargin = dp(2);
+        listenButton.setLayoutParams(lp);
+        listenButton.setOnClickListener(v -> toggleSpeech());
+        return listenButton;
+    }
+
+    private void toggleSpeech() {
+        if (speaking || (speech != null && speech.isSpeaking())) {
+            stopSpeech();
+            return;
+        }
+        String text = speakable();
+        if (text.length() < 2) return;
+        if (speech == null) {
+            if (preparing) return;
+            preparing = true;
+            paintListen(false, true);
+            speech = new TextToSpeech(this, status -> runOnUiThread(() -> {
+                preparing = false;
+                if (isDestroyed()) return;
+                if (status != TextToSpeech.SUCCESS || speech == null) {
+                    paintListen(false, false);
+                    Toast.makeText(this, "यो फोनमा आवाज उपलब्ध छैन।", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                int lang = speech.setLanguage(new Locale("ne", "NP"));
+                if (lang == TextToSpeech.LANG_MISSING_DATA || lang == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    lang = speech.setLanguage(new Locale("ne"));
+                }
+                if (lang == TextToSpeech.LANG_MISSING_DATA || lang == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    paintListen(false, false);
+                    Toast.makeText(this, "नेपाली आवाज डाउनलोड गर्नुहोस्।", Toast.LENGTH_LONG).show();
+                    try {
+                        startActivity(new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA));
+                    } catch (Exception ignored) {
+                    }
+                    return;
+                }
+                speech.setSpeechRate(0.92f);
+                speech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override
+                    public void onStart(String utteranceId) {
+                    }
+
+                    @Override
+                    public void onDone(String utteranceId) {
+                        if ("end".equals(utteranceId)) runOnUiThread(() -> paintListen(false, false));
+                    }
+
+                    @Override
+                    public void onError(String utteranceId) {
+                        runOnUiThread(() -> paintListen(false, false));
+                    }
+                });
+                speakNow();
+            }));
+            return;
+        }
+        speakNow();
+    }
+
+    private void speakNow() {
+        if (speech == null) return;
+        String[] parts = chunks(speakable());
+        if (parts.length == 0) return;
+        speech.stop();
+        for (int i = 0; i < parts.length; i++) {
+            String id = i == parts.length - 1 ? "end" : "part" + i;
+            speech.speak(parts[i], i == 0 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, null, id);
+        }
+        paintListen(true, false);
+    }
+
+    private void stopSpeech() {
+        if (speech != null) speech.stop();
+        paintListen(false, false);
+    }
+
+    private void paintListen(boolean playing, boolean waiting) {
+        speaking = playing;
+        if (listenButton == null) return;
+        listenButton.setText(waiting ? "तयार हुँदैछ" : playing ? "रोक्नुहोस्" : "सुन्नुहोस्");
+        listenButton.setTextColor(playing ? 0xFFFFFFFF : 0xFF0F8A3C);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(20));
+        bg.setColor(playing ? 0xFF0F8A3C : 0xFFE8F6EE);
+        listenButton.setBackground(bg);
+    }
+
+    private String speakable() {
+        String title = keptTitle == null ? "" : keptTitle.trim();
+        String body = bodyView == null ? "" : bodyView.getText().toString().trim();
+        if (body.startsWith("पूर्ण समाचार") || body.startsWith("समाचार खोल्न") || body.startsWith("पूर्ण पाठ")) body = "";
+        if (body.isEmpty()) return title;
+        if (title.isEmpty()) return body;
+        return title + "। " + body;
+    }
+
+    private String[] chunks(String text) {
+        if (text.isEmpty()) return new String[0];
+        java.util.ArrayList<String> parts = new java.util.ArrayList<>();
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(text.length(), start + 3200);
+            if (end < text.length()) {
+                int breakAt = text.lastIndexOf('।', end);
+                if (breakAt < start + 800) breakAt = text.lastIndexOf(' ', end);
+                if (breakAt > start + 400) end = breakAt + 1;
+            }
+            parts.add(text.substring(start, end).trim());
+            start = end;
+        }
+        return parts.toArray(new String[0]);
     }
 
     private View homeHeader() {
@@ -708,12 +847,18 @@ public class ArticleActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        stopSpeech();
         if (articleAd != null) articleAd.pause();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
+        if (speech != null) {
+            speech.stop();
+            speech.shutdown();
+            speech = null;
+        }
         if (articleAd != null) articleAd.destroy();
         super.onDestroy();
     }
