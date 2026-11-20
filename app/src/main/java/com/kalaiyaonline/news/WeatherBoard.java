@@ -357,8 +357,8 @@ final class WeatherBoard {
         try {
             connection = (HttpURLConnection) new URL(address).openConnection();
             connection.setRequestProperty("User-Agent", "KalaiyaOnline/2.5 (arunkly@gmail.com)");
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(25000);
+            connection.setReadTimeout(40000);
             if (connection.getResponseCode() >= 400) return null;
             InputStream input = connection.getInputStream();
             StringBuilder body = new StringBuilder();

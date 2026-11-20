@@ -74,7 +74,7 @@ final class LiveBoard {
         new Thread(() -> {
             Document doc = null;
             try {
-                doc = Jsoup.connect(PAGE).userAgent(UA).referrer("https://kalaiyaonline.com/").timeout(20000).get();
+                doc = Jsoup.connect(PAGE).userAgent(UA).referrer("https://kalaiyaonline.com/").timeout(45000).get();
             } catch (Exception ignored) {
             }
             Document ready = doc;

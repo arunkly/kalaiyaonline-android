@@ -207,8 +207,8 @@ final class BloodBoard {
         try {
             connection = (HttpURLConnection) new URL(address).openConnection();
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(25000);
+            connection.setReadTimeout(40000);
             InputStream input = connection.getInputStream();
             StringBuilder body = new StringBuilder();
             byte[] buffer = new byte[8192];

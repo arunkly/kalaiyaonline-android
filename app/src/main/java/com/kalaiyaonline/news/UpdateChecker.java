@@ -143,8 +143,8 @@ final class UpdateChecker {
         HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
         connection.setRequestProperty("User-Agent", "KalaiyaOnline");
         connection.setRequestProperty("Accept", "application/vnd.github+json");
-        connection.setConnectTimeout(12000);
-        connection.setReadTimeout(12000);
+        connection.setConnectTimeout(25000);
+        connection.setReadTimeout(30000);
         InputStream input = connection.getInputStream();
         StringBuilder body = new StringBuilder();
         byte[] buffer = new byte[4096];

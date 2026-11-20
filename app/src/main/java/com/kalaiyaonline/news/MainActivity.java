@@ -47,6 +47,9 @@ import com.google.android.material.card.MaterialCardView;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -81,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout tickerHost;
     private FrameLayout slowHost;
     private int slowKbps = -1;
+    private boolean homeReady;
     private TextView weatherFlip;
     private TextView weatherTemp;
     private String[] weatherLines = new String[0];
@@ -227,6 +231,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(screen);
         Night.belowStatus(this, screen);
         Night.sync(this);
+        Bitmaps.use(getCacheDir());
         showHome();
         consumeOpen(getIntent());
         updates = new UpdateChecker(this);
@@ -1186,23 +1191,63 @@ public class MainActivity extends AppCompatActivity {
         section = "home";
         stopMotion();
         int gen = homeGen;
-        setStatus("समाचार लोड हुँदैछ…");
-        prefetchRashifal(gen);
+        if (latestHome == null) setStatus("समाचार लोड हुँदैछ…");
         io.execute(() -> {
+            if (latestHome == null) {
+                SiteClient.Home cached = cachedHome();
+                if (cached != null) {
+                    runOnUiThread(() -> {
+                        if (gen != homeGen || !"home".equals(section) || latestHome != null) return;
+                        latestHome = cached;
+                        renderHome(cached, gen);
+                    });
+                }
+            }
             try {
                 SiteClient.Home home = client.home();
+                String html = client.homeSource;
                 runOnUiThread(() -> {
                     if (gen != homeGen) return;
+                    if (html != null && html.length() > 1000) saveHome(html);
                     latestHome = home;
                     slowKbps = client.homeKbps;
+                    homeReady = true;
                     if ("home".equals(section)) renderHome(home, gen);
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
-                    if (gen == homeGen) setStatus("समाचार ल्याउन सकिएन। इन्टरनेट जाँच्नुहोस्।");
+                    if (gen != homeGen) return;
+                    homeReady = true;
+                    if (latestHome == null) setStatus("समाचार ल्याउन सकिएन। नेट ढिलो छ, फेरि खोल्नुहोस्।");
+                    else prefetchRashifal(gen);
                 });
             }
         });
+    }
+
+    private SiteClient.Home cachedHome() {
+        try {
+            File file = new File(getFilesDir(), "home.html");
+            if (!file.exists() || file.length() < 1000) return null;
+            InputStream input = new java.io.FileInputStream(file);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
+            input.close();
+            return client.homeFrom(bytes.toString("UTF-8"));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void saveHome(String html) {
+        try {
+            FileOutputStream output = new FileOutputStream(new File(getFilesDir(), "home.html"));
+            output.write(html.getBytes("UTF-8"));
+            output.close();
+        } catch (Exception ignored) {
+        }
     }
 
     private void renderHome(SiteClient.Home home, int gen) {
@@ -1645,8 +1690,8 @@ public class MainActivity extends AppCompatActivity {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(address).openConnection();
-            connection.setConnectTimeout(8000);
-            connection.setReadTimeout(8000);
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(40000);
             connection.setRequestProperty("User-Agent", "KalaiyaOnline");
             InputStream input = connection.getInputStream();
             StringBuilder body = new StringBuilder();
@@ -2159,6 +2204,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void prefetchRashifal(int gen) {
+        if (!homeReady && rashifal == null) {
+            SiteClient.Rashifal stored = storedRashifal();
+            if (stored == null) return;
+        }
         if (rashifal != null && SiteClient.today().equals(rashifal.date)) return;
         SiteClient.Rashifal stored = storedRashifal();
         if (stored != null) {

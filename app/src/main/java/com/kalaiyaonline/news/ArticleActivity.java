@@ -62,6 +62,7 @@ public class ArticleActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Night.sync(this);
+        Bitmaps.use(getCacheDir());
         prefs = getSharedPreferences("article", MODE_PRIVATE);
         slug = getIntent().getStringExtra("slug");
         String fallbackTitle = getIntent().getStringExtra("title");

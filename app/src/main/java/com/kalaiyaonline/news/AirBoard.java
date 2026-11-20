@@ -155,8 +155,8 @@ final class AirBoard {
                     + lat + "&longitude=" + lon
                     + "&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&timezone=Asia%2FKathmandu").openConnection();
             connection.setRequestProperty("User-Agent", "KalaiyaOnline/2.6");
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(25000);
+            connection.setReadTimeout(40000);
             if (connection.getResponseCode() >= 400) return reading;
             InputStream input = connection.getInputStream();
             StringBuilder body = new StringBuilder();

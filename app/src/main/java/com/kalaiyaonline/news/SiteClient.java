@@ -56,19 +56,40 @@ public final class SiteClient {
     }
 
     public int homeKbps = -1;
+    public String homeSource = "";
 
     public Home home() throws Exception {
-        long start = System.nanoTime();
-        org.jsoup.Connection.Response response = Jsoup.connect(ORIGIN + "/")
-                .userAgent(UA)
-                .header("Accept-Language", "ne,en;q=0.8")
-                .referrer(ORIGIN + "/")
-                .timeout(20000)
-                .followRedirects(true)
-                .execute();
-        long ms = Math.max(1L, (System.nanoTime() - start) / 1_000_000L);
-        homeKbps = (int) Math.min(Integer.MAX_VALUE, (response.bodyAsBytes().length * 8L) / ms);
-        Document doc = response.parse();
+        return parsedHome(fetchHome());
+    }
+
+    public Home homeFrom(String html) {
+        return parsedHome(Jsoup.parse(html == null ? "" : html, ORIGIN + "/"));
+    }
+
+    private Document fetchHome() throws Exception {
+        Exception last = new Exception("home");
+        for (int timeout : new int[]{35000, 60000}) {
+            try {
+                long start = System.nanoTime();
+                org.jsoup.Connection.Response response = Jsoup.connect(ORIGIN + "/")
+                        .userAgent(UA)
+                        .header("Accept-Language", "ne,en;q=0.8")
+                        .referrer(ORIGIN + "/")
+                        .timeout(timeout)
+                        .followRedirects(true)
+                        .execute();
+                long ms = Math.max(1L, (System.nanoTime() - start) / 1_000_000L);
+                homeKbps = (int) Math.min(Integer.MAX_VALUE, (response.bodyAsBytes().length * 8L) / ms);
+                homeSource = response.body();
+                return response.parse();
+            } catch (Exception error) {
+                last = error;
+            }
+        }
+        throw last;
+    }
+
+    private Home parsedHome(Document doc) {
         String date = text(doc.selectFirst("#searchBsDateText"));
         List<Story> stories = storiesIn(doc);
         List<Story> ticker = new ArrayList<>();
@@ -618,7 +639,7 @@ public final class SiteClient {
     public void ping(String url) {
         try {
             if (url == null || url.isEmpty()) return;
-            Jsoup.connect(url).userAgent(UA).ignoreContentType(true).timeout(8000).followRedirects(true).execute();
+            Jsoup.connect(url).userAgent(UA).ignoreContentType(true).timeout(20000).followRedirects(true).execute();
         } catch (Exception ignored) {
         }
     }
@@ -794,13 +815,21 @@ public final class SiteClient {
     }
 
     private Document page(String path) throws Exception {
-        return Jsoup.connect(path.startsWith("http") ? path : ORIGIN + path)
-                .userAgent(UA)
-                .header("Accept-Language", "ne,en;q=0.8")
-                .referrer(ORIGIN + "/")
-                .timeout(20000)
-                .followRedirects(true)
-                .get();
+        Exception last = new Exception(path);
+        for (int timeout : new int[]{30000, 55000}) {
+            try {
+                return Jsoup.connect(path.startsWith("http") ? path : ORIGIN + path)
+                        .userAgent(UA)
+                        .header("Accept-Language", "ne,en;q=0.8")
+                        .referrer(ORIGIN + "/")
+                        .timeout(timeout)
+                        .followRedirects(true)
+                        .get();
+            } catch (Exception error) {
+                last = error;
+            }
+        }
+        throw last;
     }
 
     private static String text(Element element) {

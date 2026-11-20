@@ -377,8 +377,8 @@ public class GalleryActivity extends AppCompatActivity {
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setInstanceFollowRedirects(true);
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(25000);
+            connection.setReadTimeout(45000);
             InputStream input = connection.getInputStream();
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             byte[] buffer = new byte[8192];

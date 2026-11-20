@@ -251,8 +251,8 @@ final class CurrencyBoard {
             connection = (HttpURLConnection) new URL("https://kalaiyaonline.com/currency-converter.php?data=1").openConnection();
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
             connection.setRequestProperty("Accept", "application/json");
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(15000);
+            connection.setConnectTimeout(25000);
+            connection.setReadTimeout(40000);
             InputStream input = connection.getInputStream();
             StringBuilder body = new StringBuilder();
             byte[] buffer = new byte[4096];
