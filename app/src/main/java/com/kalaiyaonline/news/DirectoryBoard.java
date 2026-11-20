@@ -497,6 +497,7 @@ final class DirectoryBoard {
         StringBuilder out = new StringBuilder();
         raw.codePoints().forEach(cp -> {
             int type = Character.getType(cp);
+            if (cp == 0xFE0F || cp == 0xFE0E || (cp >= 0xFE00 && cp <= 0xFE0F)) return;
             if (type == Character.OTHER_SYMBOL || type == Character.FORMAT || type == Character.SURROGATE) return;
             out.appendCodePoint(cp);
         });
