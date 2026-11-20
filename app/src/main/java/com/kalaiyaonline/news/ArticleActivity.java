@@ -1,5 +1,7 @@
 package com.kalaiyaonline.news;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -226,6 +228,7 @@ public class ArticleActivity extends AppCompatActivity {
         bar.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
         bar.addView(shareIcon(R.drawable.ic_share_ms, 0xFF0084FF, "com.facebook.orca", link, title));
         bar.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_link, 0xFF0F8A3C, "copy", link, title));
         LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         barLp.topMargin = dp(12);
         barLp.bottomMargin = dp(2);
@@ -812,6 +815,12 @@ public class ArticleActivity extends AppCompatActivity {
     }
 
     private void share(String pkg, String title, String link) {
+        if ("copy".equals(pkg)) {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(ClipData.newPlainText("kalaiya", link));
+            Toast.makeText(this, "लिंक कपी भयो", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT, title + "\n" + link);
