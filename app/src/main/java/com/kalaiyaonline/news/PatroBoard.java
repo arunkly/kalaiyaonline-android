@@ -12,6 +12,9 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -24,12 +27,11 @@ import java.util.regex.Pattern;
 final class PatroBoard {
     private static final String[] WEEK = {"आ", "सो", "मं", "बु", "बि", "शु", "श"};
     private static final String[] MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    private static final int[][] DAYS = new int[93][12];
+    private static boolean tableReady;
 
     private final AppCompatActivity activity;
     private final LinearLayout root;
-    private TextView yearLabel;
-    private TextView monthLabel;
-    private final TextView subtitle;
     private final TextView status;
     private final TextView note;
     private final LinearLayout detail;
@@ -42,37 +44,32 @@ final class PatroBoard {
 
     PatroBoard(AppCompatActivity activity) {
         this.activity = activity;
+        ensureTable();
         root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.addView(chrome());
-        subtitle = text("", 12, 0xFF78716C, false);
-        subtitle.setGravity(Gravity.CENTER);
-        subtitle.setPadding(0, dp(8), 0, dp(8));
-        root.addView(subtitle);
+        root.setPadding(dp(2), dp(4), dp(2), dp(8));
+        root.addView(header());
         note = text("", 12, 0xFF9A3412, false);
         note.setVisibility(View.GONE);
+        note.setPadding(0, dp(6), 0, 0);
         root.addView(note);
-        status = text("पात्रो लोड हुँदैछ…", 14, 0xFF0B5C28, true);
+        status = text("पात्रो लोड हुँदैछ…", 14, 0xFF178A45, true);
         status.setGravity(Gravity.CENTER);
-        status.setPadding(0, dp(8), 0, dp(8));
+        status.setPadding(0, dp(10), 0, dp(6));
         root.addView(status);
+        week = new GridLayout(activity);
+        week.setColumnCount(7);
+        root.addView(week);
+        grid = new GridLayout(activity);
+        grid.setColumnCount(7);
+        grid.setBackgroundColor(0xFFE6E8EC);
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        grid.setPadding(1, 1, 1, 1);
+        grid.setLayoutParams(gridLp);
+        root.addView(grid);
         detail = new LinearLayout(activity);
         detail.setOrientation(LinearLayout.VERTICAL);
         root.addView(detail);
-        LinearLayout sheet = new LinearLayout(activity);
-        sheet.setOrientation(LinearLayout.VERTICAL);
-        sheet.setBackground(round(0xFFFFFFFF, 18, 0xFFE7E5E4));
-        sheet.setPadding(dp(6), dp(8), dp(6), dp(8));
-        LinearLayout.LayoutParams sheetLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        sheetLp.topMargin = dp(10);
-        sheet.setLayoutParams(sheetLp);
-        week = new GridLayout(activity);
-        week.setColumnCount(7);
-        sheet.addView(week);
-        grid = new GridLayout(activity);
-        grid.setColumnCount(7);
-        sheet.addView(grid);
-        root.addView(sheet);
         upcoming = new LinearLayout(activity);
         upcoming.setOrientation(LinearLayout.VERTICAL);
         root.addView(upcoming);
@@ -86,37 +83,31 @@ final class PatroBoard {
         load(0, 0);
     }
 
-    private View chrome() {
+    private View header() {
         LinearLayout row = new LinearLayout(activity);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(2), 0, 0);
-        row.addView(roundBtn("‹", () -> shiftMonth(-1)));
-        LinearLayout center = new LinearLayout(activity);
-        center.setOrientation(LinearLayout.VERTICAL);
-        center.setGravity(Gravity.CENTER);
-        monthLabel = text("महिना", 22, 0xFF142033, true);
-        monthLabel.setGravity(Gravity.CENTER);
-        center.addView(monthLabel);
-        LinearLayout yearLine = new LinearLayout(activity);
-        yearLine.setGravity(Gravity.CENTER);
-        yearLine.addView(tiny("‹", () -> shiftYear(-1)));
-        yearLabel = text(nepali(year), 14, 0xFF0F8A3C, true);
-        yearLabel.setPadding(dp(8), 0, dp(8), 0);
-        yearLine.addView(yearLabel);
-        yearLine.addView(tiny("›", () -> shiftYear(1)));
-        center.addView(yearLine);
-        row.addView(center, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout titles = new LinearLayout(activity);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        TextView monthYear = text("पात्रो", 24, 0xFF111827, true);
+        monthYear.setIncludeFontPadding(false);
+        titles.addView(monthYear);
+        TextView english = text("", 14, 0xFF6B7280, false);
+        english.setPadding(0, dp(1), 0, 0);
+        titles.addView(english);
+        row.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(todayChip());
-        row.addView(roundBtn("›", () -> shiftMonth(1)));
+        row.addView(arrow("‹", () -> shiftMonth(-1)));
+        row.addView(arrow("›", () -> shiftMonth(1)));
+        row.setTag(new TextView[]{monthYear, english});
         return row;
     }
 
-    private void shiftYear(int delta) {
-        int next = year + delta;
-        if (next < 2075 || next > 2092) return;
-        year = next;
-        yearLabel.setText(nepali(year));
-        load(month > 0 ? month : 1, 1);
+    private TextView titleView() {
+        return ((TextView[]) ((LinearLayout) root.getChildAt(0)).getTag())[0];
+    }
+
+    private TextView rangeView() {
+        return ((TextView[]) ((LinearLayout) root.getChildAt(0)).getTag())[1];
     }
 
     private void shiftMonth(int delta) {
@@ -135,7 +126,6 @@ final class PatroBoard {
         }
         if (nextYear < 2075 || nextYear > 2092) return;
         year = nextYear;
-        yearLabel.setText(nepali(year));
         load(next, 1);
     }
 
@@ -145,7 +135,6 @@ final class PatroBoard {
         if (nextMonth > 0) month = nextMonth;
         else year = todayYear();
         if (nextDay > 0) day = nextDay;
-        if (yearLabel != null) yearLabel.setText(nepali(year));
         activity.runOnUiThread(() -> {
             status.setVisibility(View.VISIBLE);
             status.setText("पात्रो लोड हुँदैछ…");
@@ -163,18 +152,16 @@ final class PatroBoard {
     }
 
     private void render(String html) {
-        Matcher hero = Pattern.compile("<h1>([^<]+)</h1><p>([^<]+)</p>").matcher(html);
-        if (hero.find()) subtitle.setText(hero.group(2).trim());
         Matcher linkedYear = Pattern.compile("calendar=(\\d{4})").matcher(html);
-        if (linkedYear.find()) {
-            year = Integer.parseInt(linkedYear.group(1));
-            yearLabel.setText(nepali(year));
+        if (linkedYear.find()) year = Integer.parseInt(linkedYear.group(1));
+        String monthName = "महिना";
+        Matcher hero = Pattern.compile("<h1>([^<]+)</h1><p>([^<]+)</p>").matcher(html);
+        if (hero.find()) {
+            String sub = hero.group(2).trim();
+            int split = sub.indexOf('·');
+            if (split > 0) monthName = sub.substring(0, split).trim();
         }
-        String sub = subtitle.getText().toString();
-        int split = sub.indexOf('·');
-        monthLabel.setText(split > 0 ? sub.substring(0, split).trim() : (sub.isEmpty() ? "महिना" : sub));
-        Matcher count = Pattern.compile("patro-hero-month\"><strong>([^<]+)</strong><span>([^<]+)</span>").matcher(html);
-        if (count.find()) subtitle.setText(sub + (sub.isEmpty() ? "" : " · ") + count.group(1) + " " + count.group(2));
+        titleView().setText(monthName + ", " + nepali(year));
 
         Matcher warning = Pattern.compile("सूचना:\\s*([^<]{8,180})").matcher(html);
         if (warning.find()) {
@@ -189,10 +176,12 @@ final class PatroBoard {
         while (cells.find()) {
             Day item = new Day();
             item.cls = cells.group(1);
+            item.year = year;
             item.month = Integer.parseInt(cells.group(3));
             item.day = Integer.parseInt(cells.group(4));
             item.nepali = cells.group(5);
             item.ad = cells.group(6);
+            item.adNum = cells.group(6).replaceAll("\\D", "");
             item.event = cells.group(7) == null ? "" : cells.group(7);
             days.add(item);
         }
@@ -202,125 +191,190 @@ final class PatroBoard {
         }
         month = days.get(0).month;
         status.setVisibility(View.GONE);
+        paintGrid(days, html);
+        paintDetail(html);
+        paintUpcoming(html);
+    }
 
-        detail.removeAllViews();
-        Matcher tile = Pattern.compile("patro-date-tile\"><strong>([^<]+)</strong><b>([^<]+)</b><span>([^<]+)</span><small>([^<]+)</small>").matcher(html);
-        if (tile.find()) {
-            LinearLayout card = new LinearLayout(activity);
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setBackground(round(0xFFFFFFFF, 18, 0xFFE7E5E4));
-            card.setPadding(0, 0, dp(14), 0);
-            View accent = new View(activity);
-            accent.setBackground(round(0xFF0F8A3C, 0, 0));
-            card.addView(accent, new LinearLayout.LayoutParams(dp(5), ViewGroup.LayoutParams.MATCH_PARENT));
-            LinearLayout copy = new LinearLayout(activity);
-            copy.setOrientation(LinearLayout.VERTICAL);
-            copy.setPadding(dp(14), dp(12), 0, dp(12));
-            copy.addView(text(tile.group(1) + " " + tile.group(2), 20, 0xFF142033, true));
-            copy.addView(text(tile.group(3) + "  ·  " + tile.group(4), 13, 0xFF57534E, false));
-            Matcher sun = Pattern.compile("<b>सूर्योदय</b><strong>([^<]*)</strong>").matcher(html);
-            Matcher set = Pattern.compile("<b>सूर्यास्त</b><strong>([^<]*)</strong>").matcher(html);
-            if (sun.find() && set.find()) copy.addView(text("सूर्योदय " + sun.group(1) + "    सूर्यास्त " + set.group(1), 12, 0xFF0F8A3C, false));
-            card.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = dp(2);
-            card.setLayoutParams(lp);
-            detail.addView(card);
-        }
-
+    private void paintGrid(List<Day> days, String html) {
         week.removeAllViews();
         for (int i = 0; i < WEEK.length; i++) {
-            TextView label = text(WEEK[i], 12, i == 0 || i == 6 ? 0xFFE11D48 : 0xFFA8A29E, true);
+            TextView label = text(WEEK[i], 13, i == 0 || i == 6 ? 0xFFDC2626 : 0xFF6B7280, true);
             label.setGravity(Gravity.CENTER);
-            label.setPadding(0, dp(2), 0, dp(6));
-            addCell(week, label);
+            label.setPadding(0, dp(10), 0, dp(8));
+            addCell(week, label, false);
         }
-
         grid.removeAllViews();
-        int lead = leadBlanks(days.get(0), html);
-        for (int i = 0; i < lead; i++) addCell(grid, new View(activity));
-        for (Day item : days) addCell(grid, dayCell(item));
+        Calendar first = gregorian(days.get(0), html);
+        int lead = first == null ? 0 : first.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
+        if (first != null) {
+            Calendar cursor = (Calendar) first.clone();
+            cursor.add(Calendar.DATE, -lead);
+            for (int i = 0; i < lead; i++) {
+                addCell(grid, dayCell(fromAd(cursor)), true);
+                cursor.add(Calendar.DATE, 1);
+            }
+            Calendar last = (Calendar) first.clone();
+            last.add(Calendar.DATE, days.size() - 1);
+            rangeView().setText(englishRange(first, last));
+        }
+        int index = lead;
+        for (Day item : days) {
+            item.weekend = index % 7 == 0 || index % 7 == 6;
+            addCell(grid, dayCell(item), true);
+            index++;
+        }
+        int trail = (7 - (index % 7)) % 7;
+        if (first != null && trail > 0) {
+            Calendar cursor = (Calendar) first.clone();
+            cursor.add(Calendar.DATE, days.size());
+            for (int i = 0; i < trail; i++) {
+                addCell(grid, dayCell(fromAd(cursor)), true);
+                cursor.add(Calendar.DATE, 1);
+            }
+        }
+    }
 
+    private String englishRange(Calendar first, Calendar last) {
+        String start = MONTHS[first.get(Calendar.MONTH)];
+        String end = MONTHS[last.get(Calendar.MONTH)];
+        int adYear = last.get(Calendar.YEAR);
+        if (start.equals(end)) return start + ", " + adYear;
+        return start + "/" + end + ", " + adYear;
+    }
+
+    private void paintDetail(String html) {
+        detail.removeAllViews();
+        Matcher tile = Pattern.compile("patro-date-tile\"><strong>([^<]+)</strong><b>([^<]+)</b><span>([^<]+)</span><small>([^<]+)</small>").matcher(html);
+        if (!tile.find()) return;
+        LinearLayout card = new LinearLayout(activity);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(2), dp(12), dp(2), 0);
+        card.addView(text(tile.group(1) + "  " + tile.group(2), 16, 0xFF111827, true));
+        card.addView(text(tile.group(3) + "   ·   " + tile.group(4), 13, 0xFF6B7280, false));
+        Matcher sun = Pattern.compile("<b>सूर्योदय</b><strong>([^<]*)</strong>").matcher(html);
+        Matcher set = Pattern.compile("<b>सूर्यास्त</b><strong>([^<]*)</strong>").matcher(html);
+        if (sun.find() && set.find()) {
+            card.addView(text("सूर्योदय " + sun.group(1) + "     सूर्यास्त " + set.group(1), 12, 0xFF178A45, false));
+        }
+        detail.addView(card);
+    }
+
+    private void paintUpcoming(String html) {
         upcoming.removeAllViews();
-        TextView head = text("आगामी पर्व", 16, 0xFF142033, true);
-        head.setPadding(dp(2), dp(16), 0, dp(6));
-        upcoming.addView(head);
         Matcher events = Pattern.compile("<a href=\"\\?calendar=\\d+&(?:amp;)?month=(\\d+)&(?:amp;)?day=(\\d+)#patro-detail\"><time><b>([^<]*)</b><small>([^<]*)</small></time><span><strong>([^<]*)</strong><small>([^<]*)</small>").matcher(html);
-        int shown = 0;
-        while (events.find() && shown < 6) {
-            shown++;
-            int eventMonth = Integer.parseInt(events.group(1));
-            int eventDay = Integer.parseInt(events.group(2));
+        List<String[]> rows = new ArrayList<>();
+        while (events.find() && rows.size() < 6) {
+            rows.add(new String[]{events.group(1), events.group(2), events.group(3), events.group(4), events.group(5), events.group(6)});
+        }
+        if (rows.isEmpty()) return;
+        TextView head = text("आगामी पर्व", 16, 0xFF111827, true);
+        head.setPadding(dp(2), dp(16), 0, dp(4));
+        upcoming.addView(head);
+        for (String[] event : rows) {
             LinearLayout row = new LinearLayout(activity);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setBackground(round(0xFFFFFFFF, 14, 0xFFE7E5E4));
-            row.setPadding(dp(12), dp(10), dp(12), dp(10));
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            rowLp.topMargin = dp(6);
-            row.setLayoutParams(rowLp);
-            LinearLayout when = new LinearLayout(activity);
-            when.setOrientation(LinearLayout.VERTICAL);
-            when.setGravity(Gravity.CENTER);
-            TextView num = text(events.group(3), 16, 0xFF0F8A3C, true);
+            row.setPadding(dp(2), dp(10), dp(2), dp(10));
+            View line = new View(activity);
+            line.setBackgroundColor(0xFFE5E7EB);
+            LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1);
+            upcoming.addView(line, lineLp);
+            TextView num = text(event[2], 16, 0xFF178A45, true);
             num.setGravity(Gravity.CENTER);
-            when.addView(num);
-            TextView mon = text(events.group(4), 11, 0xFF78716C, false);
-            mon.setGravity(Gravity.CENTER);
-            when.addView(mon);
-            row.addView(when, new LinearLayout.LayoutParams(dp(56), ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.addView(num, new LinearLayout.LayoutParams(dp(36), ViewGroup.LayoutParams.WRAP_CONTENT));
             LinearLayout copy = new LinearLayout(activity);
             copy.setOrientation(LinearLayout.VERTICAL);
             copy.setPadding(dp(8), 0, 0, 0);
-            copy.addView(text(events.group(5), 15, 0xFF1C1917, true));
-            copy.addView(text(events.group(6), 12, 0xFF78716C, false));
+            copy.addView(text(event[4], 15, 0xFF111827, true));
+            copy.addView(text(event[3] + "  ·  " + event[5], 12, 0xFF6B7280, false));
             row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            int eventMonth = Integer.parseInt(event[0]);
+            int eventDay = Integer.parseInt(event[1]);
             row.setOnClickListener(v -> load(eventMonth, eventDay));
             upcoming.addView(row);
         }
-        if (shown == 0) upcoming.removeAllViews();
     }
 
     private View dayCell(Day item) {
+        boolean today = !item.outside && item.cls.contains("today");
+        boolean holiday = !item.outside && item.cls.contains("holiday");
+        boolean weekend = item.weekend || item.cls.contains("weekend");
+        boolean selected = !item.outside && !today && item.month == month && item.day == day && day > 0;
         LinearLayout cell = new LinearLayout(activity);
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.CENTER_HORIZONTAL);
-        boolean today = item.cls.contains("today");
-        boolean holiday = item.cls.contains("holiday");
-        boolean selected = item.month == month && item.day == day && day > 0;
-        if (today || selected) {
-            cell.setBackground(round(0xFFE7F6EE, 12, 0xFF0F8A3C));
+        cell.setMinimumHeight(dp(74));
+        cell.setPadding(dp(1), dp(6), dp(1), dp(5));
+        if (today) cell.setBackgroundColor(0xFF1F7A45);
+        else if (holiday) cell.setBackgroundColor(0xFFFFF1F2);
+        else if (selected) cell.setBackgroundColor(0xFFF3F4F6);
+        else cell.setBackgroundColor(0xFFFFFFFF);
+
+        int number = today ? 0xFFFFFFFF : item.outside ? 0xFFD1D5DB : (holiday || weekend ? 0xFFDC2626 : 0xFF111827);
+        int muted = today ? 0xE6FFFFFF : item.outside ? 0xFFD1D5DB : 0xFF9CA3AF;
+        LinearLayout top = new LinearLayout(activity);
+        top.setGravity(Gravity.CENTER);
+        top.addView(text(item.nepali, 16, number, true));
+        TextView english = text(item.adNum, 10, muted, false);
+        english.setPadding(dp(3), dp(3), 0, 0);
+        top.addView(english);
+        cell.addView(top);
+
+        TextView caption = text(item.event.isEmpty() ? " " : item.event, 8, today ? 0xFFFFFFFF : holiday ? 0xFFDC2626 : muted, false);
+        caption.setGravity(Gravity.CENTER);
+        caption.setMaxLines(1);
+        caption.setEllipsize(TextUtils.TruncateAt.END);
+        caption.setMinHeight(dp(12));
+        cell.addView(caption);
+
+        cell.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        View dot = new View(activity);
+        GradientDrawable oval = new GradientDrawable();
+        oval.setShape(GradientDrawable.OVAL);
+        int dotColor = today ? 0xFFFFFFFF : item.outside ? 0xFFD1D5DB : (holiday || weekend ? 0xFFDC2626 : 0xFF111827);
+        oval.setColor(dotColor);
+        dot.setBackground(oval);
+        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(4), dp(4));
+        dotLp.topMargin = dp(3);
+        cell.addView(dot, dotLp);
+        if (item.month > 0) {
+            cell.setOnClickListener(v -> open(item));
         }
-        cell.setPadding(dp(1), dp(5), dp(1), dp(4));
-        cell.setMinimumHeight(dp(54));
-        TextView number = text(item.nepali, 15, holiday ? 0xFFE11D48 : 0xFF1C1917, true);
-        number.setGravity(Gravity.CENTER);
-        cell.addView(number);
-        TextView ad = text(item.ad, 8, 0xFFA8A29E, false);
-        ad.setGravity(Gravity.CENTER);
-        cell.addView(ad);
-        if (!item.event.isEmpty()) {
-            TextView event = text(item.event, 8, 0xFFF15A22, false);
-            event.setGravity(Gravity.CENTER);
-            event.setMaxLines(1);
-            event.setEllipsize(TextUtils.TruncateAt.END);
-            cell.addView(event);
-        }
-        cell.setOnClickListener(v -> load(item.month, item.day));
         return cell;
     }
 
-    private int leadBlanks(Day first, String html) {
+    private void open(Day item) {
+        if (item.year > 0 && item.year != year) year = item.year;
+        load(item.month, item.day);
+    }
+
+    private Day fromAd(Calendar calendar) {
+        Day item = new Day();
+        item.outside = true;
+        item.adNum = String.valueOf(calendar.get(Calendar.DAY_OF_MONTH));
+        int dow = calendar.get(Calendar.DAY_OF_WEEK);
+        item.weekend = dow == Calendar.SUNDAY || dow == Calendar.SATURDAY;
+        int[] bs = adToBs(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH));
+        if (bs != null) {
+            item.year = bs[0];
+            item.month = bs[1];
+            item.day = bs[2];
+            item.nepali = nepali(bs[2]);
+        }
+        return item;
+    }
+
+    private Calendar gregorian(Day first, String html) {
         Matcher full = Pattern.compile("([A-Z][a-z]{2}) (\\d{1,2}), (\\d{4})").matcher(html);
-        if (!full.find()) return 0;
+        if (!full.find()) return null;
         String[] parts = first.ad.trim().split(" ");
-        if (parts.length < 2) return 0;
+        if (parts.length < 2) return null;
         try {
             int anchor = dateNumber(Integer.parseInt(full.group(3)), monthIndex(full.group(1)), Integer.parseInt(full.group(2)));
             int cellMonth = monthIndex(parts[0]);
             int cellDay = Integer.parseInt(parts[1].replaceAll("\\D", ""));
-            if (cellDay < 1) return 0;
+            if (cellDay < 1) return null;
             int adYear = Integer.parseInt(full.group(3));
             int bestYear = adYear;
             int bestGap = Integer.MAX_VALUE;
@@ -333,9 +387,10 @@ final class PatroBoard {
             }
             Calendar calendar = Calendar.getInstance();
             calendar.set(bestYear, cellMonth, cellDay, 12, 0, 0);
-            return calendar.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
+            calendar.set(Calendar.MILLISECOND, 0);
+            return calendar;
         } catch (Exception ignored) {
-            return 0;
+            return null;
         }
     }
 
@@ -383,38 +438,74 @@ final class PatroBoard {
         return bs;
     }
 
+    private void ensureTable() {
+        if (tableReady) return;
+        try {
+            InputStream input = activity.getAssets().open("bs-months.json");
+            StringBuilder body = new StringBuilder();
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
+            input.close();
+            JSONObject table = new JSONObject(body.toString());
+            for (int bsYear = 2000; bsYear <= 2092; bsYear++) {
+                JSONArray months = table.getJSONArray(String.valueOf(bsYear));
+                for (int bsMonth = 0; bsMonth < 12; bsMonth++) DAYS[bsYear - 2000][bsMonth] = months.getInt(bsMonth);
+            }
+            tableReady = true;
+        } catch (Exception ignored) {
+        }
+    }
+
+    private int[] adToBs(int year, int month, int day) {
+        if (!tableReady) return null;
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(1943, Calendar.APRIL, 14, 12, 0, 0);
+        Calendar target = Calendar.getInstance();
+        target.set(year, month - 1, day, 12, 0, 0);
+        int left = (int) ((target.getTimeInMillis() - calendar.getTimeInMillis()) / 86400000L);
+        if (left < 0) return null;
+        for (int y = 0; y < DAYS.length; y++) {
+            int yearDays = 0;
+            for (int value : DAYS[y]) yearDays += value;
+            if (left < yearDays) {
+                for (int m = 0; m < 12; m++) {
+                    if (left < DAYS[y][m]) return new int[]{2000 + y, m + 1, left + 1};
+                    left -= DAYS[y][m];
+                }
+            }
+            left -= yearDays;
+        }
+        return null;
+    }
+
     private String nepali(int number) {
         String digits = "०१२३४५६७८९";
         String raw = String.valueOf(number);
         StringBuilder out = new StringBuilder();
-        for (int i = 0; i < raw.length(); i++) out.append(digits.charAt(raw.charAt(i) - '0'));
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+            if (ch >= '0' && ch <= '9') out.append(digits.charAt(ch - '0'));
+        }
         return out.toString();
     }
 
-    private TextView roundBtn(String label, Runnable action) {
-        TextView chip = text(label, 18, 0xFF142033, true);
+    private TextView arrow(String label, Runnable action) {
+        TextView chip = text(label, 22, 0xFF111827, true);
         chip.setGravity(Gravity.CENTER);
-        chip.setBackground(round(0xFFFFFFFF, 20, 0xFFE7E5E4));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
-        lp.leftMargin = dp(4);
-        lp.rightMargin = dp(4);
-        chip.setLayoutParams(lp);
-        chip.setOnClickListener(v -> action.run());
-        return chip;
-    }
-
-    private TextView tiny(String label, Runnable action) {
-        TextView chip = text(label, 16, 0xFF0F8A3C, true);
-        chip.setPadding(dp(6), 0, dp(6), 0);
+        chip.setPadding(dp(8), 0, dp(8), 0);
         chip.setOnClickListener(v -> action.run());
         return chip;
     }
 
     private TextView todayChip() {
-        TextView chip = text("आज", 13, 0xFFF15A22, true);
+        TextView chip = text("आज", 14, 0xFF178A45, true);
         chip.setGravity(Gravity.CENTER);
-        chip.setBackground(round(0xFFFFF1E8, 16, 0));
-        chip.setPadding(dp(12), dp(6), dp(12), dp(6));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFE7F6EE);
+        bg.setCornerRadius(dp(20));
+        chip.setBackground(bg);
+        chip.setPadding(dp(14), dp(6), dp(14), dp(6));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.rightMargin = dp(4);
         chip.setLayoutParams(lp);
@@ -422,19 +513,11 @@ final class PatroBoard {
         return chip;
     }
 
-    private GradientDrawable round(int color, int radius, int stroke) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(color);
-        bg.setCornerRadius(dp(radius));
-        if (stroke != 0) bg.setStroke(dp(1), stroke);
-        return bg;
-    }
-
-    private void addCell(GridLayout parent, View child) {
+    private void addCell(GridLayout parent, View child, boolean lined) {
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
         lp.width = 0;
         lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        lp.setMargins(dp(1), dp(1), dp(1), dp(1));
+        if (lined) lp.setMargins(0, 0, 1, 1);
         child.setLayoutParams(lp);
         parent.addView(child);
     }
@@ -457,8 +540,12 @@ final class PatroBoard {
         String cls = "";
         String nepali = "";
         String ad = "";
+        String adNum = "";
         String event = "";
+        int year;
         int month;
         int day;
+        boolean outside;
+        boolean weekend;
     }
 }
