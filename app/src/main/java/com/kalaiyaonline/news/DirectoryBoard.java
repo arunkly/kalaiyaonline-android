@@ -42,8 +42,10 @@ final class DirectoryBoard {
     private final EditText query;
     private final List<Listing> listings = new ArrayList<>();
     private final LinearLayout chips;
+    private final LinearLayout districts;
     private final List<String> siteCategories = new ArrayList<>();
     private String category = "";
+    private String district = "";
     private boolean detailOpen;
     private int page;
     private int generation;
@@ -77,6 +79,14 @@ final class DirectoryBoard {
         });
         root.addView(query);
 
+        districts = new LinearLayout(activity);
+        districts.setOrientation(LinearLayout.HORIZONTAL);
+        districts.setPadding(0, dp(8), 0, dp(2));
+        HorizontalScrollView districtScroll = new HorizontalScrollView(activity);
+        districtScroll.setHorizontalScrollBarEnabled(false);
+        districtScroll.addView(districts);
+        root.addView(districtScroll);
+
         status = text("", 13, 0xFF57534E, false);
         status.setPadding(0, dp(8), 0, 0);
         root.addView(status);
@@ -93,6 +103,7 @@ final class DirectoryBoard {
     void load() {
         if (!listings.isEmpty()) {
             renderChips();
+            renderDistricts();
             if (!detailOpen) showPage();
         } else {
             status.setText("डाइरेक्टरी लोड हुँदैछ…");
@@ -112,7 +123,9 @@ final class DirectoryBoard {
                 listings.clear();
                 listings.addAll(parsed);
                 if (!category.isEmpty() && !siteCategories.contains(category) && !hasCategory(category)) category = "";
+                if (!district.isEmpty() && !hasDistrict(district)) district = "";
                 renderChips();
+                renderDistricts();
                 if (!detailOpen) showPage();
             });
         }).start();
@@ -143,10 +156,75 @@ final class DirectoryBoard {
             item.image = textOf(block, "<img src=\"([^\"]+)\"");
             item.category = cleanCategory(textOf(block, "directory-card-kicker\">([^<]+)"));
             item.location = textOf(block, "directory-card-location\">([^<]+)").replace("⌖", "").trim();
+            item.district = districtOf(item.location);
             item.blurb = textOf(block, "<p>([^<]+)</p>");
             if (!item.title.isEmpty()) rows.add(item);
         }
         return rows;
+    }
+
+    private boolean hasDistrict(String name) {
+        for (Listing item : listings) if (name.equals(item.district)) return true;
+        return false;
+    }
+
+    private String districtOf(String location) {
+        String[] parts = location.split("·");
+        for (String part : parts) {
+            String raw = part.trim();
+            if (!raw.endsWith("जिल्ला")) continue;
+            String name = raw.substring(0, raw.length() - "जिल्ला".length()).trim();
+            if (name.equals("वारा")) name = "बारा";
+            if (name.length() > 1) return name;
+        }
+        for (String part : parts) {
+            String name = part.trim();
+            if (name.equals("वारा") || name.equals("बारा")) return "बारा";
+        }
+        return "";
+    }
+
+    private void renderDistricts() {
+        districts.removeAllViews();
+        java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (Listing item : listings) {
+            if (item.district.isEmpty()) continue;
+            Integer count = counts.get(item.district);
+            counts.put(item.district, count == null ? 1 : count + 1);
+        }
+        List<String> names = new ArrayList<>(counts.keySet());
+        names.sort((a, b) -> Integer.compare(counts.get(b), counts.get(a)));
+        districts.addView(districtChip("सबै जिल्ला", "", district.isEmpty()));
+        for (String name : names) districts.addView(districtChip(name, name, name.equals(district)));
+    }
+
+    private View districtChip(String label, String value, boolean on) {
+        TextView view = text(label, 13, on ? 0xFFFFFFFF : 0xFF0F8A3C, true);
+        view.setGravity(Gravity.CENTER_VERTICAL);
+        Drawable icon = DrawableCompat.wrap(activity.getDrawable(R.drawable.ic_pin)).mutate();
+        DrawableCompat.setTint(icon, on ? 0xFFFFFFFF : 0xFFF15A22);
+        icon.setBounds(0, 0, dp(14), dp(14));
+        view.setCompoundDrawables(icon, null, null, null);
+        view.setCompoundDrawablePadding(dp(5));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(16));
+        if (on) bg.setColor(0xFF142033);
+        else {
+            bg.setColor(0xFFFFF7F2);
+            bg.setStroke(dp(1), 0xFFF3D2C4);
+        }
+        view.setBackground(bg);
+        view.setPadding(dp(10), dp(6), dp(12), dp(6));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
+        view.setLayoutParams(lp);
+        view.setOnClickListener(v -> {
+            district = value;
+            page = 0;
+            renderDistricts();
+            showPage();
+        });
+        return view;
     }
 
     private void renderChips() {
@@ -207,6 +285,7 @@ final class DirectoryBoard {
         List<Listing> matches = new ArrayList<>();
         for (Listing item : listings) {
             if (!category.isEmpty() && !cleanCategory(category).equals(cleanCategory(item.category))) continue;
+            if (!district.isEmpty() && !district.equals(item.district)) continue;
             String blob = item.title + " " + item.category + " " + item.location + " " + item.blurb;
             if (needle.isEmpty() || blob.contains(needle)) matches.add(item);
         }
@@ -592,6 +671,7 @@ final class DirectoryBoard {
         String title = "";
         String category = "";
         String location = "";
+        String district = "";
         String blurb = "";
         String image = "";
         String page = "";
