@@ -973,7 +973,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile(R.drawable.ic_mod_fx, 0xFFE5F8EE, "मुद्रा रूपान्तरण", this::showCurrency));
         modules.addView(moduleTile(R.drawable.ic_mod_type, 0xFFF3E8FF, "प्रीति «» युनिकोड", this::showPreeti));
         modules.addView(moduleTile(R.drawable.ic_mod_blood, 0xFFFFE4E6, "रक्तदान", this::showBlood));
-        modules.addView(moduleTile(R.drawable.ic_mod_doc, 0xFFE8F0FF, "गोपनीयता नीति", () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
+        modules.addView(moduleTile(R.drawable.ic_mod_doc, 0xFFE8F0FF, "गोपनीयता नीति", this::showPrivacy));
         modules.addView(moduleTile(R.drawable.ic_mod_lock, 0xFFFFF3D6, "लगइन / खाता", () -> {
             setMore(false);
             startActivity(new Intent(this, AccountActivity.class));
@@ -1149,6 +1149,18 @@ public class MainActivity extends AppCompatActivity {
         View board = preeti.view();
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
+    }
+
+    private void showPrivacy() {
+        section = "privacy";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("गोपनीयता नीति"));
+        PrivacyBoard board = new PrivacyBoard(this);
+        page.addView(board.view());
+        board.load();
     }
 
     private void showBlood() {
