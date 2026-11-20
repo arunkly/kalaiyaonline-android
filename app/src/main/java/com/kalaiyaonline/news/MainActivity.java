@@ -1522,7 +1522,7 @@ public class MainActivity extends AppCompatActivity {
         row.addView(dateChip(dateLine), new LinearLayout.LayoutParams(0, dp(58), 1f));
         View gap = new View(this);
         row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
-        row.addView(weatherChip(), new LinearLayout.LayoutParams(0, dp(58), 1.35f));
+        row.addView(weatherChip(), new LinearLayout.LayoutParams(0, dp(58), 1f));
         loadStripWeather();
         return row;
     }
