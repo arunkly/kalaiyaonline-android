@@ -83,10 +83,13 @@ final class CurrencyBoard {
         });
         card.addView(currency);
 
-        direction = text("विदेशी मुद्रा › NPR", 15, 0xFF0B5C28, true);
+        direction = text("विदेशी मुद्रा › NPR", 15, 0xFFFFFFFF, true);
         direction.setGravity(Gravity.CENTER);
         direction.setPadding(dp(12), dp(10), dp(12), dp(10));
-        direction.setBackground(chipBg(true));
+        GradientDrawable directionBg = new GradientDrawable();
+        directionBg.setCornerRadius(dp(14));
+        directionBg.setColor(0xFFF15A22);
+        direction.setBackground(directionBg);
         direction.setOnClickListener(v -> {
             toNpr = !toNpr;
             direction.setText(toNpr ? "विदेशी मुद्रा › NPR" : "NPR › विदेशी मुद्रा");
