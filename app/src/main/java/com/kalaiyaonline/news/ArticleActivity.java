@@ -6,11 +6,19 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Build;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.ReplacementSpan;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
@@ -54,6 +62,7 @@ public class ArticleActivity extends AppCompatActivity {
     private ImageView saveView;
     private ImageView authorPhoto;
     private TextView bodyView;
+    private LinearLayout bodyHost;
     private String keptTitle = "";
     private String keptImage = "";
     private String keptCategory = "";
@@ -242,6 +251,11 @@ public class ArticleActivity extends AppCompatActivity {
         bodyView.setPadding(dp(2), dp(12), dp(2), dp(8));
         page.addView(bodyView);
 
+        bodyHost = new LinearLayout(this);
+        bodyHost.setOrientation(LinearLayout.VERTICAL);
+        bodyHost.setVisibility(View.GONE);
+        page.addView(bodyHost);
+
         tagHost = new LinearLayout(this);
         tagHost.setOrientation(LinearLayout.VERTICAL);
         tagHost.setVisibility(View.GONE);
@@ -300,7 +314,7 @@ public class ArticleActivity extends AppCompatActivity {
                     if (!story.author.isEmpty()) authorView.setText(story.author);
                     if (!story.authorImage.isEmpty()) load(story.authorImage, authorPhoto);
                     viewsView.setText(story.views.isEmpty() ? "—" : story.views);
-                    bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
+                    paintArticle(story);
                     if (!story.image.isEmpty()) {
                         keptImage = story.image;
                         load(story.image, image);
@@ -428,7 +442,9 @@ public class ArticleActivity extends AppCompatActivity {
 
     private String speakable() {
         String title = keptTitle == null ? "" : keptTitle.trim();
-        String body = bodyView == null ? "" : bodyView.getText().toString().trim();
+        String body = loaded != null && loaded.body != null && !loaded.body.isEmpty()
+                ? loaded.body.trim()
+                : bodyView == null ? "" : bodyView.getText().toString().trim();
         if (body.startsWith("पूर्ण समाचार") || body.startsWith("समाचार खोल्न") || body.startsWith("पूर्ण पाठ")) body = "";
         if (body.isEmpty()) return title;
         if (title.isEmpty()) return body;
@@ -450,6 +466,125 @@ public class ArticleActivity extends AppCompatActivity {
             start = end;
         }
         return parts.toArray(new String[0]);
+    }
+
+    private void paintArticle(Story story) {
+        bodyHost.removeAllViews();
+        if (story.pieces.isEmpty()) {
+            bodyView.setVisibility(View.VISIBLE);
+            bodyHost.setVisibility(View.GONE);
+            bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
+            return;
+        }
+        bodyView.setVisibility(View.GONE);
+        bodyHost.setVisibility(View.VISIBLE);
+        boolean first = true;
+        for (Story.Piece piece : story.pieces) {
+            if (piece.ad()) {
+                bodyHost.addView(adBanner(piece));
+                continue;
+            }
+            TextView view = new TextView(this);
+            view.setTextColor(0xFF292524);
+            view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
+            view.setLineSpacing(dp(7), 1f);
+            view.setPadding(dp(2), first ? dp(12) : dp(2), dp(2), dp(6));
+            if (!piece.lead.isEmpty() && piece.text.startsWith(piece.lead)) {
+                SpannableString styled = new SpannableString(piece.text);
+                styled.setSpan(new LeadBadgeSpan(piece.lead), 0, piece.lead.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                view.setText(styled);
+            } else {
+                view.setText(piece.text);
+            }
+            bodyHost.addView(view);
+            first = false;
+        }
+    }
+
+    private View adBanner(Story.Piece piece) {
+        MaterialCardView card = new MaterialCardView(this);
+        card.setRadius(dp(14));
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setCardBackgroundColor(0xFFFFFFFF);
+        ImageView image = new ImageView(this);
+        image.setAdjustViewBounds(true);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        card.addView(image, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        lp.bottomMargin = dp(8);
+        card.setLayoutParams(lp);
+        load(piece.adImage, image);
+        if (!piece.adLink.isEmpty()) {
+            card.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(piece.adLink)));
+                } catch (Exception ignored) {
+                }
+            });
+        }
+        return card;
+    }
+
+    private final class LeadBadgeSpan extends ReplacementSpan {
+        private final String word;
+
+        LeadBadgeSpan(String word) {
+            this.word = word;
+        }
+
+        @Override
+        public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
+            Paint badge = badgePaint(paint);
+            if (fm != null) {
+                int extra = dp(3);
+                fm.ascent -= extra;
+                fm.top -= extra;
+                fm.descent += extra;
+                fm.bottom += extra;
+            }
+            return Math.round(badge.measureText(word) + dp(20));
+        }
+
+        @Override
+        public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
+            Paint badge = badgePaint(paint);
+            Paint.FontMetrics metrics = badge.getFontMetrics();
+            float height = metrics.descent - metrics.ascent + dp(7);
+            float width = badge.measureText(word) + dp(18);
+            float topY = y + metrics.ascent - dp(3);
+            float slant = height * 0.18f;
+            Path shape = new Path();
+            shape.moveTo(x + slant, topY);
+            shape.lineTo(x + width, topY);
+            shape.lineTo(x + width - slant * 0.35f, topY + height);
+            shape.lineTo(x, topY + height);
+            shape.close();
+            Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fill.setColor(0xFF0F9046);
+            canvas.drawPath(shape, fill);
+            float bar = dp(4);
+            Path gold = new Path();
+            gold.moveTo(x + width - bar, topY);
+            gold.lineTo(x + width, topY);
+            gold.lineTo(x + width - slant * 0.35f, topY + height);
+            gold.lineTo(x + width - bar - slant * 0.2f, topY + height);
+            gold.close();
+            Paint yellow = new Paint(Paint.ANTI_ALIAS_FLAG);
+            yellow.setColor(0xFFFACC15);
+            canvas.drawPath(gold, yellow);
+            canvas.drawText(word, x + dp(8), y, badge);
+        }
+
+        private Paint badgePaint(Paint base) {
+            TextPaint badge = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            badge.setColor(0xFFFFFFFF);
+            badge.setTextSize(base.getTextSize() * 0.86f);
+            Typeface face = ResourcesCompat.getFont(ArticleActivity.this, R.font.mukta_bold);
+            badge.setTypeface(face == null ? Typeface.DEFAULT_BOLD : face);
+            return badge;
+        }
     }
 
     private View homeHeader() {

@@ -488,19 +488,91 @@ public final class SiteClient {
         java.util.regex.Matcher readers = java.util.regex.Pattern.compile("([०-९0-9][०-९0-9,]*)\\s*पाठक").matcher(doc.body().text());
         if (readers.find()) views = readers.group(1);
         StringBuilder body = new StringBuilder();
-        for (Element p : doc.select(".article-content p")) {
-            String line = p.text().replaceAll("\\s+", " ").trim();
-            if (line.length() < 25) continue;
-            if (body.length() > 0) body.append("\n\n");
-            body.append(line);
-        }
+        List<Story.Piece> pieces = new ArrayList<>();
+        readArticle(doc, body, pieces);
         Story story = new Story(slug, title, image, category, date, author, body.toString());
+        story.pieces.addAll(pieces);
         story.views = views;
         story.authorImage = authorImage(doc);
         story.related.addAll(relatedFrom(doc, slug));
         tagsFrom(doc, story);
         feelingsFrom(doc, story);
         return story;
+    }
+
+    private void readArticle(Document doc, StringBuilder body, List<Story.Piece> pieces) {
+        Element content = doc.selectFirst(".article-content");
+        if (content == null) return;
+        Element parent = content.parent();
+        if (parent != null) {
+            for (Element sibling : parent.children()) {
+                if (sibling == content) break;
+                Story.Piece ad = directAd(sibling);
+                if (ad != null) pieces.add(ad);
+            }
+        }
+        boolean lead = true;
+        for (Element node : content.children()) {
+            if ("p".equals(node.tagName())) {
+                int before = pieces.size();
+                addParagraph(node, body, pieces, lead);
+                if (pieces.size() > before) lead = false;
+            } else {
+                Story.Piece ad = adPiece(node);
+                if (ad != null) pieces.add(ad);
+            }
+        }
+        if (parent == null) return;
+        boolean passed = false;
+        for (Element sibling : parent.children()) {
+            if (sibling == content) {
+                passed = true;
+                continue;
+            }
+            if (!passed) continue;
+            Story.Piece ad = adPiece(sibling);
+            if (ad != null) pieces.add(ad);
+        }
+    }
+
+    private void addParagraph(Element node, StringBuilder body, List<Story.Piece> pieces, boolean lead) {
+        String line = node.text().replaceAll("\\s+", " ").trim();
+        Element badge = node.selectFirst(".aks-first-word-badge");
+        String word = badge == null ? "" : text(badge);
+        if (line.length() < 25 && word.isEmpty()) return;
+        String leadWord = "";
+        if (lead) {
+            leadWord = !word.isEmpty() ? word : firstWord(line);
+            if (!leadWord.isEmpty() && !line.startsWith(leadWord)) leadWord = "";
+        }
+        pieces.add(new Story.Piece(line, leadWord, "", ""));
+        if (line.isEmpty()) return;
+        if (body.length() > 0) body.append("\n\n");
+        body.append(line);
+    }
+
+    private Story.Piece directAd(Element node) {
+        if (node == null || (!node.hasClass("ads-slot") && !node.hasClass("site-ad"))) return null;
+        return adPiece(node);
+    }
+
+    private Story.Piece adPiece(Element node) {
+        if (node == null) return null;
+        Element slot = node.hasClass("ads-slot") || node.hasClass("site-ad") ? node : node.selectFirst(".ads-slot, .site-ad");
+        if (slot == null) return null;
+        Element image = slot.selectFirst("img");
+        if (image == null) return null;
+        String src = abs(image.attr("src"));
+        if (src.isEmpty()) return null;
+        Element link = slot.selectFirst("a[href]");
+        String href = link == null ? "" : abs(link.attr("href"));
+        return new Story.Piece("", "", src, href);
+    }
+
+    private static String firstWord(String line) {
+        int space = line.indexOf(' ');
+        if (space < 2 || space > 18) return "";
+        return line.substring(0, space);
     }
 
     private void tagsFrom(Document doc, Story story) {

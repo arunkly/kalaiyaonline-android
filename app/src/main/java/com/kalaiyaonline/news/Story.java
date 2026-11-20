@@ -19,6 +19,25 @@ public final class Story {
     public final int[] feelings = new int[6];
     public final String[] feelingUrls = new String[]{"", "", "", "", "", ""};
     public String feelingNote = "";
+    public final List<Piece> pieces = new ArrayList<>();
+
+    public static final class Piece {
+        public final String text;
+        public final String lead;
+        public final String adImage;
+        public final String adLink;
+
+        public Piece(String text, String lead, String adImage, String adLink) {
+            this.text = text == null ? "" : text;
+            this.lead = lead == null ? "" : lead;
+            this.adImage = adImage == null ? "" : adImage;
+            this.adLink = adLink == null ? "" : adLink;
+        }
+
+        public boolean ad() {
+            return !adImage.isEmpty();
+        }
+    }
 
     public Story(String slug, String title, String image, String category, String date, String author, String body) {
         this.slug = slug;
