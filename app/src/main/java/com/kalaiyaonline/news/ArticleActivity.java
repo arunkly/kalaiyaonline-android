@@ -488,7 +488,7 @@ public class ArticleActivity extends AppCompatActivity {
             TextView view = new TextView(this);
             view.setTextColor(0xFF292524);
             view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
-            view.setLineSpacing(0, 1.55f);
+            view.setLineSpacing(dp(2), 1f);
             view.setPadding(dp(2), 0, dp(2), 0);
             if (Build.VERSION.SDK_INT >= 26) view.setJustificationMode(android.text.Layout.JUSTIFICATION_MODE_INTER_WORD);
             if (!piece.lead.isEmpty() && piece.text.startsWith(piece.lead)) {
@@ -499,8 +499,8 @@ public class ArticleActivity extends AppCompatActivity {
                 view.setText(piece.text);
             }
             LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            textLp.topMargin = first ? dp(14) : 0;
-            textLp.bottomMargin = dp(14);
+            textLp.topMargin = first ? dp(10) : 0;
+            textLp.bottomMargin = dp(10);
             view.setLayoutParams(textLp);
             bodyHost.addView(view);
             first = false;
