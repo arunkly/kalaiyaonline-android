@@ -192,7 +192,17 @@ final class PatroBoard {
         month = days.get(0).month;
         status.setVisibility(View.GONE);
         paintGrid(days, html);
-        paintDetail(html);
+        String selectedEvent = "";
+        Day selected = null;
+        for (Day item : days) {
+            boolean picked = day > 0 ? item.month == month && item.day == day : item.cls.contains("today");
+            if (picked) {
+                selected = item;
+                selectedEvent = item.event;
+            }
+        }
+        if (selected == null && !days.isEmpty()) selected = days.get(0);
+        paintDetail(html, selectedEvent, selected == null ? "" : tithiLine(selected));
         paintUpcoming(html);
     }
 
@@ -207,6 +217,15 @@ final class PatroBoard {
         grid.removeAllViews();
         Calendar first = gregorian(days.get(0), html);
         int lead = first == null ? 0 : first.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
+        if (first != null) {
+            Calendar cursor = (Calendar) first.clone();
+            for (Day item : days) {
+                item.gy = cursor.get(Calendar.YEAR);
+                item.gm = cursor.get(Calendar.MONTH) + 1;
+                item.gd = cursor.get(Calendar.DAY_OF_MONTH);
+                cursor.add(Calendar.DATE, 1);
+            }
+        }
         if (first != null) {
             Calendar cursor = (Calendar) first.clone();
             cursor.add(Calendar.DATE, -lead);
@@ -243,20 +262,29 @@ final class PatroBoard {
         return start + "/" + end + ", " + adYear;
     }
 
-    private void paintDetail(String html) {
+    private void paintDetail(String html, String event, String tithi) {
         detail.removeAllViews();
         Matcher tile = Pattern.compile("patro-date-tile\"><strong>([^<]+)</strong><b>([^<]+)</b><span>([^<]+)</span><small>([^<]+)</small>").matcher(html);
         if (!tile.find()) return;
         LinearLayout card = new LinearLayout(activity);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(2), dp(12), dp(2), 0);
-        card.addView(text(tile.group(1) + "  " + tile.group(2), 16, 0xFF111827, true));
-        card.addView(text(tile.group(3) + "   ·   " + tile.group(4), 13, 0xFF6B7280, false));
-        Matcher sun = Pattern.compile("<b>सूर्योदय</b><strong>([^<]*)</strong>").matcher(html);
-        Matcher set = Pattern.compile("<b>सूर्यास्त</b><strong>([^<]*)</strong>").matcher(html);
-        if (sun.find() && set.find()) {
-            card.addView(text("सूर्योदय " + sun.group(1) + "     सूर्यास्त " + set.group(1), 12, 0xFF178A45, false));
-        }
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setBackground(round(0xFFFFFFFF, 18, 0xFFE5E7EB));
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.topMargin = dp(12);
+        card.setLayoutParams(cardLp);
+        TextView big = text(tile.group(1), 32, 0xFF111827, true);
+        big.setGravity(Gravity.CENTER);
+        card.addView(big, new LinearLayout.LayoutParams(dp(48), ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout copy = new LinearLayout(activity);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        copy.setPadding(dp(8), 0, 0, 0);
+        copy.addView(text(tile.group(2), 14, 0xFF111827, true));
+        copy.addView(text(tile.group(3) + "   ·   " + tile.group(4), 12, 0xFF6B7280, false));
+        if (!tithi.isEmpty()) copy.addView(text(tithi, 13, 0xFFDC2626, true));
+        if (!event.isEmpty()) copy.addView(text(event, 13, 0xFF111827, true));
+        card.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         detail.addView(card);
     }
 
@@ -280,9 +308,9 @@ final class PatroBoard {
             line.setBackgroundColor(0xFFE5E7EB);
             LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1);
             upcoming.addView(line, lineLp);
-            TextView num = text(event[2], 16, 0xFF178A45, true);
+            TextView num = text(event[2], 18, 0xFF178A45, true);
             num.setGravity(Gravity.CENTER);
-            row.addView(num, new LinearLayout.LayoutParams(dp(36), ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.addView(num, new LinearLayout.LayoutParams(dp(42), ViewGroup.LayoutParams.WRAP_CONTENT));
             LinearLayout copy = new LinearLayout(activity);
             copy.setOrientation(LinearLayout.VERTICAL);
             copy.setPadding(dp(8), 0, 0, 0);
@@ -300,43 +328,46 @@ final class PatroBoard {
         boolean today = !item.outside && item.cls.contains("today");
         boolean holiday = !item.outside && item.cls.contains("holiday");
         boolean weekend = item.weekend || item.cls.contains("weekend");
+        String tithi = tithiLine(item);
+        boolean special = tithi.contains("पूर्णिमा") || tithi.contains("औंसी") || tithi.contains("एकादशी");
         boolean selected = !item.outside && !today && item.month == month && item.day == day && day > 0;
         LinearLayout cell = new LinearLayout(activity);
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.CENTER_HORIZONTAL);
-        cell.setMinimumHeight(dp(74));
-        cell.setPadding(dp(1), dp(6), dp(1), dp(5));
+        cell.setMinimumHeight(dp(64));
+        cell.setPadding(dp(1), dp(5), dp(1), dp(4));
         if (today) cell.setBackgroundColor(0xFF1F7A45);
         else if (holiday) cell.setBackgroundColor(0xFFFFF1F2);
         else if (selected) cell.setBackgroundColor(0xFFF3F4F6);
         else cell.setBackgroundColor(0xFFFFFFFF);
 
-        int number = today ? 0xFFFFFFFF : item.outside ? 0xFFD1D5DB : (holiday || weekend ? 0xFFDC2626 : 0xFF111827);
-        int muted = today ? 0xE6FFFFFF : item.outside ? 0xFFD1D5DB : 0xFF9CA3AF;
+        int outsideColor = weekend ? 0xFFE7B4B8 : 0xFFC5CAD3;
+        int number = today ? 0xFFFFFFFF : item.outside ? outsideColor : (holiday || weekend || special ? 0xFFDC2626 : 0xFF111827);
+        int muted = today ? 0xE6FFFFFF : item.outside ? outsideColor : 0xFF9CA3AF;
+        int captionColor = today ? 0xFFFFFFFF : item.outside ? outsideColor : (holiday || weekend || special ? 0xFFDC2626 : 0xFF6B7280);
         LinearLayout top = new LinearLayout(activity);
         top.setGravity(Gravity.CENTER);
         top.addView(text(item.nepali, 16, number, true));
         TextView english = text(item.adNum, 10, muted, false);
-        english.setPadding(dp(3), dp(3), 0, 0);
+        english.setPadding(dp(2), dp(3), 0, 0);
         top.addView(english);
         cell.addView(top);
 
-        TextView caption = text(item.event.isEmpty() ? " " : item.event, 8, today ? 0xFFFFFFFF : holiday ? 0xFFDC2626 : muted, false);
+        String captionText = tithi.isEmpty() ? " " : tithi;
+        TextView caption = text(captionText, 9, captionColor, false);
         caption.setGravity(Gravity.CENTER);
         caption.setMaxLines(1);
         caption.setEllipsize(TextUtils.TruncateAt.END);
-        caption.setMinHeight(dp(12));
         cell.addView(caption);
 
-        cell.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         View dot = new View(activity);
         GradientDrawable oval = new GradientDrawable();
         oval.setShape(GradientDrawable.OVAL);
-        int dotColor = today ? 0xFFFFFFFF : item.outside ? 0xFFD1D5DB : (holiday || weekend ? 0xFFDC2626 : 0xFF111827);
+        int dotColor = today ? 0xFFFFFFFF : item.outside ? outsideColor : (holiday || weekend || special ? 0xFFDC2626 : 0xFF111827);
         oval.setColor(dotColor);
         dot.setBackground(oval);
-        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(4), dp(4));
-        dotLp.topMargin = dp(3);
+        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(3), dp(3));
+        dotLp.topMargin = dp(2);
         cell.addView(dot, dotLp);
         if (item.month > 0) {
             cell.setOnClickListener(v -> open(item));
@@ -353,6 +384,9 @@ final class PatroBoard {
         Day item = new Day();
         item.outside = true;
         item.adNum = String.valueOf(calendar.get(Calendar.DAY_OF_MONTH));
+        item.gy = calendar.get(Calendar.YEAR);
+        item.gm = calendar.get(Calendar.MONTH) + 1;
+        item.gd = calendar.get(Calendar.DAY_OF_MONTH);
         int dow = calendar.get(Calendar.DAY_OF_WEEK);
         item.weekend = dow == Calendar.SUNDAY || dow == Calendar.SATURDAY;
         int[] bs = adToBs(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH));
@@ -547,5 +581,91 @@ final class PatroBoard {
         int day;
         boolean outside;
         boolean weekend;
+        int gy;
+        int gm;
+        int gd;
+    }
+
+    private String tithiLine(Day item) {
+        if (item.gd < 1) return "";
+        String name = tithiName(item.gy, item.gm, item.gd);
+        if (name.isEmpty()) return "";
+        boolean star = !item.event.isEmpty() || name.contains("एकादशी") || name.contains("पूर्णिमा") || name.contains("औंसी");
+        return star ? name + "*" : name;
+    }
+
+    private String tithiName(int year, int month, int day) {
+        double jd = julian(year, month, day, 2.0);
+        double time = jd - 2451543.5;
+        double sun = sunLongitude(time);
+        double moon = moonLongitude(time, sun);
+        double gap = (moon - sun) % 360.0;
+        if (gap < 0) gap += 360.0;
+        int index = ((int) Math.floor(gap / 12.0)) % 30;
+        String[] names = {"प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पञ्चमी", "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पूर्णिमा"};
+        if (index == 29) return "औंसी";
+        if (index >= 15) return names[index - 15];
+        return names[index];
+    }
+
+    private double julian(int year, int month, int day, double ut) {
+        int y = year;
+        int m = month;
+        if (m <= 2) {
+            y -= 1;
+            m += 12;
+        }
+        int a = y / 100;
+        int b = 2 - a + a / 4;
+        return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + ut / 24.0 + b - 1524.5;
+    }
+
+    private double sunLongitude(double d) {
+        double mean = Math.toRadians((356.0470 + 0.9856002585 * d) % 360.0);
+        double lon = 282.9404 + 4.70935e-5 * d + Math.toDegrees(mean) + 1.9146 * Math.sin(mean) + 0.019993 * Math.sin(2 * mean);
+        return floor360(lon);
+    }
+
+    private double moonLongitude(double d, double sunLon) {
+        double node = floor360(125.1228 - 0.0529538083 * d);
+        double peri = floor360(318.0634 + 0.1643573223 * d);
+        double anomaly = floor360(115.3654 + 13.0649929509 * d);
+        double e = 0.054900;
+        double mr = Math.toRadians(anomaly);
+        double eccentric = mr + e * Math.sin(mr) * (1 + e * Math.cos(mr));
+        double xv = Math.cos(eccentric) - e;
+        double yv = Math.sqrt(1 - e * e) * Math.sin(eccentric);
+        double v = Math.atan2(yv, xv);
+        double nr = Math.toRadians(node);
+        double wr = Math.toRadians(peri);
+        double i = Math.toRadians(5.1454);
+        double xh = Math.cos(nr) * Math.cos(v + wr) - Math.sin(nr) * Math.sin(v + wr) * Math.cos(i);
+        double yh = Math.sin(nr) * Math.cos(v + wr) + Math.cos(nr) * Math.sin(v + wr) * Math.cos(i);
+        double lon = Math.toDegrees(Math.atan2(yh, xh));
+        double moonMean = floor360(node + peri + anomaly);
+        double sunMean = floor360(282.9404 + 4.70935e-5 * d + ((356.0470 + 0.9856002585 * d) % 360.0));
+        double dr = Math.toRadians(floor360(moonMean - sunMean));
+        double fr = Math.toRadians(floor360(moonMean - node));
+        double mm = Math.toRadians(anomaly);
+        double ms = Math.toRadians(floor360(356.0470 + 0.9856002585 * d));
+        lon += -1.274 * Math.sin(mm - 2 * dr) + 0.658 * Math.sin(2 * dr) - 0.186 * Math.sin(ms)
+                - 0.059 * Math.sin(2 * mm - 2 * dr) - 0.057 * Math.sin(mm - 2 * dr + ms)
+                + 0.053 * Math.sin(mm + 2 * dr) + 0.046 * Math.sin(2 * dr - ms) + 0.041 * Math.sin(mm - ms)
+                - 0.035 * Math.sin(dr) - 0.031 * Math.sin(mm + ms) - 0.015 * Math.sin(2 * fr - 2 * dr)
+                + 0.011 * Math.sin(mm - 4 * dr);
+        return floor360(lon + sunLon - sunLon);
+    }
+
+    private double floor360(double value) {
+        double wrapped = value % 360.0;
+        return wrapped < 0 ? wrapped + 360.0 : wrapped;
+    }
+
+    private GradientDrawable round(int color, int radius, int stroke) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(radius));
+        if (stroke != 0) bg.setStroke(dp(1), stroke);
+        return bg;
     }
 }
