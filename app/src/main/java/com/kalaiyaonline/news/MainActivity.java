@@ -214,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
                 setMore(false);
                 currentNav = id;
                 if (id == R.id.nav_home) showHome();
+                else if (id == R.id.nav_social) showSocial();
                 else if (id == R.id.nav_gallery) showList("gallery");
                 else if (id == R.id.nav_directory) showDirectory();
                 else if (id == R.id.nav_saved) showSaved();
@@ -259,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
         else if ("gallery".equals(open)) nav.setSelectedItemId(R.id.nav_gallery);
         else if ("directory".equals(open)) nav.setSelectedItemId(R.id.nav_directory);
         else if ("saved".equals(open)) nav.setSelectedItemId(R.id.nav_saved);
+        else if ("social".equals(open)) nav.setSelectedItemId(R.id.nav_social);
         else nav.setSelectedItemId(R.id.nav_home);
     }
 
@@ -267,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (shellAd != null) shellAd.resume();
         if (feedAd != null) feedAd.resume();
+        if ("social".equals(section) && social != null && social.waitingForLogin()) social.load();
         if (updates != null) updates.installPending();
     }
 
@@ -1225,6 +1228,21 @@ public class MainActivity extends AppCompatActivity {
         if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
         page.addView(board);
         directory.load();
+    }
+
+    private SocialBoard social;
+
+    private void showSocial() {
+        section = "social";
+        stopMotion();
+        setMore(false);
+        page.removeAllViews();
+        page.addView(heading("समुदाय"));
+        if (social == null) social = new SocialBoard(this);
+        View board = social.view();
+        if (board.getParent() instanceof ViewGroup) ((ViewGroup) board.getParent()).removeView(board);
+        page.addView(board);
+        social.load();
     }
 
     private void showSaved() {

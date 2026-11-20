@@ -339,6 +339,7 @@ public class GalleryActivity extends AppCompatActivity {
         if (id == R.id.nav_gallery) return "gallery";
         if (id == R.id.nav_directory) return "directory";
         if (id == R.id.nav_saved) return "saved";
+        if (id == R.id.nav_social) return "social";
         if (id == R.id.nav_more) return "more";
         return "home";
     }

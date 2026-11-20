@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/nav_home" android:icon="@drawable/ic_home" android:title="गृह" />
+    <item android:id="@+id/nav_social" android:icon="@drawable/ic_nav_social" android:title="समुदाय" />
     <item android:id="@+id/nav_gallery" android:icon="@drawable/ic_photo" android:title="फोटो" />
     <item android:id="@+id/nav_directory" android:icon="@drawable/ic_pin" android:title="डाइरेक्टरी" />
     <item android:id="@+id/nav_saved" android:icon="@drawable/ic_bookmark" android:title="सेभ" />

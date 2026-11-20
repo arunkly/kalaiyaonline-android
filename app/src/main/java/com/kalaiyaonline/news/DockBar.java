@@ -19,18 +19,18 @@ final class DockBar extends LinearLayout {
     }
 
     private static final int[] IDS = {
-            R.id.nav_gallery, R.id.nav_directory, R.id.nav_home, R.id.nav_saved, R.id.nav_more
+            R.id.nav_gallery, R.id.nav_directory, R.id.nav_home, R.id.nav_social, R.id.nav_saved, R.id.nav_more
     };
     private static final int[] ICONS = {
-            R.drawable.ic_nav_photo, R.drawable.ic_nav_pin, R.drawable.ic_nav_home, R.drawable.ic_nav_save, R.drawable.ic_nav_more
+            R.drawable.ic_nav_photo, R.drawable.ic_nav_pin, R.drawable.ic_nav_home, R.drawable.ic_nav_social, R.drawable.ic_nav_save, R.drawable.ic_nav_more
     };
-    private static final String[] LABELS = {"फोटो", "डाइरेक्टरी", "गृह", "सेभ", "थप"};
+    private static final String[] LABELS = {"फोटो", "डाइरेक्टरी", "गृह", "समुदाय", "सेभ", "थप"};
     private static final int ACTIVE = 0xFFF15A22;
     private static final int IDLE = 0xFF1A1A1A;
 
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final ImageView[] icons = new ImageView[5];
-    private final TextView[] labels = new TextView[5];
+    private final ImageView[] icons = new ImageView[IDS.length];
+    private final TextView[] labels = new TextView[IDS.length];
     private Listener listener;
     private int selected = R.id.nav_home;
 
@@ -47,10 +47,10 @@ final class DockBar extends LinearLayout {
             slot.setGravity(Gravity.CENTER);
             ImageView icon = new ImageView(context);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            slot.addView(icon, new LayoutParams(dp(24), dp(24)));
+            slot.addView(icon, new LayoutParams(dp(22), dp(22)));
             TextView label = new TextView(context);
             label.setText(LABELS[i]);
-            label.setTextSize(12);
+            label.setTextSize(11);
             label.setGravity(Gravity.CENTER);
             label.setIncludeFontPadding(false);
             label.setPadding(0, dp(2), 0, 0);
