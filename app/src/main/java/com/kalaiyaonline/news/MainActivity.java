@@ -1519,10 +1519,10 @@ public class MainActivity extends AppCompatActivity {
         rowLp.topMargin = dp(8);
         rowLp.bottomMargin = dp(8);
         row.setLayoutParams(rowLp);
-        row.addView(dateChip(dateLine), new LinearLayout.LayoutParams(0, dp(58), 1.15f));
+        row.addView(dateChip(dateLine), new LinearLayout.LayoutParams(0, dp(58), 1f));
         View gap = new View(this);
         row.addView(gap, new LinearLayout.LayoutParams(dp(8), 1));
-        row.addView(weatherChip(), new LinearLayout.LayoutParams(0, dp(58), 1f));
+        row.addView(weatherChip(), new LinearLayout.LayoutParams(0, dp(58), 1.35f));
         loadStripWeather();
         return row;
     }
@@ -1568,14 +1568,14 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.HORIZONTAL);
         box.setGravity(Gravity.CENTER_VERTICAL);
-        box.setPadding(dp(10), dp(6), dp(10), dp(6));
+        box.setPadding(dp(8), dp(6), dp(8), dp(6));
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFFFFFFF, 0xFF8FDBA8});
         bg.setCornerRadius(dp(18));
         box.setBackground(bg);
         box.setElevation(0);
         weatherScene = new WeatherScene(this);
         weatherScene.setPlate(false);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(52), dp(46));
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(28), dp(28));
         sceneLp.rightMargin = dp(2);
         box.addView(weatherScene, sceneLp);
         weatherTemp = new TextView(this);
@@ -1586,7 +1586,7 @@ public class MainActivity extends AppCompatActivity {
         box.addView(weatherTemp);
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
-        words.setPadding(dp(8), 0, 0, 0);
+        words.setPadding(dp(6), 0, 0, 0);
         TextView place = new TextView(this);
         place.setText("कलैया");
         place.setTextColor(0xFFF15A22);
@@ -1597,10 +1597,12 @@ public class MainActivity extends AppCompatActivity {
         weatherFlip.setText("लोड हुँदैछ");
         weatherFlip.setTextColor(0xFF142033);
         weatherFlip.setMaxLines(1);
+        weatherFlip.setSingleLine(true);
         style(weatherFlip, 13, R.font.mukta_semibold);
+        androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(weatherFlip, 10, 13, 1, TypedValue.COMPLEX_UNIT_DIP);
         weatherFlip.setIncludeFontPadding(false);
-        words.addView(weatherFlip);
-        box.addView(words);
+        words.addView(weatherFlip, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        box.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         box.setOnClickListener(v -> showWeather());
         return box;
     }
