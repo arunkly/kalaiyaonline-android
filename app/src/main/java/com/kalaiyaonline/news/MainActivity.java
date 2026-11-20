@@ -409,17 +409,18 @@ public class MainActivity extends AppCompatActivity {
         box.setElevation(dp(12));
         box.setOnClickListener(v -> { });
         TextView title = new TextView(this);
-        title.setText("सूचना");
+        title.setText("समाचार नोटिफिकेशन");
         title.setTextColor(0xFF0B5C28);
+        title.setGravity(Gravity.CENTER);
         style(title, 18, R.font.mukta_extrabold);
-        box.addView(title);
+        box.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tabLp.topMargin = dp(8);
         box.addView(tabs, tabLp);
-        bellFresh = bellTab("ताजा समाचार", 0);
-        bellHot = bellTab("लोकप्रिय समाचार", 1);
+        bellFresh = bellTab("ताजा समाचार", R.drawable.ic_tab_fresh);
+        bellHot = bellTab("लोकप्रिय समाचार", R.drawable.ic_tab_hot);
         tabs.addView(wrapTab(bellFresh, bellFreshLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         tabs.addView(wrapTab(bellHot, bellHotLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         paintBellTabs();
@@ -474,12 +475,20 @@ public class MainActivity extends AppCompatActivity {
         return col;
     }
 
-    private TextView bellTab(String label, int mode) {
+    private TextView bellTab(String label, int icon) {
         TextView tab = new TextView(this);
         tab.setText(label);
         tab.setGravity(Gravity.CENTER);
-        tab.setPadding(dp(4), dp(6), dp(4), dp(6));
-        style(tab, 14, R.font.mukta_bold);
+        tab.setMaxLines(1);
+        tab.setSingleLine(true);
+        tab.setIncludeFontPadding(false);
+        tab.setPadding(0, dp(8), 0, dp(8));
+        style(tab, 19, R.font.mukta_bold);
+        Drawable mark = DrawableCompat.wrap(getDrawable(icon)).mutate();
+        mark.setBounds(0, 0, dp(18), dp(18));
+        tab.setCompoundDrawables(mark, null, null, null);
+        tab.setCompoundDrawablePadding(dp(4));
+        tab.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return tab;
     }
 
@@ -491,10 +500,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void paintBellTabs() {
         boolean hot = bellMode == 1;
-        bellFresh.setTextColor(hot ? 0xFFA8A29E : 0xFF0B5C28);
-        bellHot.setTextColor(hot ? 0xFF0B5C28 : 0xFFA8A29E);
+        paintTab(bellFresh, hot ? 0xFFA8A29E : 0xFF0B5C28);
+        paintTab(bellHot, hot ? 0xFF0B5C28 : 0xFFA8A29E);
         bellFreshLine.setVisibility(hot ? View.INVISIBLE : View.VISIBLE);
         bellHotLine.setVisibility(hot ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    private void paintTab(TextView tab, int color) {
+        tab.setTextColor(color);
+        Drawable mark = tab.getCompoundDrawables()[0];
+        if (mark != null) DrawableCompat.setTint(mark, color);
     }
 
     private List<Story> latestSeven(SiteClient.Home home) {
