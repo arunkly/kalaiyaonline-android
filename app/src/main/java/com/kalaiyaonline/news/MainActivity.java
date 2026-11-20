@@ -683,12 +683,17 @@ public class MainActivity extends AppCompatActivity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundColor(dark ? 0xFF121816 : 0xFFF6F8F7);
         box.setElevation(dp(18));
-        box.setClipChildren(false);
+        box.setClipChildren(true);
         Night.allow(box, false);
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.VERTICAL);
+        top.setClipChildren(false);
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
-        brand.setPadding(dp(18), dp(20), dp(18), dp(28));
+        brand.setGravity(Gravity.CENTER_HORIZONTAL);
+        brand.setPadding(dp(18), dp(18), dp(18), dp(26));
         GradientDrawable head = new GradientDrawable();
         head.setColor(0xFF0F8A3C);
         float arc = dp(26);
@@ -704,8 +709,10 @@ public class MainActivity extends AppCompatActivity {
         chip.setColor(0xFFFFFFFF);
         chip.setCornerRadius(dp(14));
         mark.setBackground(chip);
-        brand.addView(mark, new LinearLayout.LayoutParams(dp(168), dp(42)));
-        box.addView(brand);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(168), dp(42));
+        logoLp.gravity = Gravity.CENTER_HORIZONTAL;
+        brand.addView(mark, logoLp);
+        top.addView(brand);
 
         View theme = themeSwitch();
         LinearLayout.LayoutParams themeLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -714,20 +721,14 @@ public class MainActivity extends AppCompatActivity {
         themeLp.topMargin = dp(-18);
         theme.setLayoutParams(themeLp);
         theme.setElevation(dp(8));
-        box.addView(theme);
-
-        TextView sub = new TextView(this);
-        sub.setText("श्रेणी");
-        sub.setTextColor(dark ? 0xFF9AA89F : 0xFF78716C);
-        style(sub, 12, R.font.mukta_bold);
-        sub.setPadding(dp(22), dp(16), dp(16), dp(4));
-        box.addView(sub);
+        top.addView(theme);
+        box.addView(top);
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.setVerticalScrollBarEnabled(false);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(12), dp(4), dp(12), dp(8));
+        list.setPadding(dp(12), dp(14), dp(12), dp(8));
         String[][] items = {
                 {"news", "समाचार"},
                 {"local", "स्थानीय"},
@@ -752,7 +753,7 @@ public class MainActivity extends AppCompatActivity {
         style(version, 12, R.font.mukta_semibold);
         version.setPadding(dp(14), dp(7), dp(14), dp(7));
         GradientDrawable pill = new GradientDrawable();
-        pill.setColor(dark ? 0xFF1C2822 : 0xFFFFFFFF);
+        pill.setColor(dark ? 0xFF1C2822 : 0xFFE7EEEA);
         pill.setCornerRadius(dp(16));
         version.setBackground(pill);
         LinearLayout.LayoutParams versionLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -798,6 +799,20 @@ public class MainActivity extends AppCompatActivity {
         return view;
     }
 
+    private int iconColor(String slug) {
+        if ("local".equals(slug)) return 0xFFF15A22;
+        if ("international".equals(slug)) return 0xFF2563EB;
+        if ("politics".equals(slug)) return 0xFF7C3AED;
+        if ("artha".equals(slug)) return 0xFFD97706;
+        if ("khelkud".equals(slug)) return 0xFFCA8A04;
+        if ("entertainment".equals(slug)) return 0xFFDB2777;
+        if ("lekhabichar".equals(slug)) return 0xFF0D9488;
+        if ("gallery".equals(slug)) return 0xFF4F46E5;
+        if ("videos".equals(slug)) return 0xFFDC2626;
+        if ("directory".equals(slug)) return 0xFFEA580C;
+        return 0xFF0F8A3C;
+    }
+
     private String versionName() {
         try {
             return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
@@ -821,10 +836,11 @@ public class MainActivity extends AppCompatActivity {
         icon.setPadding(dp(7), dp(7), dp(7), dp(7));
         GradientDrawable bubble = new GradientDrawable();
         bubble.setCornerRadius(dp(12));
-        bubble.setColor(dark ? 0xFF24362C : 0xFFE7F6EE);
+        int tint = iconColor(slug);
+        bubble.setColor(dark ? 0xFF243028 : (tint & 0x00FFFFFF) | 0x24000000);
         icon.setBackground(bubble);
         Drawable drawable = DrawableCompat.wrap(icon.getDrawable()).mutate();
-        DrawableCompat.setTint(drawable, 0xFF0F8A3C);
+        DrawableCompat.setTint(drawable, tint);
         icon.setImageDrawable(drawable);
         row.addView(icon, new LinearLayout.LayoutParams(dp(36), dp(36)));
         TextView text = new TextView(this);
