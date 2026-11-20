@@ -2102,6 +2102,15 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams markLp = new LinearLayout.LayoutParams(dp(4), dp(18));
         markLp.rightMargin = dp(8);
         head.addView(mark, markLp);
+        if (label == null || !label.contains("राशि")) {
+            ImageView icon = new ImageView(this);
+            Drawable drawable = DrawableCompat.wrap(getDrawable(iconForHeading(label, slug))).mutate();
+            DrawableCompat.setTint(drawable, 0xFFF15A22);
+            icon.setImageDrawable(drawable);
+            LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(18), dp(18));
+            iconLp.rightMargin = dp(6);
+            head.addView(icon, iconLp);
+        }
         TextView title = new TextView(this);
         title.setText(label);
         title.setTextColor(0xFF102418);
@@ -2628,6 +2637,12 @@ public class MainActivity extends AppCompatActivity {
         lp.setMargins(-dp(12), -dp(8), -dp(12), dp(8));
         view.setLayoutParams(lp);
         return view;
+    }
+
+    private int iconForHeading(String label, String slug) {
+        if (label != null && label.contains("राशि")) return R.drawable.ic_cat_news;
+        if (slug != null && !slug.isEmpty()) return iconFor(slug);
+        return R.drawable.ic_cat_news;
     }
 
     private int iconFor(String slug) {
