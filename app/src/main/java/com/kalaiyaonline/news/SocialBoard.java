@@ -1,16 +1,19 @@
 package com.kalaiyaonline.news;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
-import android.text.Layout;
+import android.net.Uri;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,10 +32,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 final class SocialBoard {
     private static final String HOME = "https://kalaiyaonline.com/social.php";
+    private static final String[] EMOJI = {"😀", "😍", "😂", "❤️", "👍", "🙏", "🎉", "🔥", "😢", "😮", "👏", "🇳🇵"};
     private final Activity activity;
     private final LinearLayout root;
     private int generation;
@@ -61,7 +67,7 @@ final class SocialBoard {
         int token = ++generation;
         pageUrl = url == null || url.isEmpty() ? HOME : url;
         root.removeAllViews();
-        root.addView(line("समुदाय लोड हुँदैछ…", 15, 0xFF78716C, false));
+        root.addView(note("समुदाय लोड हुँदैछ…", 15, 0xFF78716C, false));
         new Thread(() -> {
             String html = fetch("GET", pageUrl, null);
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
@@ -74,297 +80,541 @@ final class SocialBoard {
         root.removeAllViews();
         pageUrl = url;
         Document doc = Jsoup.parse(html == null ? "" : html, url);
-        boolean login = doc.selectFirst("input[name=mode][value=login]") != null
-                && (doc.title() == null || doc.title().contains("लग"));
-        gated = login && doc.selectFirst(".social-post, .social-composer, .user-row") == null;
-        if (gated || html == null) {
+        doc.select("script, style, header, footer, nav, .aks-mobile-bottom-bar, .ads-slot").remove();
+        boolean login = doc.selectFirst("input[name=mode][value=login]") != null;
+        gated = html == null || (login && doc.selectFirst("textarea") == null);
+        if (gated) {
             root.addView(card(loginCard(html == null)));
             return;
         }
-        Element alert = doc.selectFirst(".social-alert");
-        if (alert != null && !alert.text().isEmpty()) root.addView(line(alert.text(), 14, 0xFF0F8A3C, true));
-        if (!HOME.equals(url)) root.addView(chip("फिड", HOME));
-        Element side = doc.selectFirst(".social-side");
-        if (side != null && !side.select("a").isEmpty()) root.addView(chips(side.select("a")));
-        Element composer = doc.selectFirst(".social-composer");
-        if (composer != null) {
-            Element form = composer.selectFirst("form");
-            if (form == null && "form".equals(composer.tagName())) form = composer;
-            if (form != null) root.addView(card(composerBox(form)));
-        }
-        Element profile = doc.selectFirst(".profile-hero, .profile-edit, .social-profile-page");
-        if (profile != null) root.addView(card(profileBox(doc)));
-        for (Element row : doc.select(".notification-row")) root.addView(card(noteBox(row)));
-        Element chat = doc.selectFirst(".social-chat-layout, .chat-box");
-        if (chat != null) root.addView(card(chatBox(doc)));
-        for (Element row : doc.select(".user-row, .user-card")) root.addView(card(personBox(row)));
-        int posts = 0;
-        for (Element post : doc.select(".social-post")) {
-            root.addView(card(postBox(post)));
-            posts++;
-        }
-        if (posts == 0 && doc.select(".user-row, .user-card, .notification-row, .chat-msg").isEmpty() && composer == null && profile == null) {
-            root.addView(line("यस खण्डमा अहिले केही छैन।", 15, 0xFF78716C, false));
-        }
+        Element alert = doc.selectFirst(".social-alert, .koc-alert, .alert");
+        if (alert != null && !alert.text().trim().isEmpty()) root.addView(note(alert.text(), 14, 0xFF0F8A3C, true));
+        if (!HOME.equals(url)) root.addView(textButton("फिड", () -> open(HOME), false));
+        root.addView(newsStrip(doc));
+        Element area = composerArea(doc);
+        if (area != null) root.addView(card(composer(area)));
+        List<Element> posts = posts(doc);
+        for (Element post : posts) root.addView(card(postCard(post)));
+        View members = members(doc);
+        if (members != null) root.addView(card(members));
+        View referral = referral(doc);
+        if (referral != null) root.addView(card(referral));
+        if (area == null && posts.isEmpty() && members == null) root.addView(note("समुदायमा अहिले केही छैन।", 15, 0xFF78716C, false));
     }
 
-    private View loginCard(boolean offline) {
-        LinearLayout box = new LinearLayout(activity);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.addView(line(offline ? "समुदाय आएन। नेट जाँच गर्नुहोस्।" : "समुदाय हेर्न आफ्नो खातामा लगइन गर्नुहोस्।", 16, 0xFF142033, true));
-        box.addView(button(offline ? "फेरि प्रयास" : "लगइन / खाता", () -> {
-            if (offline) load();
-            else activity.startActivity(new Intent(activity, AccountActivity.class));
-        }));
-        return box;
+    private Element composerArea(Document doc) {
+        for (Element area : doc.select("textarea")) {
+            String hint = area.attr("placeholder");
+            if (hint.contains("status") || hint.contains("स्टाटस") || hint.contains("आजको") || area.closest(".social-composer") != null) return area;
+        }
+        return doc.selectFirst("textarea");
     }
 
-    private View composerBox(Element form) {
+    private View composer(Element area) {
+        Element form = area.closest("form");
+        if (form == null) form = area.parent();
+        Element scope = form;
+        for (int i = 0; i < 4 && scope.parent() != null; i++) {
+            if (scope.text().contains("प्रकाशित") || scope.text().contains("Poll") || scope.text().contains("Emoji")) break;
+            scope = scope.parent();
+        }
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        Element area = form.selectFirst("textarea");
-        EditText input = field(area == null ? "के सोच्दै हुनुहुन्छ?" : hint(area, "के सोच्दै हुनुहुन्छ?"), true);
-        box.addView(input);
+        LinearLayout head = new LinearLayout(activity);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(avatar(firstImage(scope), Account.name(), dp(44)));
+        EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको status के छ?" : area.attr("placeholder"), true);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        statusLp.leftMargin = dp(10);
+        status.setLayoutParams(statusLp);
+        head.addView(status);
+        box.addView(head);
+
         LinkedHashMap<String, String> fields = fieldsOf(form);
+        String key = area.attr("name");
+        LinearLayout extras = new LinearLayout(activity);
+        extras.setOrientation(LinearLayout.VERTICAL);
+        extras.setVisibility(View.GONE);
+        EditText link = input("समाचारको लिंक", false);
+        link.setVisibility(View.GONE);
+        LinearLayout polls = new LinearLayout(activity);
+        polls.setOrientation(LinearLayout.VERTICAL);
+        List<Element> pollInputs = new ArrayList<>();
+        for (Element input : form.select("input[name], textarea[name]")) {
+            if (input == area) continue;
+            String type = input.attr("type").toLowerCase();
+            if ("hidden".equals(type) || "submit".equals(type) || "file".equals(type)) continue;
+            String name = input.attr("name").toLowerCase();
+            if (name.contains("link") || name.contains("url")) {
+                link.setHint(input.attr("placeholder").isEmpty() ? "समाचारको लिंक" : input.attr("placeholder"));
+                link.setTag(input.attr("name"));
+            } else if (name.contains("poll") || name.contains("option") || name.contains("choice")) {
+                pollInputs.add(input);
+            }
+        }
+        for (Element input : pollInputs) {
+            EditText field = input(input.attr("placeholder").isEmpty() ? "विकल्प" : input.attr("placeholder"), false);
+            field.setTag(input.attr("name"));
+            polls.addView(field);
+        }
+        LinearLayout emoji = new LinearLayout(activity);
+        emoji.setOrientation(LinearLayout.VERTICAL);
+        emoji.setVisibility(View.GONE);
+        box.addView(modes(status, link, polls, emoji));
+        box.addView(emojiGrid(emoji, status, scope));
+        box.addView(link);
+        box.addView(polls);
         Element select = form.selectFirst("select");
-        if (select != null && select.select("option").size() > 1) box.addView(choices(select, fields));
-        String key = area == null ? "" : area.attr("name");
-        Element submit = form.selectFirst("button, input[type=submit]");
-        box.addView(button(submit == null || submit.text().isEmpty() ? "पोस्ट" : submit.text(), () -> {
-            if (!key.isEmpty()) fields.put(key, input.getText().toString().trim());
-            if (!key.isEmpty() && fields.get(key).isEmpty()) return;
-            send(form, submit, fields);
+        if (select != null) box.addView(privacy(select, fields));
+        Element submit = form.selectFirst("button[type=submit], input[type=submit], button");
+        String label = "प्रकाशित गर्नुहोस्";
+        if (submit != null && submit.text().contains("प्रकाशित")) label = submit.text();
+        Element button = submit;
+        Element formEl = form;
+        box.addView(wideButton(label, 0xFF0F8A3C, () -> {
+            if (!key.isEmpty()) fields.put(key, status.getText().toString().trim());
+            if (link.getVisibility() == View.VISIBLE && link.getTag() instanceof String) fields.put((String) link.getTag(), link.getText().toString().trim());
+            else if (link.getVisibility() == View.VISIBLE && !link.getText().toString().trim().isEmpty() && !key.isEmpty()) {
+                fields.put(key, (fields.get(key) + "\n" + link.getText().toString().trim()).trim());
+            }
+            for (int i = 0; i < polls.getChildCount(); i++) {
+                View child = polls.getChildAt(i);
+                if (child instanceof EditText && child.getTag() instanceof String) {
+                    fields.put((String) child.getTag(), ((EditText) child).getText().toString().trim());
+                }
+            }
+            if (key.isEmpty() || fields.get(key) == null || fields.get(key).isEmpty()) return;
+            send(formEl, button, fields);
         }));
         return box;
     }
 
-    private View postBox(Element post) {
+    private View modes(EditText status, EditText link, LinearLayout polls, LinearLayout emoji) {
+        LinearLayout grid = new LinearLayout(activity);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        String[] labels = {"स्टाटस", "समाचार Link", "Poll", "Emoji"};
+        TextView[] chips = new TextView[4];
+        Runnable[] apply = new Runnable[4];
+        apply[0] = () -> { link.setVisibility(View.GONE); polls.setVisibility(View.GONE); emoji.setVisibility(View.GONE); };
+        apply[1] = () -> { link.setVisibility(View.VISIBLE); polls.setVisibility(View.GONE); emoji.setVisibility(View.GONE); };
+        apply[2] = () -> { link.setVisibility(View.GONE); polls.setVisibility(polls.getChildCount() == 0 ? View.GONE : View.VISIBLE); emoji.setVisibility(View.GONE); };
+        apply[3] = () -> { link.setVisibility(View.GONE); polls.setVisibility(View.GONE); emoji.setVisibility(View.VISIBLE); };
+        for (int row = 0; row < 2; row++) {
+            LinearLayout line = new LinearLayout(activity);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < 2; col++) {
+                int index = row * 2 + col;
+                TextView chip = note(labels[index], 14, index == 0 ? 0xFFC2410C : 0xFF334155, true);
+                chip.setGravity(Gravity.CENTER);
+                chip.setBackground(stroke(index == 0 ? 0xFFFDE7D6 : 0xFFFFFFFF, index == 0 ? 0xFFF3C7A6 : 0xFFE5E7EB));
+                chip.setPadding(dp(8), dp(10), dp(8), dp(10));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                lp.setMargins(dp(4), dp(4), dp(4), dp(4));
+                chip.setLayoutParams(lp);
+                chips[index] = chip;
+                chip.setOnClickListener(v -> {
+                    for (int n = 0; n < chips.length; n++) {
+                        boolean on = chips[n] == v;
+                        chips[n].setTextColor(on ? 0xFFC2410C : 0xFF334155);
+                        chips[n].setBackground(stroke(on ? 0xFFFDE7D6 : 0xFFFFFFFF, on ? 0xFFF3C7A6 : 0xFFE5E7EB));
+                    }
+                    apply[index].run();
+                });
+                line.addView(chip);
+            }
+            grid.addView(line);
+        }
+        return grid;
+    }
+
+    private View emojiGrid(LinearLayout host, EditText status, Element scope) {
+        host.setVisibility(View.GONE);
+        List<String> faces = new ArrayList<>();
+        for (Element button : scope.select("button, span")) {
+            String text = button.ownText().trim();
+            if (text.length() >= 1 && text.length() <= 3 && text.codePointAt(0) > 255 && !text.contains("स्टाटस")) faces.add(text);
+        }
+        if (faces.isEmpty()) for (String face : EMOJI) faces.add(face);
+        int columns = 6;
+        for (int i = 0; i < faces.size(); i += columns) {
+            LinearLayout row = new LinearLayout(activity);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for (int c = 0; c < columns && i + c < faces.size(); c++) {
+                String face = faces.get(i + c);
+                TextView cell = note(face, 22, 0xFF142033, false);
+                cell.setGravity(Gravity.CENTER);
+                cell.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
+                cell.setPadding(dp(4), dp(8), dp(4), dp(8));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+                lp.setMargins(dp(3), dp(3), dp(3), dp(3));
+                cell.setLayoutParams(lp);
+                cell.setOnClickListener(v -> status.getText().append(face));
+                row.addView(cell);
+            }
+            host.addView(row);
+        }
+        return host;
+    }
+
+    private View privacy(Element select, LinkedHashMap<String, String> fields) {
+        String name = select.attr("name");
+        List<Element> options = select.select("option");
+        int[] index = {0};
+        for (int i = 0; i < options.size(); i++) if (options.get(i).hasAttr("selected")) index[0] = i;
+        TextView view = note(options.isEmpty() ? "सबैले देख्ने" : options.get(index[0]).text(), 15, 0xFF334155, true);
+        view.setGravity(Gravity.CENTER_VERTICAL);
+        view.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
+        view.setPadding(dp(14), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        view.setLayoutParams(lp);
+        if (!options.isEmpty() && !name.isEmpty()) fields.put(name, options.get(index[0]).hasAttr("value") ? options.get(index[0]).attr("value") : options.get(index[0]).text());
+        view.setOnClickListener(v -> {
+            if (options.isEmpty()) return;
+            index[0] = (index[0] + 1) % options.size();
+            Element option = options.get(index[0]);
+            view.setText(option.text());
+            if (!name.isEmpty()) fields.put(name, option.hasAttr("value") ? option.attr("value") : option.text());
+        });
+        return view;
+    }
+
+    private View newsStrip(Document doc) {
+        HorizontalScrollView scroll = new HorizontalScrollView(activity);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, 0, 0, dp(8));
+        int count = 0;
+        for (Element link : doc.select("a[href*=/news/]")) {
+            if (link.selectFirst("img") == null) continue;
+            if (count >= 8) break;
+            String href = link.attr("abs:href");
+            String title = link.text().replaceAll("\\s+", " ").trim();
+            if (title.length() < 8) title = link.attr("title");
+            if (title.isEmpty()) continue;
+            String image = link.selectFirst("img").attr("abs:src");
+            FrameLayout tile = new FrameLayout(activity);
+            ImageView photo = new ImageView(activity);
+            photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            tile.addView(photo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            TextView caption = note(title, 12, 0xFFFFFFFF, true);
+            caption.setMaxLines(4);
+            caption.setPadding(dp(8), dp(28), dp(8), dp(8));
+            caption.setGravity(Gravity.BOTTOM);
+            caption.setBackgroundColor(0x66000000);
+            tile.addView(caption, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.BOTTOM));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(dp(14));
+            bg.setColor(0xFFE5E7EB);
+            tile.setBackground(bg);
+            tile.setClipToOutline(true);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(132), dp(176));
+            lp.rightMargin = dp(8);
+            tile.setLayoutParams(lp);
+            String slug = slug(href);
+            tile.setOnClickListener(v -> {
+                if (slug == null) return;
+                Intent intent = new Intent(activity, ArticleActivity.class);
+                intent.putExtra("slug", slug);
+                intent.putExtra("title", link.text());
+                intent.putExtra("image", image);
+                activity.startActivity(intent);
+            });
+            row.addView(tile);
+            loadImage(image, photo);
+            count++;
+        }
+        if (count == 0) return new View(activity);
+        scroll.addView(row);
+        return scroll;
+    }
+
+    private List<Element> posts(Document doc) {
+        List<Element> cards = new ArrayList<>();
+        for (Element input : doc.select("input[placeholder], textarea[placeholder]")) {
+            String hint = input.attr("placeholder");
+            if (!hint.contains("टिप्पणी") && !hint.toLowerCase().contains("comment")) continue;
+            Element card = input.parent();
+            while (card != null && card.parent() != null && !"body".equals(card.parent().tagName())) {
+                Element parent = card.parent();
+                if (parent.select("textarea[placeholder*=आजको], textarea[placeholder*=status]").size() > 0) break;
+                if (parent.select("input[placeholder*=टिप्पणी], textarea[placeholder*=टिप्पणी]").size() > 1) break;
+                card = parent;
+                if ("article".equals(card.tagName()) || card.className().contains("post")) break;
+            }
+            if (!cards.contains(card) && card.selectFirst("textarea[placeholder*=status], textarea[placeholder*=आजको]") == null) cards.add(card);
+        }
+        if (cards.isEmpty()) for (Element post : doc.select(".social-post")) cards.add(post);
+        return cards;
+    }
+
+    private View postCard(Element post) {
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        String author = text(post.selectFirst(".social-post-head b"));
-        String when = text(post.selectFirst(".social-post-head small"));
-        if (!author.isEmpty()) box.addView(line(author, 16, 0xFF142033, true));
-        if (!when.isEmpty()) box.addView(line(when, 12, 0xFF78716C, false));
-        String body = text(post.selectFirst(".social-post-body"));
-        if (!body.isEmpty()) box.addView(paragraph(body));
-        String image = post.select(".social-post-image").attr("abs:src");
-        if (!image.isEmpty()) box.addView(picture(image));
+        LinearLayout head = new LinearLayout(activity);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        String photo = firstImage(post);
+        String author = shortText(post.selectFirst("b, strong, h3, h2"));
+        head.addView(avatar(photo, author, dp(42)));
+        LinearLayout who = new LinearLayout(activity);
+        who.setOrientation(LinearLayout.VERTICAL);
+        who.setPadding(dp(10), 0, 0, 0);
+        if (!author.isEmpty()) who.addView(note(author, 16, 0xFF142033, true));
+        String meta = meta(post, author);
+        if (!meta.isEmpty()) who.addView(note(meta, 12, 0xFF78716C, false));
+        head.addView(who);
+        box.addView(head);
+        String body = body(post, author, meta);
+        if (!body.isEmpty()) box.addView(note(body, 16, 0xFF1C1917, false));
+        for (Element image : post.select("img")) {
+            String src = image.attr("abs:src");
+            if (src.isEmpty() || src.equals(photo)) continue;
+            ImageView view = new ImageView(activity);
+            view.setAdjustViewBounds(true);
+            view.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180));
+            lp.topMargin = dp(8);
+            view.setLayoutParams(lp);
+            box.addView(view);
+            loadImage(src, view);
+        }
         LinearLayout tools = new LinearLayout(activity);
         tools.setOrientation(LinearLayout.HORIZONTAL);
-        for (Element form : post.select(".social-post-tools form")) {
+        tools.setPadding(0, dp(8), 0, dp(4));
+        for (Element form : post.select("form")) {
+            String text = form.text();
+            if (text.contains("हटाउनुहोस्") || text.contains("टिप्पणी") || text.contains("पठाउनुहोस्") || text.contains("साथी")) continue;
             Element button = form.selectFirst("button, input[type=submit]");
             if (button == null) continue;
-            boolean liked = button.hasClass("liked") || form.selectFirst(".liked") != null;
-            TextView action = line(button.text().isEmpty() ? "मन पराउनुहोस्" : button.text(), 14, liked ? 0xFFE11D48 : 0xFF0F8A3C, true);
-            action.setPadding(0, dp(8), dp(14), dp(4));
+            TextView action = note(button.text().isEmpty() ? "मन पराउनुहोस्" : button.text(), 14, 0xFF334155, true);
+            action.setPadding(0, dp(6), dp(16), dp(6));
             action.setOnClickListener(v -> send(form, button, fieldsOf(form)));
             tools.addView(action);
         }
         if (tools.getChildCount() > 0) box.addView(tools);
-        for (Element comment : post.select(".comment-item")) {
-            String said = comment.text().replaceAll("\\s+", " ").trim();
-            if (!said.isEmpty()) box.addView(line(said, 14, 0xFF44403C, false));
+        box.addView(shares(post));
+        for (Element form : post.select("form")) {
+            Element button = form.selectFirst("button, input[type=submit]");
+            if (button == null || !button.text().contains("हटाउनुहोस्")) continue;
+            TextView danger = note(button.text(), 14, 0xFFBE123C, true);
+            danger.setBackground(stroke(0xFFFFF1F2, 0xFFFECDD3));
+            danger.setPadding(dp(12), dp(8), dp(12), dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = dp(8);
+            danger.setLayoutParams(lp);
+            danger.setOnClickListener(v -> send(form, button, fieldsOf(form)));
+            box.addView(danger);
         }
-        Element reply = post.selectFirst(".social-comment-form");
-        if (reply != null) box.addView(replyBox(reply));
+        Element reply = null;
+        for (Element form : post.select("form")) {
+            if (form.selectFirst("input[placeholder*=टिप्पणी], textarea[placeholder*=टिप्पणी], input[placeholder*=comment]") != null) reply = form;
+        }
+        if (reply != null) box.addView(replyRow(reply));
         return box;
     }
 
-    private View replyBox(Element form) {
+    private View shares(Element post) {
+        LinearLayout grid = new LinearLayout(activity);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        String[][] targets = {{"facebook", "Facebook"}, {"x.com", "X"}, {"twitter", "X"}, {"whatsapp", "WhatsApp"}};
+        List<Element> links = new ArrayList<>();
+        for (Element link : post.select("a[href]")) {
+            String href = link.attr("href").toLowerCase();
+            String text = link.text().toLowerCase();
+            if (href.contains("facebook") || href.contains("twitter") || href.contains("x.com") || href.contains("whatsapp") || text.contains("link") || text.contains("facebook") || text.contains("whatsapp")) links.add(link);
+        }
+        if (links.isEmpty()) return new View(activity);
+        LinearLayout row = null;
+        int n = 0;
+        for (Element link : links) {
+            if (n % 2 == 0) {
+                row = new LinearLayout(activity);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                grid.addView(row);
+            }
+            TextView chip = note(link.text().trim().isEmpty() ? "सेयर" : link.text().trim(), 14, 0xFF334155, true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setBackground(stroke(0xFFF8FAFC, 0xFFE5E7EB));
+            chip.setPadding(dp(8), dp(10), dp(8), dp(10));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            lp.setMargins(dp(4), dp(4), dp(4), dp(4));
+            chip.setLayoutParams(lp);
+            String href = link.attr("abs:href");
+            String label = link.text().toLowerCase();
+            chip.setOnClickListener(v -> {
+                if (label.contains("link")) {
+                    ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("link", href));
+                    chip.setText("कपी भयो");
+                } else activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(href)));
+            });
+            row.addView(chip);
+            n++;
+        }
+        return grid;
+    }
+
+    private View replyRow(Element form) {
+        Element field = form.selectFirst("input[placeholder], textarea[placeholder]");
         LinearLayout row = new LinearLayout(activity);
-        row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        Element input = form.selectFirst("input[name], textarea");
-        EditText field = field(input == null ? "कमेन्ट" : hint(input, "कमेन्ट"), false);
-        row.addView(field, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.setPadding(0, dp(8), 0, 0);
+        EditText input = input(field == null || field.attr("placeholder").isEmpty() ? "टिप्पणी लेख्नुहोस्..." : field.attr("placeholder"), false);
+        row.addView(input, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         Element button = form.selectFirst("button, input[type=submit]");
-        TextView send = line(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
-        send.setBackground(pill(0xFFF15A22));
-        send.setPadding(dp(12), dp(10), dp(12), dp(10));
+        TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
+        send.setGravity(Gravity.CENTER);
+        send.setBackground(pill(0xFFF97316));
+        send.setPadding(dp(14), dp(12), dp(14), dp(12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.leftMargin = dp(8);
         send.setLayoutParams(lp);
         send.setOnClickListener(v -> {
             LinkedHashMap<String, String> fields = fieldsOf(form);
-            if (input != null && !input.attr("name").isEmpty()) fields.put(input.attr("name"), field.getText().toString().trim());
-            if (input != null && !input.attr("name").isEmpty() && fields.get(input.attr("name")).isEmpty()) return;
+            if (field != null && !field.attr("name").isEmpty()) fields.put(field.attr("name"), input.getText().toString().trim());
+            if (field != null && !field.attr("name").isEmpty() && fields.get(field.attr("name")).isEmpty()) return;
             send(form, button, fields);
         });
         row.addView(send);
         return row;
     }
 
-    private View personBox(Element row) {
+    private View members(Document doc) {
+        List<Element> buttons = new ArrayList<>();
+        for (Element button : doc.select("button, a, input[type=submit]")) {
+            if (button.text().contains("साथी")) buttons.add(button);
+        }
+        if (buttons.isEmpty()) return null;
         LinearLayout box = new LinearLayout(activity);
         box.setOrientation(LinearLayout.VERTICAL);
-        String name = text(row.selectFirst("b"));
-        if (name.isEmpty()) name = text(row.selectFirst("a"));
-        String meta = text(row.selectFirst("small"));
-        if (!name.isEmpty()) box.addView(line(name, 16, 0xFF142033, true));
-        if (!meta.isEmpty() && !meta.equals(name)) box.addView(line(meta, 13, 0xFF78716C, false));
-        Element link = row.selectFirst("a[href]");
-        if (link != null) {
-            String href = link.attr("abs:href");
-            if (!href.isEmpty()) box.setOnClickListener(v -> open(href));
-        }
-        for (Element form : row.select("form")) {
-            Element button = form.selectFirst("button, input[type=submit]");
-            if (button == null) continue;
-            box.addView(button(button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), () -> send(form, button, fieldsOf(form))));
-        }
-        return box;
-    }
-
-    private View noteBox(Element row) {
-        LinearLayout box = new LinearLayout(activity);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.addView(paragraph(row.text()));
-        Element link = row.selectFirst("a[href]");
-        if (link != null) box.setOnClickListener(v -> open(link.attr("abs:href")));
-        return box;
-    }
-
-    private View chatBox(Document doc) {
-        LinearLayout box = new LinearLayout(activity);
-        box.setOrientation(LinearLayout.VERTICAL);
-        HorizontalScrollView people = chips(doc.select(".chat-user"));
-        if (people.getChildCount() > 0) box.addView(people);
-        for (Element msg : doc.select(".chat-msg")) {
-            String said = msg.text().replaceAll("\\s+", " ").trim();
-            if (!said.isEmpty()) box.addView(line(said, 15, 0xFF292524, false));
-        }
-        Element form = doc.selectFirst(".chat-form");
-        if (form != null) box.addView(replyBox(form));
-        else {
-            Element empty = doc.selectFirst(".chat-empty");
-            if (empty != null) box.addView(line(empty.text(), 14, 0xFF78716C, false));
-        }
-        return box;
-    }
-
-    private View profileBox(Document doc) {
-        LinearLayout box = new LinearLayout(activity);
-        box.setOrientation(LinearLayout.VERTICAL);
-        String name = text(doc.selectFirst(".profile-hero h1, .social-profile-mini h3"));
-        String about = text(doc.selectFirst(".profile-hero p, .social-profile-mini small"));
-        if (!name.isEmpty()) box.addView(line(name, 22, 0xFF142033, true));
-        if (!about.isEmpty()) box.addView(line(about, 14, 0xFF78716C, false));
-        Element stats = doc.selectFirst(".profile-stats, .social-stat");
-        if (stats != null && !stats.text().isEmpty()) box.addView(line(stats.text(), 14, 0xFF0F8A3C, true));
-        Element edit = doc.selectFirst(".profile-edit form, form.profile-edit");
-        if (edit != null) {
-            for (Element input : edit.select("input[name], textarea[name]")) {
-                String type = input.attr("type").toLowerCase();
-                if ("hidden".equals(type) || "submit".equals(type)) continue;
-                EditText field = field(hint(input, input.attr("name")), "textarea".equals(input.tagName()));
-                if (!input.val().isEmpty() && !"password".equals(type)) field.setText(input.val());
-                box.addView(field);
+        TextView title = note("दर्ता भएका सदस्यहरू", 18, 0xFF142033, true);
+        title.setGravity(Gravity.CENTER);
+        box.addView(title);
+        for (Element link : doc.select("a")) {
+            if (link.text().contains("सबै हेर्नुहोस्")) {
+                TextView more = note(link.text(), 14, 0xFF0F8A3C, true);
+                more.setGravity(Gravity.CENTER);
+                more.setBackground(pill(0xFFE7F6EE));
+                more.setPadding(dp(14), dp(8), dp(14), dp(8));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.gravity = Gravity.CENTER_HORIZONTAL;
+                lp.topMargin = dp(8);
+                more.setLayoutParams(lp);
+                more.setOnClickListener(v -> open(link.attr("abs:href")));
+                box.addView(more);
+                break;
             }
-            Element button = edit.selectFirst("button, input[type=submit]");
-            box.addView(button(button == null || button.text().isEmpty() ? "सेभ" : button.text(), () -> {
-                LinkedHashMap<String, String> fields = fieldsOf(edit);
-                int n = 0;
-                for (Element input : edit.select("input[name], textarea[name]")) {
-                    String type = input.attr("type").toLowerCase();
-                    if ("hidden".equals(type) || "submit".equals(type)) continue;
-                    View child = box.getChildAt(n + 3);
-                    n++;
-                    if (child instanceof EditText) fields.put(input.attr("name"), ((EditText) child).getText().toString().trim());
-                }
-                send(edit, button, fields);
+        }
+        HorizontalScrollView scroll = new HorizontalScrollView(activity);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(activity);
+        row.setPadding(0, dp(10), 0, 0);
+        for (Element button : buttons) {
+            Element card = button.parent();
+            for (int i = 0; i < 4 && card != null && card.parent() != null; i++) {
+                if (card.select("img").size() > 0 && card.text().length() < 90) break;
+                card = card.parent();
+            }
+            LinearLayout person = new LinearLayout(activity);
+            person.setOrientation(LinearLayout.VERTICAL);
+            person.setGravity(Gravity.CENTER_HORIZONTAL);
+            person.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
+            person.setPadding(dp(8), dp(10), dp(8), dp(10));
+            String name = shortText(card.selectFirst("b, strong"));
+            if (name.isEmpty()) name = button.parent() == null ? "" : button.parent().text().replace(button.text(), "").trim();
+            person.addView(avatar(firstImage(card), name, dp(52)));
+            TextView label = note(name, 12, 0xFF142033, true);
+            label.setGravity(Gravity.CENTER);
+            label.setMaxLines(2);
+            label.setPadding(0, dp(6), 0, dp(6));
+            person.addView(label);
+            TextView add = note(button.text().trim().isEmpty() ? "+ साथी" : button.text().trim(), 13, 0xFF0F8A3C, true);
+            add.setGravity(Gravity.CENTER);
+            add.setBackground(pill(0xFFE7F6EE));
+            add.setPadding(dp(8), dp(6), dp(8), dp(6));
+            Element form = button.closest("form");
+            add.setOnClickListener(v -> {
+                if (form != null) send(form, button, fieldsOf(form));
+                else if (button.hasAttr("href")) open(button.attr("abs:href"));
+            });
+            person.addView(add);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(108), ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = dp(8);
+            person.setLayoutParams(lp);
+            row.addView(person);
+        }
+        scroll.addView(row);
+        box.addView(scroll);
+        return box;
+    }
+
+    private View referral(Document doc) {
+        Element block = null;
+        for (Element element : doc.select("section, div, article")) {
+            String text = element.text();
+            if (text.contains("Referral") && text.length() < 500) {
+                block = element;
+                break;
+            }
+        }
+        if (block == null) return null;
+        LinearLayout box = new LinearLayout(activity);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(note("REFER & EARN", 12, 0xFFF15A22, true));
+        box.addView(note("Referral Program", 22, 0xFF142033, true));
+        String copy = block.text().replace("Referral Program", "").replace("REFER & EARN", "").trim();
+        Element action = null;
+        for (Element link : block.select("a, button")) if (link.text().toLowerCase().contains("referral")) action = link;
+        if (action != null) copy = copy.replace(action.text(), "").trim();
+        if (!copy.isEmpty()) box.addView(note(copy, 14, 0xFF44403C, false));
+        if (action != null) {
+            Element link = action;
+            box.addView(wideButton(action.text(), 0xFF0F8A3C, () -> {
+                if (link.hasAttr("href")) open(link.attr("abs:href"));
+                else if (link.closest("form") != null) send(link.closest("form"), link, fieldsOf(link.closest("form")));
             }));
         }
         return box;
     }
 
-    private HorizontalScrollView chips(org.jsoup.select.Elements links) {
-        HorizontalScrollView scroll = new HorizontalScrollView(activity);
-        scroll.setHorizontalScrollBarEnabled(false);
-        LinearLayout row = new LinearLayout(activity);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(0, dp(4), 0, dp(8));
-        for (Element link : links) {
-            String href = link.attr("abs:href");
-            String label = link.text().replaceAll("\\s+", " ").trim();
-            if (href.isEmpty() || label.isEmpty()) continue;
-            TextView chip = line(label, 13, 0xFF0F8A3C, true);
-            chip.setBackground(pill(0xFFE7F6EE));
-            chip.setPadding(dp(12), dp(8), dp(12), dp(8));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(8);
-            chip.setLayoutParams(lp);
-            chip.setOnClickListener(v -> open(href));
-            row.addView(chip);
-        }
-        scroll.addView(row);
-        return scroll;
-    }
-
-    private TextView chip(String label, String url) {
-        TextView view = line(label, 14, 0xFF0F8A3C, true);
-        view.setPadding(0, 0, 0, dp(8));
-        view.setOnClickListener(v -> open(url));
-        return view;
-    }
-
-    private View choices(Element select, LinkedHashMap<String, String> fields) {
-        String name = select.attr("name");
-        LinearLayout row = new LinearLayout(activity);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        TextView[] views = new TextView[select.select("option").size()];
-        int i = 0;
-        for (Element option : select.select("option")) {
-            TextView chip = line(option.text(), 13, 0xFF0F8A3C, true);
-            chip.setBackground(pill(option.hasAttr("selected") ? 0xFF0F8A3C : 0xFFE7F6EE));
-            chip.setTextColor(option.hasAttr("selected") ? 0xFFFFFFFF : 0xFF0F8A3C);
-            chip.setPadding(dp(10), dp(6), dp(10), dp(6));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.rightMargin = dp(6);
-            lp.bottomMargin = dp(8);
-            chip.setLayoutParams(lp);
-            int index = i;
-            views[i] = chip;
-            chip.setOnClickListener(v -> {
-                fields.put(name, option.attr("value"));
-                for (int n = 0; n < views.length; n++) {
-                    views[n].setBackground(pill(n == index ? 0xFF0F8A3C : 0xFFE7F6EE));
-                    views[n].setTextColor(n == index ? 0xFFFFFFFF : 0xFF0F8A3C);
-                }
-            });
-            row.addView(chip);
-            i++;
-        }
-        return row;
+    private View loginCard(boolean offline) {
+        LinearLayout box = new LinearLayout(activity);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(note(offline ? "समुदाय आएन। नेट जाँच गर्नुहोस्।" : "समुदाय हेर्न आफ्नो खातामा लगइन गर्नुहोस्।", 16, 0xFF142033, true));
+        box.addView(wideButton(offline ? "फेरि प्रयास" : "लगइन / खाता", 0xFF0F8A3C, () -> {
+            if (offline) load();
+            else activity.startActivity(new Intent(activity, AccountActivity.class));
+        }));
+        return box;
     }
 
     private void send(Element form, Element button, LinkedHashMap<String, String> fields) {
-        if (button != null && button.hasAttr("name") && !button.attr("name").isEmpty()) {
-            fields.put(button.attr("name"), button.attr("value"));
-        }
+        if (button != null && button.hasAttr("name") && !button.attr("name").isEmpty()) fields.put(button.attr("name"), button.attr("value"));
         String action = form.hasAttr("action") && !form.attr("action").isEmpty() ? form.attr("abs:action") : pageUrl;
         String method = form.attr("method").toUpperCase();
         if (!"GET".equals(method)) method = "POST";
         int token = ++generation;
         root.removeAllViews();
-        root.addView(line("पठाउँदैछ…", 15, 0xFF78716C, false));
+        root.addView(note("पठाउँदैछ…", 15, 0xFF78716C, false));
         String verb = method;
         new Thread(() -> {
             String body = "GET".equals(verb) ? null : encode(fields);
-            String target = action;
-            if ("GET".equals(verb)) target = action + (action.contains("?") ? "&" : "?") + encode(fields);
+            String target = "GET".equals(verb) ? action + (action.contains("?") ? "&" : "?") + encode(fields) : action;
             String html = fetch(verb, target, body);
-            String next = target;
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
-                if (token == generation) render(html, "GET".equals(verb) ? next : pageUrl);
+                if (token == generation) render(html, pageUrl);
             });
         }).start();
     }
 
     private LinkedHashMap<String, String> fieldsOf(Element form) {
         LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        if (form == null) return fields;
         for (Element input : form.select("input[name]")) {
             String type = input.attr("type").toLowerCase();
-            if ("submit".equals(type) || "button".equals(type) || "file".equals(type) || "image".equals(type)) continue;
+            if ("submit".equals(type) || "button".equals(type) || "file".equals(type)) continue;
             if (("checkbox".equals(type) || "radio".equals(type)) && !input.hasAttr("checked")) continue;
             fields.put(input.attr("name"), input.attr("value"));
         }
@@ -422,35 +672,37 @@ final class SocialBoard {
         return null;
     }
 
-    private View picture(String url) {
-        ImageView image = new ImageView(activity);
-        image.setAdjustViewBounds(true);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180));
-        lp.topMargin = dp(8);
-        lp.bottomMargin = dp(8);
-        image.setLayoutParams(lp);
+    private View avatar(String url, String name, int size) {
+        FrameLayout frame = new FrameLayout(activity);
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(12));
-        bg.setColor(0xFFE7F6EE);
-        image.setBackground(bg);
-        new Thread(() -> {
-            android.graphics.Bitmap bitmap = Bitmaps.load(url, 900);
-            if (bitmap != null && !activity.isDestroyed()) activity.runOnUiThread(() -> image.setImageBitmap(bitmap));
-        }).start();
-        return image;
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(0xFF7C3AED);
+        frame.setBackground(bg);
+        TextView letter = note(name.isEmpty() ? "स" : name.substring(0, 1).toUpperCase(), 16, 0xFFFFFFFF, true);
+        letter.setGravity(Gravity.CENTER);
+        frame.addView(letter, new FrameLayout.LayoutParams(size, size, Gravity.CENTER));
+        if (url != null && !url.isEmpty()) {
+            ImageView image = new ImageView(activity);
+            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            GradientDrawable clip = new GradientDrawable();
+            clip.setShape(GradientDrawable.OVAL);
+            clip.setColor(0xFFFFFFFF);
+            image.setBackground(clip);
+            image.setClipToOutline(true);
+            frame.addView(image, new FrameLayout.LayoutParams(size, size));
+            loadImage(url, image);
+        }
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+        frame.setLayoutParams(lp);
+        return frame;
     }
 
     private View card(View child) {
+        if (child == null || child.getParent() != null) return new View(activity);
         LinearLayout card = new LinearLayout(activity);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(14), dp(12), dp(14), dp(12));
-        GradientDrawable bg = new GradientDrawable();
-        boolean dark = Night.on(activity);
-        bg.setColor(dark ? 0xFF1A2420 : 0xFFFFFFFF);
-        bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1), dark ? 0xFF2C3A34 : 0xFFE6EBE8);
-        card.setBackground(bg);
+        card.setBackground(stroke(Night.on(activity) ? 0xFF1A2420 : 0xFFFFFFFF, 0xFFE6EBE8));
         card.addView(child);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = dp(10);
@@ -458,46 +710,41 @@ final class SocialBoard {
         return card;
     }
 
-    private View button(String label, Runnable action) {
-        TextView view = line(label, 15, 0xFFFFFFFF, true);
+    private View wideButton(String label, int color, Runnable action) {
+        TextView view = note(label, 16, 0xFFFFFFFF, true);
         view.setGravity(Gravity.CENTER);
-        view.setBackground(pill(0xFF0F8A3C));
-        view.setPadding(dp(12), dp(10), dp(12), dp(10));
+        view.setBackground(pill(color));
+        view.setPadding(dp(12), dp(12), dp(12), dp(12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
+        lp.topMargin = dp(10);
         view.setLayoutParams(lp);
         view.setOnClickListener(v -> action.run());
         return view;
     }
 
-    private EditText field(String hint, boolean multi) {
-        boolean dark = Night.on(activity);
-        EditText input = new EditText(activity);
-        input.setHint(hint);
-        input.setMinLines(multi ? 3 : 1);
-        input.setSingleLine(!multi);
-        input.setTextColor(dark ? 0xFFF4F7F5 : 0xFF1C1917);
-        input.setHintTextColor(0xFF9AA89F);
-        style(input, 16, false);
-        input.setPadding(dp(12), dp(10), dp(12), dp(10));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(dark ? 0xFF101412 : 0xFFF7FAF8);
-        bg.setCornerRadius(dp(12));
-        bg.setStroke(dp(1), 0xFFE3EBE6);
-        input.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(8);
-        input.setLayoutParams(lp);
-        return input;
-    }
-
-    private TextView paragraph(String value) {
-        TextView view = line(value, 16, Night.on(activity) ? 0xFFE7EEEA : 0xFF292524, false);
-        if (Build.VERSION.SDK_INT >= 26) view.setJustificationMode(Layout.JUSTIFICATION_MODE_INTER_WORD);
+    private TextView textButton(String label, Runnable action, boolean fill) {
+        TextView view = note(label, 14, fill ? 0xFFFFFFFF : 0xFF0F8A3C, true);
+        view.setOnClickListener(v -> action.run());
         return view;
     }
 
-    private TextView line(String value, int size, int color, boolean bold) {
+    private EditText input(String hint, boolean multi) {
+        EditText field = new EditText(activity);
+        field.setHint(hint);
+        field.setMinLines(multi ? 3 : 1);
+        field.setSingleLine(!multi);
+        field.setTextColor(0xFF1C1917);
+        field.setHintTextColor(0xFF9AA89F);
+        style(field, 15, false);
+        field.setPadding(dp(12), dp(10), dp(12), dp(10));
+        field.setBackground(stroke(0xFFF8FAFC, 0xFFE5E7EB));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        field.setLayoutParams(lp);
+        return field;
+    }
+
+    private TextView note(String value, int size, int color, boolean bold) {
         TextView view = new TextView(activity);
         view.setText(value);
         view.setTextColor(color);
@@ -513,18 +760,67 @@ final class SocialBoard {
 
     private GradientDrawable pill(int color) {
         GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(18));
         bg.setColor(color);
-        bg.setCornerRadius(dp(14));
         return bg;
     }
 
-    private String hint(Element element, String fallback) {
-        String hint = element.attr("placeholder");
-        return hint.isEmpty() ? fallback : hint;
+    private GradientDrawable stroke(int fill, int line) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(16));
+        bg.setColor(fill);
+        bg.setStroke(dp(1), line);
+        return bg;
     }
 
-    private String text(Element element) {
-        return element == null ? "" : element.text().replaceAll("\\s+", " ").trim();
+    private void loadImage(String url, ImageView image) {
+        if (url == null || url.isEmpty()) return;
+        new Thread(() -> {
+            android.graphics.Bitmap bitmap = Bitmaps.load(url, 800);
+            if (bitmap != null && !activity.isDestroyed()) activity.runOnUiThread(() -> image.setImageBitmap(bitmap));
+        }).start();
+    }
+
+    private String firstImage(Element scope) {
+        Element image = scope == null ? null : scope.selectFirst("img");
+        return image == null ? "" : image.attr("abs:src");
+    }
+
+    private String shortText(Element element) {
+        if (element == null) return "";
+        String text = element.text().replaceAll("\\s+", " ").trim();
+        return text.length() > 40 ? text.substring(0, 40) : text;
+    }
+
+    private String meta(Element post, String author) {
+        for (Element small : post.select("small, time, span")) {
+            String text = small.text().replaceAll("\\s+", " ").trim();
+            if (text.isEmpty() || text.equals(author) || text.length() > 80) continue;
+            if (text.contains("सार्वजनिक") || text.contains("स्टाटस") || text.contains("मंसिर") || text.contains("२०")) return text;
+        }
+        return "";
+    }
+
+    private String body(Element post, String author, String meta) {
+        Element known = post.selectFirst(".social-post-body, .post-body, .status-body");
+        if (known != null) return known.text().replaceAll("\\s+", " ").trim();
+        for (Element p : post.select("p")) {
+            String text = p.text().replaceAll("\\s+", " ").trim();
+            if (text.isEmpty() || text.equals(author) || text.equals(meta) || text.contains("सम्मानजनक")) continue;
+            if (!text.contains("हटाउनुहोस्") && !text.contains("टिप्पणी") && text.length() < 500) return text;
+        }
+        return "";
+    }
+
+    private String slug(String href) {
+        int at = href.indexOf("/news/");
+        if (at < 0) return null;
+        String rest = href.substring(at + 6);
+        int cut = rest.indexOf('/');
+        if (cut >= 0) rest = rest.substring(0, cut);
+        cut = rest.indexOf('?');
+        if (cut >= 0) rest = rest.substring(0, cut);
+        return rest.isEmpty() ? null : rest;
     }
 
     private String encode(LinkedHashMap<String, String> fields) {
