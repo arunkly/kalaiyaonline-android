@@ -113,6 +113,8 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout bellList;
     private TextView bellFresh;
     private TextView bellHot;
+    private ImageView bellFreshIcon;
+    private ImageView bellHotIcon;
     private View bellFreshLine;
     private View bellHotLine;
     private int bellMode;
@@ -419,10 +421,8 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tabLp.topMargin = dp(8);
         box.addView(tabs, tabLp);
-        bellFresh = bellTab("ताजा समाचार", R.drawable.ic_tab_fresh);
-        bellHot = bellTab("लोकप्रिय समाचार", R.drawable.ic_tab_hot);
-        tabs.addView(wrapTab(bellFresh, bellFreshLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        tabs.addView(wrapTab(bellHot, bellHotLine = tabLine()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tabs.addView(wrapTab(bellHeading("ताजा समाचार", R.drawable.ic_tab_fresh, false), bellFreshLine = tabLine(), 0), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tabs.addView(wrapTab(bellHeading("लोकप्रिय समाचार", R.drawable.ic_tab_hot, true), bellHotLine = tabLine(), 1), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         paintBellTabs();
         bellList = new LinearLayout(this);
         bellList.setOrientation(LinearLayout.VERTICAL);
@@ -461,35 +461,47 @@ public class MainActivity extends AppCompatActivity {
         else showBell(latestSeven(latestHome));
     }
 
-    private View wrapTab(TextView label, View line) {
+    private View wrapTab(View heading, View line, int mode) {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
-        col.addView(label);
+        col.addView(heading);
         col.addView(line, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
         col.setOnClickListener(v -> {
-            bellMode = label == bellHot ? 1 : 0;
+            bellMode = mode;
             paintBellTabs();
             fillBell();
         });
         return col;
     }
 
-    private TextView bellTab(String label, int icon) {
+    private View bellHeading(String label, int iconRes, boolean popular) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        row.addView(icon, new LinearLayout.LayoutParams(dp(26), dp(26)));
         TextView tab = new TextView(this);
         tab.setText(label);
-        tab.setGravity(Gravity.CENTER);
         tab.setMaxLines(1);
         tab.setSingleLine(true);
         tab.setIncludeFontPadding(false);
-        tab.setPadding(0, dp(8), 0, dp(8));
+        tab.setGravity(Gravity.CENTER_VERTICAL);
         style(tab, 19, R.font.mukta_bold);
-        Drawable mark = DrawableCompat.wrap(getDrawable(icon)).mutate();
-        mark.setBounds(0, 0, dp(18), dp(18));
-        tab.setCompoundDrawables(mark, null, null, null);
-        tab.setCompoundDrawablePadding(dp(4));
-        tab.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return tab;
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        textLp.leftMargin = dp(4);
+        tab.setPadding(0, dp(8), 0, dp(8));
+        row.addView(tab, textLp);
+        if (popular) {
+            bellHot = tab;
+            bellHotIcon = icon;
+        } else {
+            bellFresh = tab;
+            bellFreshIcon = icon;
+        }
+        return row;
     }
 
     private View tabLine() {
@@ -500,16 +512,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void paintBellTabs() {
         boolean hot = bellMode == 1;
-        paintTab(bellFresh, hot ? 0xFFA8A29E : 0xFF0B5C28);
-        paintTab(bellHot, hot ? 0xFF0B5C28 : 0xFFA8A29E);
+        paintTab(bellFresh, bellFreshIcon, hot ? 0xFFA8A29E : 0xFF0B5C28);
+        paintTab(bellHot, bellHotIcon, hot ? 0xFF0B5C28 : 0xFFA8A29E);
         bellFreshLine.setVisibility(hot ? View.INVISIBLE : View.VISIBLE);
         bellHotLine.setVisibility(hot ? View.VISIBLE : View.INVISIBLE);
     }
 
-    private void paintTab(TextView tab, int color) {
+    private void paintTab(TextView tab, ImageView icon, int color) {
         tab.setTextColor(color);
-        Drawable mark = tab.getCompoundDrawables()[0];
-        if (mark != null) DrawableCompat.setTint(mark, color);
+        if (icon == null || icon.getDrawable() == null) return;
+        Drawable mark = DrawableCompat.wrap(icon.getDrawable()).mutate();
+        DrawableCompat.setTint(mark, color);
+        icon.setImageDrawable(mark);
     }
 
     private List<Story> latestSeven(SiteClient.Home home) {
