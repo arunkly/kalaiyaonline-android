@@ -79,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
 
     private final Handler sliderHandler = new Handler(Looper.getMainLooper());
     private final Handler infoHandler = new Handler(Looper.getMainLooper());
-    private final Handler dateHandler = new Handler(Looper.getMainLooper());
     private ViewPager2 pager;
     private ObjectAnimator tickerAnim;
     private FrameLayout tickerHost;
@@ -88,13 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean homeReady;
     private TextView weatherFlip;
     private TextView weatherTemp;
-    private TextView dateDay;
-    private TextView dateFlip;
     private String[] weatherLines = new String[0];
-    private String[] dateDays = new String[0];
-    private String[] dateLines = new String[0];
     private int weatherIndex;
-    private int dateIndex;
     private int homeGen;
     private LinearLayout rashifalSlot;
     private SiteClient.Rashifal rashifal;
@@ -1547,7 +1541,6 @@ public class MainActivity extends AppCompatActivity {
         day.setIncludeFontPadding(false);
         String[] parts = nepaliDate(dateLine);
         day.setText(parts[0]);
-        dateDay = day;
         box.addView(day);
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
@@ -1564,11 +1557,9 @@ public class MainActivity extends AppCompatActivity {
         rest.setMaxLines(1);
         style(rest, 13, R.font.mukta_semibold);
         rest.setIncludeFontPadding(false);
-        dateFlip = rest;
         words.addView(rest);
         box.addView(words);
         box.setOnClickListener(v -> showPatro());
-        startDateFlip(parts[0], parts[1]);
         return box;
     }
 
@@ -1606,41 +1597,6 @@ public class MainActivity extends AppCompatActivity {
         box.addView(words);
         box.setOnClickListener(v -> showWeather());
         return box;
-    }
-
-    private void startDateFlip(String bsDay, String bsLine) {
-        dateHandler.removeCallbacksAndMessages(null);
-        java.util.Calendar calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kathmandu"));
-        String[] months = {"जनवरी", "फेब्रुअरी", "मार्च", "अप्रिल", "मे", "जुन", "जुलाई", "अगस्ट", "सेप्टेम्बर", "अक्टोबर", "नोभेम्बर", "डिसेम्बर"};
-        String enDay = nepaliNumber(calendar.get(java.util.Calendar.DAY_OF_MONTH));
-        String enLine = months[calendar.get(java.util.Calendar.MONTH)] + " " + nepaliNumber(calendar.get(java.util.Calendar.YEAR));
-        dateDays = new String[]{bsDay, enDay};
-        dateLines = new String[]{bsLine.replaceAll("\\s+", " ").trim(), enLine};
-        dateIndex = 0;
-        if (dateDay != null) {
-            dateDay.setAlpha(1f);
-            dateDay.setText(bsDay);
-        }
-        if (dateFlip != null) {
-            dateFlip.setAlpha(1f);
-            dateFlip.setText(dateLines[0]);
-        }
-        dateHandler.postDelayed(this::advanceDate, 2600);
-    }
-
-    private void advanceDate() {
-        if (!"home".equals(section) || dateFlip == null || dateLines.length < 2) return;
-        dateFlip.animate().alpha(0f).setDuration(240).start();
-        if (dateDay != null) dateDay.animate().alpha(0f).setDuration(240).start();
-        dateHandler.postDelayed(() -> {
-            if (dateFlip == null || dateLines.length == 0) return;
-            dateIndex = (dateIndex + 1) % dateLines.length;
-            dateFlip.setText(dateLines[dateIndex]);
-            if (dateDay != null && dateIndex < dateDays.length) dateDay.setText(dateDays[dateIndex]);
-            dateFlip.animate().alpha(1f).setDuration(240).start();
-            if (dateDay != null) dateDay.animate().alpha(1f).setDuration(240).start();
-            dateHandler.postDelayed(this::advanceDate, 2600);
-        }, 240);
     }
 
     private void loadStripWeather() {
@@ -2543,10 +2499,7 @@ public class MainActivity extends AppCompatActivity {
         sliderHandler.removeCallbacksAndMessages(null);
         if (tickerAnim != null) tickerAnim.cancel();
         infoHandler.removeCallbacksAndMessages(null);
-        dateHandler.removeCallbacksAndMessages(null);
         if (weatherFlip != null) weatherFlip.animate().cancel();
-        if (dateFlip != null) dateFlip.animate().cancel();
-        if (dateDay != null) dateDay.animate().cancel();
         if (tickerHost != null && !"home".equals(section)) tickerHost.setVisibility(View.GONE);
         if (slowHost != null && !"home".equals(section)) slowHost.setVisibility(View.GONE);
         pager = null;
