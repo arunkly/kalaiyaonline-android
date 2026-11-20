@@ -1574,8 +1574,9 @@ public class MainActivity extends AppCompatActivity {
         box.setBackground(bg);
         box.setElevation(0);
         weatherScene = new WeatherScene(this);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(42), dp(42));
-        sceneLp.rightMargin = dp(6);
+        weatherScene.setPlate(false);
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(52), dp(46));
+        sceneLp.rightMargin = dp(2);
         box.addView(weatherScene, sceneLp);
         weatherTemp = new TextView(this);
         weatherTemp.setText("—");

@@ -120,7 +120,8 @@ final class WeatherBoard {
         condition.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         now.addView(condition);
         scene = new WeatherScene(activity);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(112), dp(78));
+        scene.setPlate(false);
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(84), dp(64));
         sceneLp.leftMargin = dp(8);
         now.addView(scene, sceneLp);
         hero.addView(now);
