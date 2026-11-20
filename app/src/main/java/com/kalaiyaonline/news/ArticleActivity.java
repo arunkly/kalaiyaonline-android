@@ -219,19 +219,13 @@ public class ArticleActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(6), dp(6), dp(8), dp(6));
-        GradientDrawable tray = new GradientDrawable();
-        tray.setColor(0xFFF4F7F5);
-        tray.setCornerRadius(dp(26));
-        bar.setBackground(tray);
         bar.addView(listenControl());
         bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
         String link = SiteClient.ORIGIN + "/news/" + slug;
-        bar.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
         bar.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", link, title));
-        bar.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", link, title));
         bar.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
-        bar.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_ms, 0xFF0084FF, "com.facebook.orca", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
         LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         barLp.topMargin = dp(12);
         barLp.bottomMargin = dp(2);
@@ -581,25 +575,15 @@ public class ArticleActivity extends AppCompatActivity {
 
     private View shareIcon(int icon, int color, String pkg, String link, TextView title) {
         ImageView mark = new ImageView(this);
-        Drawable glyph = DrawableCompat.wrap(getDrawable(icon)).mutate();
-        DrawableCompat.setTint(glyph, color);
-        mark.setImageDrawable(glyph);
+        mark.setImageResource(icon);
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        mark.setPadding(dp(7), dp(7), dp(7), dp(7));
+        mark.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor((color & 0x00FFFFFF) | 0x14000000);
-        bg.setStroke(dp(1), (color & 0x00FFFFFF) | 0x66000000);
+        bg.setColor(color);
         mark.setBackground(bg);
-        mark.setOutlineProvider(new ViewOutlineProvider() {
-            public void getOutline(View view, Outline outline) {
-                outline.setOval(0, 0, view.getWidth(), view.getHeight());
-            }
-        });
-        mark.setClipToOutline(true);
-        mark.setElevation(dp(2));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(32), dp(32));
-        lp.leftMargin = dp(4);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(36), dp(36));
+        lp.leftMargin = dp(6);
         mark.setLayoutParams(lp);
         mark.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
         return mark;
