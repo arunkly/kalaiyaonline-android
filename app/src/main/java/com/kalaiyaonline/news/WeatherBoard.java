@@ -361,25 +361,7 @@ final class WeatherBoard {
     }
 
     private String get(String address) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(address).openConnection();
-            connection.setRequestProperty("User-Agent", "KalaiyaOnline/2.5 (arunkly@gmail.com)");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            if (connection.getResponseCode() >= 400) return null;
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception error) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Net.text(address, "KalaiyaOnline/2.5 (arunkly@gmail.com)");
     }
 
     private String openUrl(double latitude, double longitude) {

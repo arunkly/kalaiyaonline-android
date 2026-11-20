@@ -246,25 +246,7 @@ final class CurrencyBoard {
     }
 
     private String fetch() {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL("https://kalaiyaonline.com/currency-converter.php?data=1").openConnection();
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Net.text("https://kalaiyaonline.com/currency-converter.php?data=1");
     }
 
     private int rank(String code) {

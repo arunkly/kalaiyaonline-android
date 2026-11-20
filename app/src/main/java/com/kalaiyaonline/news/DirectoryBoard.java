@@ -578,24 +578,7 @@ final class DirectoryBoard {
     }
 
     private String download(String address) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(address).openConnection();
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Net.text(address);
     }
 
     private void loadImage(String url, ImageView target, int token, int maxSide) {
@@ -608,36 +591,7 @@ final class DirectoryBoard {
     }
 
     private Bitmap fetchBitmap(String url, int maxSide) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setInstanceFollowRedirects(true);
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setRequestProperty("Accept", "image/*,*/*");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            InputStream input = connection.getInputStream();
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
-            input.close();
-            byte[] data = bytes.toByteArray();
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
-            int sample = 1;
-            int side = Math.max(bounds.outWidth, bounds.outHeight);
-            if (side > 0) while (side / sample > maxSide) sample *= 2;
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = sample;
-            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-            return bitmap != null ? bitmap : BitmapFactory.decodeByteArray(data, 0, data.length);
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Bitmaps.load(url, maxSide);
     }
 
     private String textOf(String html, String source) {

@@ -1,0 +1,5 @@
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-dontwarn org.jsoup.**
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn com.google.android.gms.**

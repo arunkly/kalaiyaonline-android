@@ -203,24 +203,7 @@ final class BloodBoard {
     }
 
     private String download(String address) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(address).openConnection();
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Net.text(address);
     }
 
     private void loadImage(String url, ImageView target) {

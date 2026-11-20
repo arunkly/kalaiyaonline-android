@@ -149,22 +149,13 @@ final class AirBoard {
 
     private Reading fetch(String name, String lat, String lon) {
         Reading reading = new Reading(name);
-        HttpURLConnection connection = null;
+        String body = Net.text("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="
+                + lat + "&longitude=" + lon
+                + "&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&timezone=Asia%2FKathmandu",
+                "KalaiyaOnline/2.6");
+        if (body == null) return reading;
         try {
-            connection = (HttpURLConnection) new URL("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="
-                    + lat + "&longitude=" + lon
-                    + "&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&timezone=Asia%2FKathmandu").openConnection();
-            connection.setRequestProperty("User-Agent", "KalaiyaOnline/2.6");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            if (connection.getResponseCode() >= 400) return reading;
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            JSONObject current = new JSONObject(body.toString()).getJSONObject("current");
+            JSONObject current = new JSONObject(body).getJSONObject("current");
             reading.aqi = (int) Math.round(current.getDouble("us_aqi"));
             reading.pm25 = (int) Math.round(current.getDouble("pm2_5"));
             reading.pm10 = (int) Math.round(current.getDouble("pm10"));
@@ -173,8 +164,6 @@ final class AirBoard {
             reading.ok = true;
         } catch (Exception ignored) {
             reading.ok = false;
-        } finally {
-            if (connection != null) connection.disconnect();
         }
         return reading;
     }

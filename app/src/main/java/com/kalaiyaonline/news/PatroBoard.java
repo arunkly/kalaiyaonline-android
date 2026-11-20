@@ -442,24 +442,7 @@ final class PatroBoard {
         if (requestMonth <= 0) requestYear = todayYear();
         String url = "https://kalaiyaonline.com/?calendar=" + requestYear;
         if (requestMonth > 0) url += "&month=" + requestMonth + "&day=" + Math.max(requestDay, 1);
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(40000);
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Net.text(url);
     }
 
     private int todayYear() {

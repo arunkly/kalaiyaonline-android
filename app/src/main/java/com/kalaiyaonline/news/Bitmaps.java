@@ -36,14 +36,14 @@ final class Bitmaps {
     }
 
     private static byte[] download(String url) {
-        for (int attempt = 0; attempt < 2; attempt++) {
+        for (int attempt = 0; attempt < 3; attempt++) {
             HttpURLConnection connection = null;
             try {
                 connection = (HttpURLConnection) new URL(url).openConnection();
                 connection.setInstanceFollowRedirects(true);
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-                connection.setConnectTimeout(20000);
-                connection.setReadTimeout(attempt == 0 ? 30000 : 50000);
+                connection.setConnectTimeout(attempt == 0 ? 20000 : 35000);
+                connection.setReadTimeout(attempt == 0 ? 35000 : attempt == 1 ? 60000 : 90000);
                 InputStream input = connection.getInputStream();
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 byte[] buffer = new byte[8192];

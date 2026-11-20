@@ -44,6 +44,8 @@ public class GalleryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Night.sync(this);
+        Bitmaps.use(getCacheDir());
+        Net.use(getCacheDir());
         String url = getIntent().getStringExtra("url");
         String fallbackTitle = getIntent().getStringExtra("title");
         String fallbackImage = getIntent().getStringExtra("image");
@@ -373,33 +375,7 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private Bitmap fetch(String url, int maxSide) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setInstanceFollowRedirects(true);
-            connection.setConnectTimeout(25000);
-            connection.setReadTimeout(45000);
-            InputStream input = connection.getInputStream();
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
-            input.close();
-            byte[] data = bytes.toByteArray();
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
-            int sample = 1;
-            int side = Math.max(bounds.outWidth, bounds.outHeight);
-            if (side > 0) while (side / sample > maxSide) sample *= 2;
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = sample;
-            return BitmapFactory.decodeByteArray(data, 0, data.length, options);
-        } catch (Exception ignored) {
-            return null;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return Bitmaps.load(url, maxSide);
     }
 
     private TextView label(String value, int size, int color, boolean bold) {

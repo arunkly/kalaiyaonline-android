@@ -233,6 +233,7 @@ public class MainActivity extends AppCompatActivity {
         Night.belowStatus(this, screen);
         Night.sync(this);
         Bitmaps.use(getCacheDir());
+        Net.use(getCacheDir());
         showHome();
         consumeOpen(getIntent());
         updates = new UpdateChecker(this);
@@ -1746,24 +1747,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String fetchText(String address) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(address).openConnection();
-            connection.setConnectTimeout(20000);
-            connection.setReadTimeout(40000);
-            connection.setRequestProperty("User-Agent", "KalaiyaOnline");
-            InputStream input = connection.getInputStream();
-            StringBuilder body = new StringBuilder();
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = input.read(buffer)) != -1) body.append(new String(buffer, 0, read, "UTF-8"));
-            input.close();
-            return body.toString();
-        } catch (Exception ignored) {
-            return "";
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        String body = Net.text(address);
+        return body == null ? "" : body;
     }
 
     private void mountTicker(List<Story> items) {
