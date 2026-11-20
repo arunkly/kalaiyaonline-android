@@ -39,6 +39,7 @@ final class WeatherBoard {
     private final LinearLayout days;
     private final LinearLayout results;
     private final EditText search;
+    private final WeatherScene scene;
     private double lat = 27.033;
     private double lon = 84.983;
 
@@ -116,7 +117,12 @@ final class WeatherBoard {
         condition = text("लोड हुँदैछ…", 16, 0xFFD1FAE5, true);
         condition.setPadding(dp(12), dp(10), 0, 0);
         now.addView(temp);
+        condition.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         now.addView(condition);
+        scene = new WeatherScene(activity);
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(112), dp(78));
+        sceneLp.leftMargin = dp(8);
+        now.addView(scene, sceneLp);
         hero.addView(now);
 
         meta = text("", 13, 0xFFE7F8EE, false);
@@ -253,7 +259,7 @@ final class WeatherBoard {
                 labels[i] = weekday(times.getString(i));
                 values[i] = symbol(codes.getInt(i)) + "  " + round(highs.getDouble(i)) + "°/" + round(lows.getDouble(i)) + "°";
             }
-            show(where, round(current.getDouble("temperature_2m")) + "°", summary, details, labels, values);
+            show(where, round(current.getDouble("temperature_2m")) + "°", summary, details, labels, values, WeatherScene.kindFor(code, day));
             return true;
         } catch (Exception error) {
             return false;
@@ -295,7 +301,7 @@ final class WeatherBoard {
                 values[index] = metSymbol(icons.get(key)) + "  " + round(range[0]) + "°/" + round(range[1]) + "°";
                 index++;
             }
-            show(where, round(now.optDouble("air_temperature")) + "°", summary, details, labels, values);
+            show(where, round(now.optDouble("air_temperature")) + "°", summary, details, labels, values, WeatherScene.kindForMet(symbol));
             return true;
         } catch (Exception error) {
             return false;
@@ -312,12 +318,13 @@ final class WeatherBoard {
         return "";
     }
 
-    private void show(String where, String temperature, String summary, String details, String[] labels, String[] values) {
+    private void show(String where, String temperature, String summary, String details, String[] labels, String[] values, int kind) {
         activity.runOnUiThread(() -> {
             place.setText(where);
             temp.setText(temperature);
             condition.setText(summary);
             meta.setText(details);
+            scene.setKind(kind);
             days.removeAllViews();
             for (int i = 0; i < labels.length; i++) {
                 LinearLayout chip = new LinearLayout(activity);

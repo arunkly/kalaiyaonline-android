@@ -87,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean homeReady;
     private TextView weatherFlip;
     private TextView weatherTemp;
+    private WeatherScene weatherScene;
     private String[] weatherLines = new String[0];
     private int weatherIndex;
     private int homeGen;
@@ -1572,6 +1573,10 @@ public class MainActivity extends AppCompatActivity {
         bg.setCornerRadius(dp(18));
         box.setBackground(bg);
         box.setElevation(0);
+        weatherScene = new WeatherScene(this);
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(42), dp(42));
+        sceneLp.rightMargin = dp(6);
+        box.addView(weatherScene, sceneLp);
         weatherTemp = new TextView(this);
         weatherTemp.setText("—");
         weatherTemp.setTextColor(0xFF0F8A3C);
@@ -1607,6 +1612,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (!"home".equals(section) || weatherFlip == null || lines.length == 0) return;
                 if (weatherTemp != null) weatherTemp.setText(temp);
+                if (weatherScene != null) weatherScene.setKind(weatherKind(body));
                 weatherLines = lines;
                 weatherIndex = 0;
                 weatherFlip.setAlpha(1f);
@@ -1626,6 +1632,15 @@ public class MainActivity extends AppCompatActivity {
             weatherFlip.animate().alpha(1f).setDuration(240).start();
             infoHandler.postDelayed(this::advanceWeather, 2600);
         }).start();
+    }
+
+    private int weatherKind(String body) {
+        try {
+            JSONObject current = new JSONObject(body).getJSONObject("current");
+            return WeatherScene.kindFor(current.optInt("weather_code"), current.optInt("is_day", 1) == 1);
+        } catch (Exception ignored) {
+            return WeatherScene.SUN;
+        }
     }
 
     private String[] weatherCopy(String body) {
