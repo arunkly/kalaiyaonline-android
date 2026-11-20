@@ -974,6 +974,7 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile(R.drawable.ic_mod_type, 0xFFF3E8FF, "प्रीति «» युनिकोड", this::showPreeti));
         modules.addView(moduleTile(R.drawable.ic_mod_blood, 0xFFFFE4E6, "रक्तदान", this::showBlood));
         modules.addView(moduleTile(R.drawable.ic_mod_doc, 0xFFE8F0FF, "गोपनीयता नीति", this::showPrivacy));
+        modules.addView(moduleTile(R.drawable.ic_mod_mail, 0xFFFFF1E8, "सम्पर्क", this::showContact));
         modules.addView(moduleTile(R.drawable.ic_mod_lock, 0xFFFFF3D6, "लगइन / खाता", () -> {
             setMore(false);
             startActivity(new Intent(this, AccountActivity.class));
@@ -1159,6 +1160,18 @@ public class MainActivity extends AppCompatActivity {
         page.removeAllViews();
         page.addView(heading("गोपनीयता नीति"));
         PrivacyBoard board = new PrivacyBoard(this);
+        page.addView(board.view());
+        board.load();
+    }
+
+    private void showContact() {
+        section = "contact";
+        stopMotion();
+        setMore(false);
+        restoreNav();
+        page.removeAllViews();
+        page.addView(heading("सम्पर्क"));
+        ContactBoard board = new ContactBoard(this);
         page.addView(board.view());
         board.load();
     }
