@@ -270,6 +270,7 @@ public class MainActivity extends AppCompatActivity {
         if (shellAd != null) shellAd.resume();
         if (feedAd != null) feedAd.resume();
         if ("social".equals(section) && social != null && social.waitingForLogin()) social.load();
+        if ("blood".equals(section) && blood != null) blood.resume();
         if (updates != null) updates.installPending();
     }
 
