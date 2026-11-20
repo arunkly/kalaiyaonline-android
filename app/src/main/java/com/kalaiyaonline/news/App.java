@@ -11,5 +11,6 @@ public class App extends Application {
         AppCompatDelegate.setDefaultNightMode(Night.on(this)
                 ? AppCompatDelegate.MODE_NIGHT_YES
                 : AppCompatDelegate.MODE_NIGHT_NO);
+        Account.use(this);
     }
 }

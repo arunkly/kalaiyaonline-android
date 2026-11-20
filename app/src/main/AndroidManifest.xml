@@ -16,6 +16,11 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-6927625499631220~1443076509" />
         <activity
+            android:name=".AccountActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".GalleryActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />

@@ -974,7 +974,10 @@ public class MainActivity extends AppCompatActivity {
         modules.addView(moduleTile(R.drawable.ic_mod_type, 0xFFF3E8FF, "प्रीति «» युनिकोड", this::showPreeti));
         modules.addView(moduleTile(R.drawable.ic_mod_blood, 0xFFFFE4E6, "रक्तदान", this::showBlood));
         modules.addView(moduleTile(R.drawable.ic_mod_doc, 0xFFE8F0FF, "गोपनीयता नीति", () -> openWeb("https://kalaiyaonline.com/page/privacy%20policy")));
-        modules.addView(moduleTile(R.drawable.ic_mod_lock, 0xFFFFF3D6, "लगइन / खाता", () -> openWeb("https://kalaiyaonline.com/account.php")));
+        modules.addView(moduleTile(R.drawable.ic_mod_lock, 0xFFFFF3D6, "लगइन / खाता", () -> {
+            setMore(false);
+            startActivity(new Intent(this, AccountActivity.class));
+        }));
         return box;
     }
 

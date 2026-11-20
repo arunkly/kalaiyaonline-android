@@ -52,7 +52,9 @@ final class Net {
             connection.setReadTimeout(readTimeout);
             connection.setRequestProperty("User-Agent", agent);
             connection.setRequestProperty("Accept-Language", "ne,en;q=0.8");
+            Account.apply(connection);
             int code = connection.getResponseCode();
+            Account.capture(connection);
             if (code >= 400) return null;
             InputStream input = connection.getInputStream();
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
