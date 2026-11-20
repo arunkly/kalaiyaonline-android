@@ -16,8 +16,8 @@ android {
         applicationId "com.kalaiyaonline.news"
         minSdk 24
         targetSdk 36
-        versionCode 108
-        versionName "2.9.61"
+        versionCode 109
+        versionName "2.9.62"
     }
 
     signingConfigs {

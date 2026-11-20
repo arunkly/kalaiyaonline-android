@@ -24,6 +24,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -44,6 +47,7 @@ final class DirectoryBoard {
     private final LinearLayout chips;
     private final LinearLayout districts;
     private final List<String> siteCategories = new ArrayList<>();
+    private final List<String> officialDistricts = new ArrayList<>();
     private String category = "";
     private String district = "";
     private boolean detailOpen;
@@ -146,6 +150,7 @@ final class DirectoryBoard {
         }
         siteCategories.clear();
         siteCategories.addAll(found);
+        readLocations(html);
         List<Listing> rows = new ArrayList<>();
         Matcher cards = Pattern.compile("<article class=\"directory-card-v3\">([\\s\\S]*?)</article>").matcher(html);
         while (cards.find()) {
@@ -164,11 +169,71 @@ final class DirectoryBoard {
     }
 
     private boolean hasDistrict(String name) {
+        if (officialDistricts.contains(name)) return true;
         for (Listing item : listings) if (name.equals(item.district)) return true;
         return false;
     }
 
+    private void readLocations(String html) {
+        officialDistricts.clear();
+        Matcher block = Pattern.compile("id=\"directoryPublicLocations\">(\\[[\\s\\S]*?\\])</script>").matcher(html);
+        if (!block.find()) return;
+        try {
+            JSONArray rows = new JSONArray(block.group(1));
+            int count = rows.length();
+            int[] ids = new int[count];
+            int[] parents = new int[count];
+            String[] names = new String[count];
+            int[] order = new int[count];
+            for (int i = 0; i < count; i++) {
+                JSONObject row = rows.getJSONObject(i);
+                ids[i] = row.optInt("id");
+                parents[i] = row.isNull("parent_id") ? -1 : row.optInt("parent_id");
+                names[i] = row.optString("name").trim();
+                order[i] = row.optInt("sort_order");
+            }
+            Integer[] index = new Integer[count];
+            for (int i = 0; i < count; i++) index[i] = i;
+            java.util.Arrays.sort(index, (a, b) -> {
+                int compared = Integer.compare(order[a], order[b]);
+                return compared != 0 ? compared : Integer.compare(ids[a], ids[b]);
+            });
+            for (int i : index) {
+                boolean root = parents[i] < 0;
+                int parentIndex = -1;
+                if (!root) {
+                    for (int j = 0; j < count; j++) if (ids[j] == parents[i]) parentIndex = j;
+                }
+                boolean district = false;
+                if (root) {
+                    district = !names[i].contains("प्रदेश");
+                } else if (parentIndex >= 0 && parents[parentIndex] < 0) {
+                    if (names[parentIndex].contains("प्रदेश")) {
+                        boolean parentHasDistrict = false;
+                        for (int j = 0; j < count; j++) {
+                            if (parents[j] == ids[parentIndex] && names[j].contains("जिल्ला")) parentHasDistrict = true;
+                        }
+                        district = names[i].contains("जिल्ला") || !parentHasDistrict;
+                    } else {
+                        district = names[i].contains("जिल्ला");
+                    }
+                }
+                if (!district) continue;
+                String label = names[i].endsWith("जिल्ला") ? names[i].substring(0, names[i].length() - "जिल्ला".length()).trim() : names[i];
+                if (label.equals("वारा")) label = "बारा";
+                if (label.length() > 1 && !officialDistricts.contains(label)) officialDistricts.add(label);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     private String districtOf(String location) {
+        String blob = location.replace("वारा", "बारा");
+        String best = "";
+        for (String name : officialDistricts) {
+            if (name.length() > best.length() && containsDistrict(blob, name)) best = name;
+        }
+        if (!best.isEmpty()) return best;
         String[] parts = location.split("·");
         for (String part : parts) {
             String raw = part.trim();
@@ -177,23 +242,19 @@ final class DirectoryBoard {
             if (name.equals("वारा")) name = "बारा";
             if (name.length() > 1) return name;
         }
-        for (String part : parts) {
-            String name = part.trim();
-            if (name.equals("वारा") || name.equals("बारा")) return "बारा";
-        }
+        if (blob.contains("बारा")) return "बारा";
         return "";
+    }
+
+    private boolean containsDistrict(String location, String name) {
+        if (location.contains(name)) return true;
+        return location.toLowerCase().contains(name.toLowerCase());
     }
 
     private void renderDistricts() {
         districts.removeAllViews();
-        java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
-        for (Listing item : listings) {
-            if (item.district.isEmpty()) continue;
-            Integer count = counts.get(item.district);
-            counts.put(item.district, count == null ? 1 : count + 1);
-        }
-        List<String> names = new ArrayList<>(counts.keySet());
-        names.sort((a, b) -> Integer.compare(counts.get(b), counts.get(a)));
+        LinkedHashSet<String> names = new LinkedHashSet<>(officialDistricts);
+        for (Listing item : listings) if (!item.district.isEmpty()) names.add(item.district);
         districts.addView(districtChip("सबै जिल्ला", "", district.isEmpty()));
         for (String name : names) districts.addView(districtChip(name, name, name.equals(district)));
     }
