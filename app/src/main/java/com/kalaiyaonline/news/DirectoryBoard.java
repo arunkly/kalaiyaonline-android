@@ -160,8 +160,9 @@ final class DirectoryBoard {
             item.page = textOf(block, "href=\"(https://kalaiyaonline.com/directory/[^\"]+)\"");
             item.image = textOf(block, "<img src=\"([^\"]+)\"");
             item.category = cleanCategory(textOf(block, "directory-card-kicker\">([^<]+)"));
-            item.location = textOf(block, "directory-card-location\">([^<]+)").replace("⌖", "").trim();
-            item.district = districtOf(item.location);
+            String rawLocation = textOf(block, "directory-card-location\">([^<]+)").replace("⌖", "").trim();
+            item.district = districtOf(rawLocation);
+            item.location = visibleLocation(rawLocation);
             item.blurb = textOf(block, "<p>([^<]+)</p>");
             if (!item.title.isEmpty()) rows.add(item);
         }
@@ -169,9 +170,7 @@ final class DirectoryBoard {
     }
 
     private boolean hasDistrict(String name) {
-        if (officialDistricts.contains(name)) return true;
-        for (Listing item : listings) if (name.equals(item.district)) return true;
-        return false;
+        return officialDistricts.contains(name);
     }
 
     private void readLocations(String html) {
@@ -221,29 +220,45 @@ final class DirectoryBoard {
                 if (!district) continue;
                 String label = names[i].endsWith("जिल्ला") ? names[i].substring(0, names[i].length() - "जिल्ला".length()).trim() : names[i];
                 if (label.equals("वारा")) label = "बारा";
-                if (label.length() > 1 && !officialDistricts.contains(label)) officialDistricts.add(label);
+                if (label.length() > 1 && readable(label) && !officialDistricts.contains(label)) officialDistricts.add(label);
             }
         } catch (Exception ignored) {
         }
     }
 
     private String districtOf(String location) {
+        if (officialDistricts.isEmpty()) return "";
         String blob = location.replace("वारा", "बारा");
         String best = "";
         for (String name : officialDistricts) {
             if (name.length() > best.length() && containsDistrict(blob, name)) best = name;
         }
-        if (!best.isEmpty()) return best;
+        return best;
+    }
+
+    private String visibleLocation(String location) {
         String[] parts = location.split("·");
+        StringBuilder kept = new StringBuilder();
         for (String part : parts) {
-            String raw = part.trim();
-            if (!raw.endsWith("जिल्ला")) continue;
-            String name = raw.substring(0, raw.length() - "जिल्ला".length()).trim();
-            if (name.equals("वारा")) name = "बारा";
-            if (name.length() > 1) return name;
+            String raw = part.replace("⌖", "").trim();
+            if (raw.isEmpty() || !readable(raw)) continue;
+            if (raw.contains("जिल्ला")) {
+                String name = raw.substring(0, raw.length() - "जिल्ला".length()).trim();
+                if (name.equals("वारा")) name = "बारा";
+                if (!officialDistricts.contains(name)) continue;
+            }
+            if (kept.length() > 0) kept.append(" · ");
+            kept.append(raw);
         }
-        if (blob.contains("बारा")) return "बारा";
-        return "";
+        return kept.toString();
+    }
+
+    private boolean readable(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '?' || c == '\uFFFD' || c == '\uFFFE' || Character.isISOControl(c)) return false;
+        }
+        return true;
     }
 
     private boolean containsDistrict(String location, String name) {
@@ -253,10 +268,8 @@ final class DirectoryBoard {
 
     private void renderDistricts() {
         districts.removeAllViews();
-        LinkedHashSet<String> names = new LinkedHashSet<>(officialDistricts);
-        for (Listing item : listings) if (!item.district.isEmpty()) names.add(item.district);
         districts.addView(districtChip("सबै जिल्ला", "", district.isEmpty()));
-        for (String name : names) districts.addView(districtChip(name, name, name.equals(district)));
+        for (String name : officialDistricts) districts.addView(districtChip(name, name, name.equals(district)));
     }
 
     private View districtChip(String label, String value, boolean on) {
