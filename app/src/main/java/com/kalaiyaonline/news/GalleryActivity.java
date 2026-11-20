@@ -142,9 +142,13 @@ public class GalleryActivity extends AppCompatActivity {
         io.execute(() -> {
             try {
                 SiteClient.GalleryPost post = client.galleryPost(url);
-                runOnUiThread(() -> show(post, category, title, date, body, coverImage, grid));
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) show(post, category, title, date, body, coverImage, grid);
+                });
             } catch (Exception error) {
-                runOnUiThread(() -> body.setText("ग्यालरी खोल्न सकिएन।"));
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) body.setText("ग्यालरी खोल्न सकिएन।");
+                });
             }
         });
     }
@@ -196,7 +200,10 @@ public class GalleryActivity extends AppCompatActivity {
             startActivity(pkg == null ? Intent.createChooser(send, "सेयर") : send);
         } catch (Exception error) {
             send.setPackage(null);
-            startActivity(Intent.createChooser(send, "सेयर"));
+            try {
+                startActivity(Intent.createChooser(send, "सेयर"));
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -371,7 +378,9 @@ public class GalleryActivity extends AppCompatActivity {
     private void load(String url, ImageView target, int maxSide) {
         io.execute(() -> {
             Bitmap bitmap = fetch(url, maxSide);
-            if (bitmap != null) runOnUiThread(() -> target.setImageBitmap(bitmap));
+            if (bitmap != null) runOnUiThread(() -> {
+                if (!isDestroyed()) target.setImageBitmap(bitmap);
+            });
         });
     }
 

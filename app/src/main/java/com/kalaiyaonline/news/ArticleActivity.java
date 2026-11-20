@@ -300,6 +300,7 @@ public class ArticleActivity extends AppCompatActivity {
             try {
                 Story story = client.article(slug);
                 runOnUiThread(() -> {
+                    if (isDestroyed()) return;
                     if (!story.category.isEmpty()) {
                         categoryView.setText(story.category);
                         keptCategory = story.category;
@@ -326,7 +327,9 @@ public class ArticleActivity extends AppCompatActivity {
                     showRelated(story.related);
                 });
             } catch (Exception error) {
-                runOnUiThread(() -> bodyView.setText("समाचार खोल्न सकिएन।"));
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) bodyView.setText("समाचार खोल्न सकिएन।");
+                });
             }
         });
     }
@@ -960,7 +963,7 @@ public class ArticleActivity extends AppCompatActivity {
     private void share(String pkg, String title, String link) {
         if ("copy".equals(pkg)) {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            clipboard.setPrimaryClip(ClipData.newPlainText("kalaiya", link));
+            if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("kalaiya", link));
             Toast.makeText(this, "लिंक कपी भयो", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -972,7 +975,10 @@ public class ArticleActivity extends AppCompatActivity {
             startActivity(pkg == null ? Intent.createChooser(send, "सेयर") : send);
         } catch (Exception error) {
             send.setPackage(null);
-            startActivity(Intent.createChooser(send, "सेयर"));
+            try {
+                startActivity(Intent.createChooser(send, "सेयर"));
+            } catch (Exception ignored) {
+            }
         }
     }
 

@@ -72,11 +72,15 @@ final class AirBoard {
     }
 
     void load() {
-        activity.runOnUiThread(() -> status.setText("डेटा लोड हुँदैछ…"));
+        activity.runOnUiThread(() -> {
+            if (!activity.isDestroyed()) status.setText("डेटा लोड हुँदैछ…");
+        });
         io.execute(() -> {
             List<Reading> list = new ArrayList<>();
             for (String[] place : PLACES) list.add(fetch(place[0], place[1], place[2]));
-            activity.runOnUiThread(() -> render(list));
+            activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) render(list);
+            });
         });
     }
 

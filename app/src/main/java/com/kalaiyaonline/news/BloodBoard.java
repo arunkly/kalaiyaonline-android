@@ -50,6 +50,7 @@ final class BloodBoard {
     private final TextView status;
     private final LinearLayout joinPane;
     private boolean pendingJoin;
+    private int queryGen;
 
     BloodBoard(AppCompatActivity activity) {
         this.activity = activity;
@@ -337,10 +338,16 @@ final class BloodBoard {
     private void search() {
         status.setText("रक्तदाता खोजिँदैछ…");
         results.removeAllViews();
+        int groupAt = group.getSelectedItemPosition();
+        int districtAt = district.getSelectedItemPosition();
+        if (groupAt < 0 || groupAt >= GROUPS.length) groupAt = 0;
+        if (districtAt < 0 || districtAt >= DISTRICTS.length) districtAt = 0;
+        int token = ++queryGen;
         String url = "https://kalaiyaonline.com/?blood=all&q=" + enc(query.getText().toString().trim())
-                + "&blood_group=" + enc(GROUPS[group.getSelectedItemPosition()])
-                + "&district=" + enc(DISTRICTS[district.getSelectedItemPosition()]);
+                + "&blood_group=" + enc(GROUPS[groupAt])
+                + "&district=" + enc(DISTRICTS[districtAt]);
         fetch(url, html -> {
+            if (token != queryGen) return;
             if (html == null) {
                 status.setText("सूची आएन। फेरि खोज्नुहोस्।");
                 return;
@@ -448,7 +455,9 @@ final class BloodBoard {
     private void fetch(String address, Result result) {
         new Thread(() -> {
             String html = download(address);
-            activity.runOnUiThread(() -> result.onResult(html));
+            activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) result.onResult(html);
+            });
         }).start();
     }
 

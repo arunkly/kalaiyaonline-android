@@ -50,6 +50,7 @@ public class AccountActivity extends AppCompatActivity {
         io.execute(() -> {
             Account.Result result = Account.session();
             runOnUiThread(() -> {
+                if (isDestroyed()) return;
                 if (result.loggedIn) showIn();
                 else showLogin();
                 if (!result.ok && !result.message.isEmpty()) flash(result.message, false);
@@ -156,6 +157,7 @@ public class AccountActivity extends AppCompatActivity {
             io.execute(() -> {
                 Account.logout();
                 runOnUiThread(() -> {
+                    if (isDestroyed()) return;
                     busy = false;
                     flash("लगआउट भयो।", true);
                     showLogin();
@@ -245,6 +247,7 @@ public class AccountActivity extends AppCompatActivity {
             }
             Account.Result ready = result;
             runOnUiThread(() -> {
+                if (isDestroyed()) return;
                 busy = false;
                 flash(ready.message, ready.ok);
                 if (ready.ok && ready.loggedIn) done.run();

@@ -170,6 +170,10 @@ final class UpdateChecker {
     private static int number(String value) {
         String digits = value.replaceAll("[^0-9].*$", "");
         if (digits.isEmpty()) return 0;
-        return Integer.parseInt(digits);
+        try {
+            return Integer.parseInt(digits);
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 }

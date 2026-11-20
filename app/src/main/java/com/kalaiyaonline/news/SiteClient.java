@@ -376,8 +376,13 @@ public final class SiteClient {
         int pages = 1;
         java.util.regex.Matcher marker = java.util.regex.Pattern.compile("पृष्ठ\\s*(\\d+)\\s*/\\s*(\\d+)").matcher(doc.body().text());
         List<Story> stories = storiesIn(doc);
-        if (marker.find()) pages = Math.max(1, Integer.parseInt(marker.group(2)));
-        else if (stories.size() >= 8) pages = pageNo + 1;
+        if (marker.find()) {
+            try {
+                pages = Math.max(1, Integer.parseInt(marker.group(2)));
+            } catch (NumberFormatException ignored) {
+                pages = Math.max(pages, pageNo);
+            }
+        } else if (stories.size() >= 8) pages = pageNo + 1;
         return new Feed(stories, pages);
     }
 
@@ -835,7 +840,7 @@ public final class SiteClient {
     }
 
     private static boolean containsSlug(List<Story> list, String slug) {
-        for (Story story : list) if (story.slug.equals(slug)) return true;
+        for (Story story : list) if (story.slug != null && story.slug.equals(slug)) return true;
         return false;
     }
 

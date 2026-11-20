@@ -53,6 +53,7 @@ final class DirectoryBoard {
     private boolean detailOpen;
     private int page;
     private int generation;
+    private int fetchToken;
 
     DirectoryBoard(AppCompatActivity activity) {
         this.activity = activity;
@@ -112,10 +113,12 @@ final class DirectoryBoard {
         } else {
             status.setText("डाइरेक्टरी लोड हुँदैछ…");
         }
+        int token = ++fetchToken;
         new Thread(() -> {
             String html = download("https://kalaiyaonline.com/?directory=all");
             List<Listing> parsed = html == null ? null : parse(html);
             activity.runOnUiThread(() -> {
+                if (activity.isDestroyed() || token != fetchToken) return;
                 if (parsed == null) {
                     if (listings.isEmpty()) {
                         status.setText("डाइरेक्टरी आएन। फेरि थिच्नुहोस्।");
@@ -501,7 +504,7 @@ final class DirectoryBoard {
         new Thread(() -> {
             String html = item.page.isEmpty() ? null : download(item.page);
             activity.runOnUiThread(() -> {
-                if (token != generation || html == null) return;
+                if (activity.isDestroyed() || token != generation || html == null) return;
                 String photo = textOf(html, "data-kp-lightbox-src=\"([^\"]+)\"");
                 if (!photo.isEmpty() && !photo.equals(item.image)) loadImage(photo, image, token, 1280);
                 String about = textOf(html, "kp-short-description\">([^<]+)");
@@ -573,7 +576,10 @@ final class DirectoryBoard {
             activity.startActivity(pkg == null ? Intent.createChooser(send, "सेयर") : send);
         } catch (Exception error) {
             send.setPackage(null);
-            activity.startActivity(Intent.createChooser(send, "सेयर"));
+            try {
+                activity.startActivity(Intent.createChooser(send, "सेयर"));
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -584,8 +590,8 @@ final class DirectoryBoard {
     private void loadImage(String url, ImageView target, int token, int maxSide) {
         new Thread(() -> {
             Bitmap bitmap = fetchBitmap(url, maxSide);
-            if (bitmap != null && token == generation) activity.runOnUiThread(() -> {
-                if (token == generation) target.setImageBitmap(bitmap);
+            if (bitmap != null && token == generation && !activity.isDestroyed()) activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed() && token == generation) target.setImageBitmap(bitmap);
             });
         }).start();
     }

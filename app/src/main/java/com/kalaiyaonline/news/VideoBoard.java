@@ -42,6 +42,7 @@ final class VideoBoard {
     private final LinearLayout list;
     private final TextView status;
     private int selected;
+    private int generation;
 
     VideoBoard(AppCompatActivity activity) {
         this.activity = activity;
@@ -74,13 +75,19 @@ final class VideoBoard {
     }
 
     private void fetch(int index) {
+        if (index < 0 || index >= CATEGORIES.length) index = 0;
         selected = index;
+        int token = ++generation;
         paintChips();
         status.setText("भिडियो लोड हुँदैछ…");
         list.removeAllViews();
+        String address = CATEGORIES[index][1];
         new Thread(() -> {
-            String html = download(CATEGORIES[index][1]);
-            activity.runOnUiThread(() -> show(html));
+            String html = download(address);
+            activity.runOnUiThread(() -> {
+                if (activity.isDestroyed() || token != generation) return;
+                show(html);
+            });
         }).start();
     }
 

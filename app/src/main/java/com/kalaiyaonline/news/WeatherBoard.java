@@ -155,6 +155,7 @@ final class WeatherBoard {
         lat = latitude;
         lon = longitude;
         activity.runOnUiThread(() -> {
+            if (activity.isDestroyed()) return;
             condition.setText("लोड हुँदैछ…");
             if (knownName != null) place.setText(knownName);
             results.removeAllViews();
@@ -165,7 +166,9 @@ final class WeatherBoard {
             if (open != null && applyOpen(open, where)) return;
             String met = get(metUrl(latitude, longitude));
             if (met != null && applyMet(met, where)) return;
-            activity.runOnUiThread(() -> condition.setText("मौसम आएन"));
+            activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) condition.setText("मौसम आएन");
+            });
         });
     }
 
@@ -177,7 +180,9 @@ final class WeatherBoard {
         results.addView(note("खोज्दैछ…"));
         io.execute(() -> {
             String body = get("https://geocoding-api.open-meteo.com/v1/search?name=" + enc(query) + "&count=6&language=en&format=json");
-            activity.runOnUiThread(() -> showPlaces(body));
+            activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) showPlaces(body);
+            });
         });
     }
 
@@ -321,6 +326,7 @@ final class WeatherBoard {
 
     private void show(String where, String temperature, String summary, String details, String[] labels, String[] values, int kind) {
         activity.runOnUiThread(() -> {
+            if (activity.isDestroyed()) return;
             place.setText(where);
             temp.setText(temperature);
             condition.setText(summary);

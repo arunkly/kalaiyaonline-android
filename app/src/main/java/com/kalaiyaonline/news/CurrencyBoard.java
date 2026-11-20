@@ -139,10 +139,14 @@ final class CurrencyBoard {
     }
 
     void load() {
-        activity.runOnUiThread(() -> status.setText("नेपाल राष्ट्र बैंकबाट दर लोड हुँदैछ…"));
+        activity.runOnUiThread(() -> {
+            if (!activity.isDestroyed()) status.setText("नेपाल राष्ट्र बैंकबाट दर लोड हुँदैछ…");
+        });
         new Thread(() -> {
             String body = fetch();
-            activity.runOnUiThread(() -> apply(body));
+            activity.runOnUiThread(() -> {
+                if (!activity.isDestroyed()) apply(body);
+            });
         }).start();
     }
 

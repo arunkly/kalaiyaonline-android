@@ -136,12 +136,14 @@ final class PatroBoard {
         else year = todayYear();
         if (nextDay > 0) day = nextDay;
         activity.runOnUiThread(() -> {
+            if (activity.isDestroyed()) return;
             status.setVisibility(View.VISIBLE);
             status.setText("पात्रो लोड हुँदैछ…");
         });
         new Thread(() -> {
             String html = fetch(requestMonth, requestDay);
             activity.runOnUiThread(() -> {
+                if (activity.isDestroyed()) return;
                 if (html == null) {
                     status.setText("पात्रो आएन। फेरि प्रयास गर्नुहोस्।");
                     return;
@@ -177,8 +179,12 @@ final class PatroBoard {
             Day item = new Day();
             item.cls = cells.group(1);
             item.year = year;
-            item.month = Integer.parseInt(cells.group(3));
-            item.day = Integer.parseInt(cells.group(4));
+            try {
+                item.month = Integer.parseInt(cells.group(3));
+                item.day = Integer.parseInt(cells.group(4));
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
             item.nepali = cells.group(5);
             item.ad = cells.group(6);
             item.adNum = cells.group(6).replaceAll("\\D", "");
@@ -300,6 +306,14 @@ final class PatroBoard {
         head.setPadding(dp(2), dp(16), 0, dp(4));
         upcoming.addView(head);
         for (String[] event : rows) {
+            int eventMonth;
+            int eventDay;
+            try {
+                eventMonth = Integer.parseInt(event[0]);
+                eventDay = Integer.parseInt(event[1]);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
             LinearLayout row = new LinearLayout(activity);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
@@ -317,8 +331,6 @@ final class PatroBoard {
             copy.addView(text(event[4], 15, 0xFF111827, true));
             copy.addView(text(event[3] + "  ·  " + event[5], 12, 0xFF6B7280, false));
             row.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            int eventMonth = Integer.parseInt(event[0]);
-            int eventDay = Integer.parseInt(event[1]);
             row.setOnClickListener(v -> load(eventMonth, eventDay));
             upcoming.addView(row);
         }

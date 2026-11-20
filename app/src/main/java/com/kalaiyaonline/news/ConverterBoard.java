@@ -112,7 +112,11 @@ final class ConverterBoard {
 
     private void convertAd() {
         int[] bs = adToBs(adYear, adMonth, adDay);
-        adResult.setText(bs == null ? "यो मिति तालिकाभन्दा बाहिर छ।" : nep(bs[0]) + " " + MONTHS[bs[1] - 1] + " " + nep(bs[2]));
+        if (bs == null || bs[1] < 1 || bs[1] > MONTHS.length) {
+            adResult.setText("यो मिति तालिकाभन्दा बाहिर छ।");
+            return;
+        }
+        adResult.setText(nep(bs[0]) + " " + MONTHS[bs[1] - 1] + " " + nep(bs[2]));
     }
 
     private void convertBs() {
@@ -244,7 +248,11 @@ final class ConverterBoard {
     private String nep(int value) {
         String raw = String.valueOf(value);
         StringBuilder out = new StringBuilder();
-        for (int i = 0; i < raw.length(); i++) out.append(DIGITS.charAt(raw.charAt(i) - '0'));
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c >= '0' && c <= '9') out.append(DIGITS.charAt(c - '0'));
+            else out.append(c);
+        }
         return out.toString();
     }
 

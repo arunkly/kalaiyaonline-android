@@ -70,9 +70,10 @@ final class SocialBoard {
         root.removeAllViews();
         root.addView(note("समुदाय लोड हुँदैछ…", 15, 0xFF78716C, false));
         new Thread(() -> {
-            String html = fetch("GET", pageUrl, null);
+            String[] base = {pageUrl};
+            String html = fetch("GET", pageUrl, null, base);
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
-                if (token == generation) render(html, pageUrl);
+                if (token == generation) render(html, base[0] == null || base[0].isEmpty() ? HOME : base[0]);
             });
         }).start();
     }
@@ -179,7 +180,8 @@ final class SocialBoard {
             if (!key.isEmpty()) fields.put(key, status.getText().toString().trim());
             if (link.getVisibility() == View.VISIBLE && link.getTag() instanceof String) fields.put((String) link.getTag(), link.getText().toString().trim());
             else if (link.getVisibility() == View.VISIBLE && !link.getText().toString().trim().isEmpty() && !key.isEmpty()) {
-                fields.put(key, (fields.get(key) + "\n" + link.getText().toString().trim()).trim());
+                String current = fields.get(key);
+                fields.put(key, ((current == null ? "" : current) + "\n" + link.getText().toString().trim()).trim());
             }
             for (int i = 0; i < polls.getChildCount(); i++) {
                 View child = polls.getChildAt(i);
@@ -315,13 +317,17 @@ final class SocialBoard {
             lp.rightMargin = dp(8);
             tile.setLayoutParams(lp);
             String slug = slug(href);
+            String storyTitle = title;
             tile.setOnClickListener(v -> {
                 if (slug == null) return;
-                Intent intent = new Intent(activity, ArticleActivity.class);
-                intent.putExtra("slug", slug);
-                intent.putExtra("title", link.text());
-                intent.putExtra("image", image);
-                activity.startActivity(intent);
+                try {
+                    Intent intent = new Intent(activity, ArticleActivity.class);
+                    intent.putExtra("slug", slug);
+                    intent.putExtra("title", storyTitle);
+                    intent.putExtra("image", image);
+                    activity.startActivity(intent);
+                } catch (Exception ignored) {
+                }
             });
             row.addView(tile);
             loadImage(image, photo);
@@ -338,14 +344,17 @@ final class SocialBoard {
             String hint = input.attr("placeholder");
             if (!hint.contains("टिप्पणी") && !hint.toLowerCase().contains("comment")) continue;
             Element card = input.parent();
-            while (card != null && card.parent() != null && !"body".equals(card.parent().tagName())) {
+            if (card == null) continue;
+            while (card.parent() != null && !"body".equals(card.parent().tagName())) {
                 Element parent = card.parent();
                 if (parent.select("textarea[placeholder*=आजको], textarea[placeholder*=status]").size() > 0) break;
                 if (parent.select("input[placeholder*=टिप्पणी], textarea[placeholder*=टिप्पणी]").size() > 1) break;
                 card = parent;
                 if ("article".equals(card.tagName()) || card.className().contains("post")) break;
             }
-            if (!cards.contains(card) && card.selectFirst("textarea[placeholder*=status], textarea[placeholder*=आजको]") == null) cards.add(card);
+            if (card == null || cards.contains(card)) continue;
+            if (card.selectFirst("textarea[placeholder*=status], textarea[placeholder*=आजको]") != null) continue;
+            cards.add(card);
         }
         if (cards.isEmpty()) for (Element post : doc.select(".social-post")) cards.add(post);
         return cards;
@@ -458,11 +467,15 @@ final class SocialBoard {
             String href = link.attr("abs:href");
             String label = link.text().toLowerCase();
             chip.setOnClickListener(v -> {
-                if (label.contains("link")) {
-                    ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("link", href));
-                    chip.setText("कपी भयो");
-                } else activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(href)));
+                try {
+                    if (href == null || href.isEmpty()) return;
+                    if (label.contains("link")) {
+                        ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("link", href));
+                        chip.setText("कपी भयो");
+                    } else activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(href)));
+                } catch (Exception ignored) {
+                }
             });
             row.addView(chip);
             n++;
@@ -488,7 +501,8 @@ final class SocialBoard {
         send.setOnClickListener(v -> {
             LinkedHashMap<String, String> fields = fieldsOf(form);
             if (field != null && !field.attr("name").isEmpty()) fields.put(field.attr("name"), input.getText().toString().trim());
-            if (field != null && !field.attr("name").isEmpty() && fields.get(field.attr("name")).isEmpty()) return;
+            String typed = field == null || field.attr("name").isEmpty() ? "" : fields.get(field.attr("name"));
+            if (field != null && !field.attr("name").isEmpty() && (typed == null || typed.isEmpty())) return;
             send(form, button, fields);
         });
         row.addView(send);
@@ -647,9 +661,10 @@ final class SocialBoard {
         new Thread(() -> {
             String body = "GET".equals(verb) ? null : encode(fields);
             String target = "GET".equals(verb) ? action + (action.contains("?") ? "&" : "?") + encode(fields) : action;
-            String html = fetch(verb, target, body);
+            String[] base = {target};
+            String html = fetch(verb, target, body, base);
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
-                if (token == generation) render(html, pageUrl);
+                if (token == generation) render(html, base[0] == null || base[0].isEmpty() ? pageUrl : base[0]);
             });
         }).start();
     }
@@ -671,7 +686,7 @@ final class SocialBoard {
         return fields;
     }
 
-    private String fetch(String method, String url, String body) {
+    private String fetch(String method, String url, String body, String[] base) {
         String current = url;
         String verb = method;
         String send = body;
@@ -705,8 +720,10 @@ final class SocialBoard {
                     send = null;
                     continue;
                 }
-                InputStream input = code >= 400 ? connection.getErrorStream() : connection.getInputStream();
-                return read(input);
+                if (base != null) base[0] = current;
+                if (code >= 400) return null;
+                String html = read(connection.getInputStream());
+                return html == null || html.isEmpty() ? null : html;
             } catch (Exception ignored) {
                 if (hop == 0) continue;
                 return null;
@@ -723,7 +740,7 @@ final class SocialBoard {
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(0xFF7C3AED);
         frame.setBackground(bg);
-        TextView letter = note(name.isEmpty() ? "स" : name.substring(0, 1).toUpperCase(), 16, 0xFFFFFFFF, true);
+        TextView letter = note(name.isEmpty() ? "स" : new String(Character.toChars(name.codePointAt(0))).toUpperCase(java.util.Locale.ROOT), 16, 0xFFFFFFFF, true);
         letter.setGravity(Gravity.CENTER);
         frame.addView(letter, new FrameLayout.LayoutParams(size, size, Gravity.CENTER));
         if (url != null && !url.isEmpty()) {

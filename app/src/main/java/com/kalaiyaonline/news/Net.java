@@ -18,6 +18,12 @@ final class Net {
     static void use(File cache) {
         folder = new File(cache, "pages");
         if (!folder.exists()) folder.mkdirs();
+        File[] old = folder.listFiles();
+        if (old == null) return;
+        for (File file : old) {
+            String name = file.getName();
+            if (name.endsWith(".html") && name.length() < 20) file.delete();
+        }
     }
 
     static String text(String url) {
@@ -74,7 +80,23 @@ final class Net {
 
     private static File fileFor(String url) {
         if (folder == null) return null;
-        return new File(folder, Integer.toHexString(url.hashCode()) + ".html");
+        String key = url + "\n" + (Account.loggedIn() ? "1" : "0");
+        return new File(folder, digest(key) + ".html");
+    }
+
+    private static String digest(String key) {
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+            StringBuilder out = new StringBuilder(32);
+            for (int i = 0; i < 16; i++) {
+                int value = hash[i] & 0xff;
+                if (value < 16) out.append('0');
+                out.append(Integer.toHexString(value));
+            }
+            return out.toString();
+        } catch (Exception ignored) {
+            return Integer.toHexString(key.hashCode());
+        }
     }
 
     private static byte[] read(File file) {
@@ -90,9 +112,16 @@ final class Net {
     }
 
     private static void write(File file, byte[] data) {
-        try (FileOutputStream output = new FileOutputStream(file)) {
+        File temp = new File(file.getParentFile(), file.getName() + ".tmp");
+        try (FileOutputStream output = new FileOutputStream(temp)) {
             output.write(data);
+            output.getFD().sync();
         } catch (Exception ignored) {
+            temp.delete();
+            return;
+        }
+        if (!temp.renameTo(file)) {
+            temp.delete();
         }
     }
 }

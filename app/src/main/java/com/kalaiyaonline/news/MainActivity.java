@@ -441,13 +441,14 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     SiteClient.Home home = client.home();
                     runOnUiThread(() -> {
+                        if (isDestroyed()) return;
                         latestHome = home;
                         if (bellOpen && bellMode == 0) showBell(latestSeven(home));
                         if (bellOpen && bellMode == 1) loadPopular(home);
                     });
                 } catch (Exception error) {
                     runOnUiThread(() -> {
-                        if (!bellOpen) return;
+                        if (isDestroyed() || !bellOpen) return;
                         bellList.removeAllViews();
                         bellList.addView(message("समाचार ल्याउन सकिएन।"));
                     });
@@ -506,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
             for (Story story : home.ticker) {
                 if (list.size() >= 7) break;
                 boolean seen = false;
-                for (Story item : list) if (item.slug.equals(story.slug)) seen = true;
+                for (Story item : list) if (item.slug != null && item.slug.equals(story.slug)) seen = true;
                 if (!seen) list.add(story);
             }
         }
@@ -525,7 +526,9 @@ public class MainActivity extends AppCompatActivity {
         }
         bellList.removeAllViews();
         bellList.addView(message("लोकप्रिय समाचार लोड हुँदैछ…"));
-        String slug = home.stories.isEmpty() ? "" : home.stories.get(0).slug;
+        String found = "";
+        if (!home.stories.isEmpty() && home.stories.get(0).slug != null) found = home.stories.get(0).slug;
+        String slug = found;
         io.execute(() -> {
             List<Story> top = new ArrayList<>();
             try {
@@ -535,26 +538,29 @@ public class MainActivity extends AppCompatActivity {
             List<Story> ready = top;
             popularCache = ready;
             runOnUiThread(() -> {
-                if (bellOpen && bellMode == 1) showBell(ready);
+                if (isDestroyed() || !bellOpen || bellMode != 1) return;
+                showBell(ready);
             });
         });
     }
 
     private void showBell(List<Story> stories) {
+        if (isDestroyed() || bellList == null) return;
         bellList.removeAllViews();
         if (stories.isEmpty()) {
             bellList.addView(message("समाचार भेटिएन।"));
             return;
         }
         String digits = "०१२३४५६७८९";
-        for (int i = 0; i < stories.size(); i++) {
+        int limit = Math.min(stories.size(), 7);
+        for (int i = 0; i < limit; i++) {
             Story story = stories.get(i);
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(0, dp(8), 0, dp(8));
             TextView number = new TextView(this);
-            number.setText(String.valueOf(digits.charAt(i + 1)));
+            number.setText(String.valueOf(digits.charAt(Math.min(i + 1, digits.length() - 1))));
             number.setTextColor(0xFFFFFFFF);
             number.setGravity(Gravity.CENTER);
             style(number, 16, R.font.mukta_bold);
@@ -668,13 +674,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 List<Story> list = client.search(query);
                 runOnUiThread(() -> {
-                    if (!searchOpen) return;
+                    if (isDestroyed() || !searchOpen) return;
                     searchResults.removeAllViews();
                     if (list.isEmpty()) searchResults.addView(message("केही भेटिएन।"));
                     for (Story story : list) searchResults.addView(compact(story));
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
+                    if (isDestroyed()) return;
                     searchResults.removeAllViews();
                     searchResults.addView(message("खोज हुन सकेन।"));
                 });
@@ -1287,7 +1294,7 @@ public class MainActivity extends AppCompatActivity {
                 SiteClient.Home cached = cachedHome();
                 if (cached != null) {
                     runOnUiThread(() -> {
-                        if (gen != homeGen || !"home".equals(section) || latestHome != null) return;
+                        if (isDestroyed() || gen != homeGen || !"home".equals(section) || latestHome != null) return;
                         latestHome = cached;
                         renderHome(cached, gen);
                     });
@@ -1297,7 +1304,7 @@ public class MainActivity extends AppCompatActivity {
                 SiteClient.Home home = client.home();
                 String html = client.homeSource;
                 runOnUiThread(() -> {
-                    if (gen != homeGen) return;
+                    if (isDestroyed() || gen != homeGen) return;
                     if (html != null && html.length() > 1000) saveHome(html);
                     latestHome = home;
                     slowKbps = client.homeKbps;
@@ -1306,7 +1313,7 @@ public class MainActivity extends AppCompatActivity {
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
-                    if (gen != homeGen) return;
+                    if (isDestroyed() || gen != homeGen) return;
                     homeReady = true;
                     if (latestHome == null) setStatus("समाचार ल्याउन सकिएन। नेट ढिलो छ, फेरि खोल्नुहोस्।");
                     else prefetchRashifal(gen);
@@ -1341,7 +1348,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void renderHome(SiteClient.Home home, int gen) {
-        if (!"home".equals(section) || gen != homeGen) return;
+        if (isDestroyed() || !"home".equals(section) || gen != homeGen) return;
         if (feedAd != null) {
             feedAd.destroy();
             feedAd = null;
@@ -1374,17 +1381,19 @@ public class MainActivity extends AppCompatActivity {
             try {
                 List<Story> list = "gallery".equals(kind) ? client.gallery()
                         : "directory".equals(kind) ? client.directory() : client.reels();
-                runOnUiThread(() -> renderList(kind, list));
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) renderList(kind, list);
+                });
             } catch (Exception error) {
                 runOnUiThread(() -> {
-                    if (kind.equals(section)) setStatus("लोड हुन सकेन।");
+                    if (!isDestroyed() && kind.equals(section)) setStatus("लोड हुन सकेन।");
                 });
             }
         });
     }
 
     private void renderList(String kind, List<Story> list) {
-        if (!kind.equals(section)) return;
+        if (isDestroyed() || !kind.equals(section)) return;
         page.removeAllViews();
         String title = "gallery".equals(kind) ? "फोटो ग्यालरी" : "directory".equals(kind) ? "डाइरेक्टरी" : "रिल्स";
         page.addView(heading(title));
@@ -1432,7 +1441,7 @@ public class MainActivity extends AppCompatActivity {
                     for (Story story : feed.stories) {
                         boolean duplicate = false;
                         for (Story existing : accumulated) {
-                            if (existing.slug.equals(story.slug)) {
+                            if (existing.slug != null && existing.slug.equals(story.slug)) {
                                 duplicate = true;
                                 break;
                             }
@@ -1446,7 +1455,7 @@ public class MainActivity extends AppCompatActivity {
                 int fetchedDone = fetched;
                 int pagesDone = pages;
                 runOnUiThread(() -> {
-                    if (gen != catGen) return;
+                    if (isDestroyed() || gen != catGen) return;
                     catStories.clear();
                     catStories.addAll(done);
                     catSiteFetched = fetchedDone;
@@ -1455,13 +1464,14 @@ public class MainActivity extends AppCompatActivity {
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
-                    if (gen == catGen) setStatus("लोड हुन सकेन।");
+                    if (!isDestroyed() && gen == catGen) setStatus("लोड हुन सकेन।");
                 });
             }
         });
     }
 
     private void renderCategory() {
+        if (isDestroyed()) return;
         section = "cat:" + catSlug;
         page.removeAllViews();
         page.addView(chips());
@@ -1702,7 +1712,7 @@ public class MainActivity extends AppCompatActivity {
             String[] lines = weatherCopy(body);
             String temp = weatherTempText(body);
             runOnUiThread(() -> {
-                if (!"home".equals(section) || weatherFlip == null || lines.length == 0) return;
+                if (isDestroyed() || !"home".equals(section) || weatherFlip == null || lines.length == 0) return;
                 if (weatherTemp != null) weatherTemp.setText(temp);
                 if (weatherScene != null) weatherScene.setKind(weatherKind(body));
                 weatherLines = lines;
@@ -2312,6 +2322,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 SiteClient.Rashifal data = client.rashifal();
                 runOnUiThread(() -> {
+                    if (isDestroyed()) return;
                     rashifalLoading = false;
                     rashifal = data;
                     rememberRashifal(data);
@@ -2319,6 +2330,7 @@ public class MainActivity extends AppCompatActivity {
                 });
             } catch (Exception ignored) {
                 runOnUiThread(() -> {
+                    if (isDestroyed()) return;
                     rashifalLoading = false;
                     if (gen == homeGen && rashifalSlot != null && rashifal == null) rashifalSlot.setVisibility(View.GONE);
                 });
@@ -2367,7 +2379,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void paintRashifal() {
-        if (rashifalSlot == null || rashifal == null || rashifal.signs.isEmpty()) return;
+        if (isDestroyed() || rashifalSlot == null || rashifal == null || rashifal.signs.isEmpty()) return;
         rashifalSlot.setVisibility(View.VISIBLE);
         rashifalSlot.removeAllViews();
         rashifalSlot.addView(sectionHead("राशिफल", null, null));
@@ -2651,6 +2663,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openStory(Story story) {
+        if (story == null || story.slug == null || story.slug.isEmpty()) return;
         if (story.slug.contains("/gallery/") && !story.slug.contains("gallery-category")) {
             Intent intent = new Intent(this, GalleryActivity.class);
             intent.putExtra("url", story.slug);
@@ -2684,6 +2697,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setStatus(String text) {
+        if (isDestroyed()) return;
         page.removeAllViews();
         status = message(text);
         page.addView(status);
