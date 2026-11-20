@@ -89,9 +89,10 @@ final class PrivacyBoard {
     private View bullet(Element item, boolean dark) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.TOP);
         TextView mark = line("•", 16, 0xFF0F8A3C, true, 0);
         mark.setPadding(0, 0, dp(8), 0);
-        row.addView(mark);
+        row.addView(mark, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         TextView text = rich(item, 16, dark ? 0xFFE7EEEA : 0xFF292524, false, 0);
         row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
