@@ -474,6 +474,7 @@ public class ArticleActivity extends AppCompatActivity {
             bodyView.setVisibility(View.VISIBLE);
             bodyHost.setVisibility(View.GONE);
             bodyView.setText(story.body.isEmpty() ? "पूर्ण पाठ भेटिएन।" : story.body);
+            if (Build.VERSION.SDK_INT >= 26) bodyView.setJustificationMode(android.text.Layout.JUSTIFICATION_MODE_INTER_WORD);
             return;
         }
         bodyView.setVisibility(View.GONE);
@@ -487,8 +488,9 @@ public class ArticleActivity extends AppCompatActivity {
             TextView view = new TextView(this);
             view.setTextColor(0xFF292524);
             view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
-            view.setLineSpacing(dp(7), 1f);
-            view.setPadding(dp(2), first ? dp(12) : dp(2), dp(2), dp(6));
+            view.setLineSpacing(0, 1.55f);
+            view.setPadding(dp(2), 0, dp(2), 0);
+            if (Build.VERSION.SDK_INT >= 26) view.setJustificationMode(android.text.Layout.JUSTIFICATION_MODE_INTER_WORD);
             if (!piece.lead.isEmpty() && piece.text.startsWith(piece.lead)) {
                 SpannableString styled = new SpannableString(piece.text);
                 styled.setSpan(new LeadBadgeSpan(piece.lead), 0, piece.lead.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -496,6 +498,10 @@ public class ArticleActivity extends AppCompatActivity {
             } else {
                 view.setText(piece.text);
             }
+            LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            textLp.topMargin = first ? dp(14) : 0;
+            textLp.bottomMargin = dp(14);
+            view.setLayoutParams(textLp);
             bodyHost.addView(view);
             first = false;
         }
