@@ -62,6 +62,7 @@ public class ArticleActivity extends AppCompatActivity {
     private Story loaded;
     private AdView articleAd;
     private TextView listenButton;
+    private Drawable speakerIcon;
     private TextToSpeech speech;
     private boolean speaking;
     private boolean preparing;
@@ -215,20 +216,26 @@ public class ArticleActivity extends AppCompatActivity {
         frameLp.topMargin = dp(8);
         page.addView(frame, frameLp);
 
-        LinearLayout shares = new LinearLayout(this);
-        shares.setOrientation(LinearLayout.HORIZONTAL);
-        shares.setGravity(Gravity.CENTER);
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(6), dp(6), dp(8), dp(6));
+        GradientDrawable tray = new GradientDrawable();
+        tray.setColor(0xFFF4F7F5);
+        tray.setCornerRadius(dp(26));
+        bar.setBackground(tray);
+        bar.addView(listenControl());
+        bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
         String link = SiteClient.ORIGIN + "/news/" + slug;
-        shares.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
-        shares.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", link, title));
-        shares.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", link, title));
-        shares.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
-        shares.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, link, title));
-        LinearLayout.LayoutParams shareLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        shareLp.topMargin = dp(10);
-        shareLp.bottomMargin = dp(4);
-        page.addView(shares, shareLp);
-        page.addView(listenControl());
+        bar.addView(shareIcon(R.drawable.ic_share_wa, 0xFF25D366, "com.whatsapp", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_fb, 0xFF1877F2, "com.facebook.katana", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_vb, 0xFF7360F2, "com.viber.voip", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_x, 0xFF111111, "com.twitter.android", link, title));
+        bar.addView(shareIcon(R.drawable.ic_share_more, 0xFF0F8A3C, null, link, title));
+        LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        barLp.topMargin = dp(12);
+        barLp.bottomMargin = dp(2);
+        page.addView(bar, barLp);
 
         bodyView = new TextView(this);
         bodyView.setText("पूर्ण समाचार लोड हुँदैछ…");
@@ -316,19 +323,21 @@ public class ArticleActivity extends AppCompatActivity {
         listenButton = new TextView(this);
         listenButton.setText("सुन्नुहोस्");
         listenButton.setTextColor(0xFF0F8A3C);
-        listenButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        listenButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         listenButton.setTypeface(ResourcesCompat.getFont(this, R.font.mukta_bold));
-        listenButton.setGravity(Gravity.CENTER);
-        listenButton.setPadding(dp(18), dp(8), dp(18), dp(8));
+        listenButton.setGravity(Gravity.CENTER_VERTICAL);
+        listenButton.setIncludeFontPadding(false);
+        listenButton.setPadding(dp(10), 0, dp(12), 0);
+        speakerIcon = DrawableCompat.wrap(getDrawable(R.drawable.ic_speaker)).mutate();
+        DrawableCompat.setTint(speakerIcon, 0xFF0F8A3C);
+        speakerIcon.setBounds(0, 0, dp(16), dp(16));
+        listenButton.setCompoundDrawables(speakerIcon, null, null, null);
+        listenButton.setCompoundDrawablePadding(dp(5));
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(20));
-        bg.setColor(0xFFE8F6EE);
+        bg.setCornerRadius(dp(18));
+        bg.setColor(0xFFE7F6EE);
         listenButton.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER_HORIZONTAL;
-        lp.topMargin = dp(6);
-        lp.bottomMargin = dp(2);
-        listenButton.setLayoutParams(lp);
+        listenButton.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)));
         listenButton.setOnClickListener(v -> toggleSpeech());
         return listenButton;
     }
@@ -408,11 +417,15 @@ public class ArticleActivity extends AppCompatActivity {
     private void paintListen(boolean playing, boolean waiting) {
         speaking = playing;
         if (listenButton == null) return;
-        listenButton.setText(waiting ? "तयार हुँदैछ" : playing ? "रोक्नुहोस्" : "सुन्नुहोस्");
+        listenButton.setText(waiting ? "सुन्नुहोस्" : playing ? "रोक्नुहोस्" : "सुन्नुहोस्");
         listenButton.setTextColor(playing ? 0xFFFFFFFF : 0xFF0F8A3C);
+        if (speakerIcon != null) {
+            DrawableCompat.setTint(speakerIcon, playing ? 0xFFFFFFFF : 0xFF0F8A3C);
+            listenButton.setCompoundDrawables(speakerIcon, null, null, null);
+        }
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(20));
-        bg.setColor(playing ? 0xFF0F8A3C : 0xFFE8F6EE);
+        bg.setCornerRadius(dp(18));
+        bg.setColor(playing ? 0xFF0F8A3C : 0xFFE7F6EE);
         listenButton.setBackground(bg);
     }
 
@@ -568,16 +581,25 @@ public class ArticleActivity extends AppCompatActivity {
 
     private View shareIcon(int icon, int color, String pkg, String link, TextView title) {
         ImageView mark = new ImageView(this);
-        mark.setImageResource(icon);
+        Drawable glyph = DrawableCompat.wrap(getDrawable(icon)).mutate();
+        DrawableCompat.setTint(glyph, color);
+        mark.setImageDrawable(glyph);
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        mark.setPadding(dp(9), dp(9), dp(9), dp(9));
+        mark.setPadding(dp(7), dp(7), dp(7), dp(7));
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(color);
+        bg.setColor((color & 0x00FFFFFF) | 0x14000000);
+        bg.setStroke(dp(1), (color & 0x00FFFFFF) | 0x66000000);
         mark.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(42));
-        lp.leftMargin = dp(6);
-        lp.rightMargin = dp(6);
+        mark.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        mark.setClipToOutline(true);
+        mark.setElevation(dp(2));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(32), dp(32));
+        lp.leftMargin = dp(4);
         mark.setLayoutParams(lp);
         mark.setOnClickListener(v -> share(pkg, title.getText().toString(), link));
         return mark;
