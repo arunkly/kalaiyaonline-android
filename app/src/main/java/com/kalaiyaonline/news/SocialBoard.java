@@ -76,7 +76,7 @@ final class SocialBoard {
                 if (token != generation || activity.isDestroyed()) return;
                 try {
                     render(html, base[0] == null || base[0].isEmpty() ? HOME : base[0]);
-                } catch (RuntimeException ignored) {
+                } catch (Throwable ignored) {
                     root.removeAllViews();
                     root.addView(card(loginCard(true)));
                 }
@@ -118,7 +118,7 @@ final class SocialBoard {
 
     private View composer(Element area) {
         Element form = area.closest("form");
-        if (form == null) form = area.parent();
+        if (form == null) form = area.parent() == null ? area : area.parent();
         Element scope = form;
         for (int i = 0; i < 4 && scope.parent() != null; i++) {
             if (scope.text().contains("प्रकाशित") || scope.text().contains("Poll") || scope.text().contains("Emoji")) break;
@@ -133,6 +133,9 @@ final class SocialBoard {
         EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको स्टाटस के छ?" : area.attr("placeholder"), true);
         status.setBackground(pill(0xFFF0F2F5));
         status.setMinLines(2);
+        status.setMinLines(1);
+        status.setMinHeight(0);
+        status.setMinimumHeight(0);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, dp(76), 1f);
         statusLp.leftMargin = dp(10);
         status.setLayoutParams(statusLp);
@@ -249,18 +252,12 @@ final class SocialBoard {
 
     private View emojiGrid(LinearLayout host, EditText status, Element scope) {
         host.setVisibility(View.GONE);
-        List<String> faces = new ArrayList<>();
-        for (Element button : scope.select("button, span")) {
-            String text = button.ownText().trim();
-            if (text.length() >= 1 && text.length() <= 3 && text.codePointAt(0) > 255 && !text.contains("स्टाटस")) faces.add(text);
-        }
-        if (faces.isEmpty()) for (String face : EMOJI) faces.add(face);
         int columns = 6;
-        for (int i = 0; i < faces.size(); i += columns) {
+        for (int i = 0; i < EMOJI.length; i += columns) {
             LinearLayout row = new LinearLayout(activity);
             row.setOrientation(LinearLayout.HORIZONTAL);
-            for (int c = 0; c < columns && i + c < faces.size(); c++) {
-                String face = faces.get(i + c);
+            for (int c = 0; c < columns && i + c < EMOJI.length; c++) {
+                String face = EMOJI[i + c];
                 TextView cell = note(face, 22, 0xFF142033, false);
                 cell.setGravity(Gravity.CENTER);
                 cell.setBackground(stroke(0xFFFFFFFF, 0xFFE5E7EB));
@@ -355,24 +352,26 @@ final class SocialBoard {
 
     private List<Element> posts(Document doc) {
         List<Element> cards = new ArrayList<>();
-        for (Element input : doc.select("input[placeholder], textarea[placeholder]")) {
-            String hint = input.attr("placeholder");
-            if (!hint.contains("टिप्पणी") && !hint.toLowerCase().contains("comment")) continue;
-            Element card = input.parent();
-            if (card == null) continue;
-            while (card.parent() != null && !"body".equals(card.parent().tagName())) {
-                Element parent = card.parent();
-                if (parent.select("textarea[placeholder*=आजको], textarea[placeholder*=status]").size() > 0) break;
-                if (parent.select("input[placeholder*=टिप्पणी], textarea[placeholder*=टिप्पणी]").size() > 1) break;
-                card = parent;
-                if ("article".equals(card.tagName()) || card.className().contains("post")) break;
-            }
-            if (card == null || cards.contains(card)) continue;
-            if (card.selectFirst("textarea[placeholder*=status], textarea[placeholder*=आजको]") != null) continue;
-            cards.add(card);
+        for (Element post : feed(doc).select(".social-post")) {
+            if (inside(post, "social-post")) continue;
+            cards.add(post);
+            if (cards.size() >= 20) break;
         }
-        if (cards.isEmpty()) for (Element post : doc.select(".social-post")) cards.add(post);
         return cards;
+    }
+
+    private Element feed(Document doc) {
+        Element shell = doc.selectFirst(".social-shell, .social-page, .social-grid");
+        return shell == null ? doc : shell;
+    }
+
+    private boolean inside(Element node, String className) {
+        Element parent = node.parent();
+        while (parent != null) {
+            if (parent.hasClass(className)) return true;
+            parent = parent.parent();
+        }
+        return false;
     }
 
     private View postCard(Element post) {
@@ -407,6 +406,7 @@ final class SocialBoard {
             box.addView(copy);
         }
         for (Element image : post.select("img")) {
+            if (box.getChildCount() > 8) break;
             String src = image.attr("abs:src");
             if (src.isEmpty() || src.equals(photo)) continue;
             ImageView view = new ImageView(activity);
@@ -505,6 +505,9 @@ final class SocialBoard {
         row.setPadding(0, dp(8), 0, 0);
         EditText input = input(field == null || field.attr("placeholder").isEmpty() ? "टिप्पणी लेख्नुहोस्..." : field.attr("placeholder"), false);
         row.addView(input, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        input.setMinLines(1);
+        input.setMinHeight(0);
+        input.setMinimumHeight(0);
         Element button = form.selectFirst("button, input[type=submit]");
         TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
         send.setGravity(Gravity.CENTER);
@@ -603,7 +606,7 @@ final class SocialBoard {
 
     private Element personCard(Element button) {
         Element card = button.parent() == null ? button : button.parent();
-        while (card.parent() != null && friendCount(card.parent()) <= 1) card = card.parent();
+        for (int step = 0; step < 6 && card.parent() != null && friendCount(card.parent()) <= 1; step++) card = card.parent();
         return card;
     }
 
@@ -654,7 +657,7 @@ final class SocialBoard {
                 if (token != generation || activity.isDestroyed()) return;
                 try {
                     render(html, base[0] == null || base[0].isEmpty() ? pageUrl : base[0]);
-                } catch (RuntimeException ignored) {
+                } catch (Throwable ignored) {
                     root.removeAllViews();
                     root.addView(note("पठाउन सकिएन। फेरि प्रयास गर्नुहोस्।", 15, 0xFF78716C, false));
                 }
@@ -733,7 +736,7 @@ final class SocialBoard {
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(0xFF7C3AED);
         frame.setBackground(bg);
-        TextView letter = note(name.isEmpty() ? "स" : new String(Character.toChars(name.codePointAt(0))).toUpperCase(java.util.Locale.ROOT), 16, 0xFFFFFFFF, true);
+        TextView letter = note(initial(name), 16, 0xFFFFFFFF, true);
         letter.setGravity(Gravity.CENTER);
         frame.addView(letter, new FrameLayout.LayoutParams(size, size, Gravity.CENTER));
         if (url != null && !url.isEmpty()) {
@@ -750,6 +753,19 @@ final class SocialBoard {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
         frame.setLayoutParams(lp);
         return frame;
+    }
+
+    private String initial(String name) {
+        if (name == null) return "स";
+        String value = name.trim();
+        if (value.isEmpty()) return "स";
+        try {
+            int point = value.codePointAt(0);
+            if (point < 0 || point > 0x10FFFF || (point >= 0xD800 && point <= 0xDFFF)) return "स";
+            return new String(Character.toChars(point)).toUpperCase(java.util.Locale.ROOT);
+        } catch (RuntimeException ignored) {
+            return "स";
+        }
     }
 
     private View card(View child) {

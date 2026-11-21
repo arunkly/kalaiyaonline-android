@@ -5,7 +5,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
-import android.text.method.SingleLineTransformationMethod;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -345,9 +344,15 @@ public class AccountActivity extends AppCompatActivity {
         boolean dark = Night.on(this);
         EditText input = new EditText(this);
         input.setHint(hint);
-        input.setSingleLine(true);
-        input.setInputType(type);
-        if (passwordType(type)) input.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        if (passwordType(type)) {
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            input.setTransformationMethod(PasswordTransformationMethod.getInstance());
+            input.setMaxLines(1);
+            input.setHorizontallyScrolling(true);
+        } else {
+            input.setSingleLine(true);
+            input.setInputType(type);
+        }
         input.setTextColor(dark ? 0xFFF4F7F5 : 0xFF1C1917);
         input.setHintTextColor(0xFF9AA89F);
         style(input, 16, false);
@@ -383,12 +388,16 @@ public class AccountActivity extends AppCompatActivity {
         boolean[] open = {false};
         eye.setOnClickListener(v -> {
             open[0] = !open[0];
-            int cursor = input.getSelectionEnd();
-            input.setTransformationMethod(open[0] ? SingleLineTransformationMethod.getInstance() : PasswordTransformationMethod.getInstance());
+            int start = Math.max(0, input.getSelectionStart());
+            int end = Math.max(start, input.getSelectionEnd());
+            input.setTransformationMethod(open[0] ? null : PasswordTransformationMethod.getInstance());
             eye.setImageResource(open[0] ? R.drawable.ic_eye_off : R.drawable.ic_eye);
             eye.setContentDescription(open[0] ? "पासवर्ड लुकाउनुहोस्" : "पासवर्ड हेर्नुहोस्");
-            style(input, 16, false);
-            if (cursor >= 0) input.setSelection(Math.min(cursor, input.length()));
+            int len = input.getText() == null ? 0 : input.length();
+            try {
+                input.setSelection(Math.min(start, len), Math.min(end, len));
+            } catch (RuntimeException ignored) {
+            }
         });
         box.addView(input);
         box.addView(eye, eyeLp);
