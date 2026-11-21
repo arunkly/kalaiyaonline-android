@@ -242,6 +242,31 @@ public class MainActivity extends AppCompatActivity {
         consumeOpen(getIntent());
         updates = new UpdateChecker(this);
         updates.check();
+        showLastCrash();
+    }
+
+    private void showLastCrash() {
+        File file = new File(getFilesDir(), "crash.txt");
+        if (!file.exists() || file.length() < 8) return;
+        String text = "";
+        try {
+            InputStream input = new java.io.FileInputStream(file);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = input.read(buffer)) != -1 && bytes.size() < 1500) bytes.write(buffer, 0, read);
+            input.close();
+            text = bytes.toString("UTF-8");
+        } catch (Exception ignored) {
+            return;
+        }
+        file.delete();
+        if (text.isEmpty()) return;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("एप बन्द हुनुको कारण")
+                .setMessage(text)
+                .setPositiveButton("ठीक छ", null)
+                .show();
     }
 
     @Override

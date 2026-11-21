@@ -130,17 +130,15 @@ final class SocialBoard {
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(avatar(firstImage(form), Account.name(), dp(40)));
+        TextView prompt = note(Account.name().isEmpty() ? "तपाईंको स्टाटस" : Account.name(), 15, 0xFF142033, true);
+        prompt.setPadding(dp(10), 0, 0, 0);
+        head.addView(prompt, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        box.addView(head);
         EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको स्टाटस के छ?" : area.attr("placeholder"), true);
         status.setBackground(pill(0xFFF0F2F5));
         status.setMinLines(2);
-        status.setMinLines(1);
-        status.setMinHeight(0);
-        status.setMinimumHeight(0);
-        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, dp(76), 1f);
-        statusLp.leftMargin = dp(10);
-        status.setLayoutParams(statusLp);
-        head.addView(status);
-        box.addView(head);
+        status.setMinHeight(dp(72));
+        box.addView(status);
 
         LinkedHashMap<String, String> fields = fieldsOf(form);
         String key = area.attr("name");
@@ -501,13 +499,10 @@ final class SocialBoard {
     private View replyRow(Element form) {
         Element field = form.selectFirst("input[placeholder], textarea[placeholder]");
         LinearLayout row = new LinearLayout(activity);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(0, dp(8), 0, 0);
         EditText input = input(field == null || field.attr("placeholder").isEmpty() ? "टिप्पणी लेख्नुहोस्..." : field.attr("placeholder"), false);
-        row.addView(input, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        input.setMinLines(1);
-        input.setMinHeight(0);
-        input.setMinimumHeight(0);
+        row.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         Element button = form.selectFirst("button, input[type=submit]");
         TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
         send.setGravity(Gravity.CENTER);
@@ -515,7 +510,8 @@ final class SocialBoard {
         send.setBackground(pill(0xFF0F8A3C));
         send.setPadding(dp(12), dp(7), dp(12), dp(7));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(8);
+        lp.topMargin = dp(8);
+        lp.gravity = Gravity.END;
         send.setLayoutParams(lp);
         send.setOnClickListener(v -> {
             LinkedHashMap<String, String> fields = fieldsOf(form);
