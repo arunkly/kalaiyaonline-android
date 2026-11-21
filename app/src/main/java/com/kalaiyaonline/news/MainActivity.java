@@ -2751,7 +2751,12 @@ public class MainActivity extends AppCompatActivity {
         else style(title, 18, R.font.mukta_semibold);
         title.setPadding(0, dp(4), 0, 0);
         pad.addView(title);
-        String meta = (story.author.isEmpty() ? "कलैया अनलाइन" : story.author) + (story.date.isEmpty() ? "" : " · " + story.date);
+        String who = story.author == null ? "" : story.author.trim();
+        String when = story.date == null ? "" : story.date.trim();
+        if (!who.isEmpty()) when = withoutName(when, who);
+        when = withoutName(when, "कलैया अनलाइन");
+        if (who.isEmpty()) who = "कलैया अनलाइन";
+        String meta = when.isEmpty() || when.equals(who) ? who : who + " · " + when;
         TextView line = new TextView(this);
         line.setText(meta);
         line.setTextColor(0xFF78716C);
@@ -2762,6 +2767,11 @@ public class MainActivity extends AppCompatActivity {
         card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
         return card;
+    }
+
+    private String withoutName(String value, String name) {
+        if (value == null || value.isEmpty() || name == null || name.isEmpty() || !value.contains(name)) return value == null ? "" : value;
+        return value.replace(name, "").replace("·", " ").replaceAll("\\s+", " ").trim();
     }
 
     private void openStory(Story story) {

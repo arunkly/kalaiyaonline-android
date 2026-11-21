@@ -898,8 +898,24 @@ public final class SiteClient {
         String title = text(article.selectFirst("h1, h2, h3, h4"));
         if (title.length() < 8) return null;
         String category = text(article.selectFirst(".master-category, .category-card-badge, .ctnb-kicker, .nb1-cat"));
-        String date = text(article.selectFirst(".master-meta-date, .category-card-meta, .ctnb-meta, .hlg-date"));
+        String date = text(article.selectFirst(".master-meta-date, .hlg-date"));
+        if (date.isEmpty()) {
+            Element meta = article.selectFirst(".category-card-meta, .ctnb-meta");
+            if (meta != null) {
+                for (Element span : meta.children()) {
+                    if (span.selectFirst(".reporter-meta-name, a") != null) continue;
+                    String value = text(span);
+                    if (value.isEmpty() || "·".equals(value)) continue;
+                    date = value;
+                    break;
+                }
+                if (date.isEmpty()) date = text(meta);
+            }
+        }
         String author = text(article.selectFirst(".reporter-meta-name"));
+        if (!author.isEmpty() && date.contains(author)) {
+            date = date.replace(author, "").replace("·", " ").replaceAll("\\s+", " ").trim();
+        }
         return new Story(slug, title, imageFrom(article), category, date, author, "");
     }
 
