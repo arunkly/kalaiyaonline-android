@@ -1730,7 +1730,7 @@ public class MainActivity extends AppCompatActivity {
         box.setElevation(0);
         weatherScene = new WeatherScene(this);
         weatherScene.setPlate(false);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(36), dp(36));
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(40), dp(40));
         sceneLp.rightMargin = dp(2);
         box.addView(weatherScene, sceneLp);
         weatherTemp = new TextView(this);

@@ -204,43 +204,55 @@ public final class WeatherScene extends View {
 
     private void drawMoon(Canvas canvas, float w, float h) {
         float cx = plate ? w * 0.28f : w * 0.5f;
-        float cy = plate ? h * 0.38f : h * 0.5f + (float) Math.sin(tick * 6.28f) * Math.min(w, h) * 0.03f;
-        float radius = Math.min(w, h) * (plate ? 0.16f : 0.28f);
-        int layer = canvas.saveLayer(cx - radius * 1.4f, cy - radius * 1.4f, cx + radius * 1.6f, cy + radius * 1.4f, null);
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFFFFF3C4);
-        canvas.drawCircle(cx, cy, radius, paint);
-        paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
-        canvas.drawCircle(cx + radius * 0.48f, cy - radius * 0.12f, radius * 0.78f, paint);
-        paint.setXfermode(null);
-        canvas.restoreToCount(layer);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setColor(0xFFF15A22);
-        paint.setStrokeWidth(Math.max(1.6f, radius * 0.1f));
-        canvas.drawCircle(cx - radius * 0.08f, cy + radius * 0.02f, radius * 0.72f, paint);
-        paint.setStyle(Paint.Style.FILL);
-        if (plate) {
-            paint.setColor(0xFF1A2C52);
-            canvas.drawCircle(cx + radius * 0.45f, cy - radius * 0.15f, radius * 0.82f, paint);
-            paint.setColor(0xFFFFFFFF);
-            for (int i = 0; i < 8; i++) {
-                float alpha = 0.35f + 0.65f * Math.abs((float) Math.sin((tick + seeds[i]) * 6.28f));
-                paint.setAlpha((int) (alpha * 255));
-                canvas.drawCircle(seeds[i + 8] * w, seeds[i + 16] * h * 0.7f, 1.6f + seeds[i] * 1.8f, paint);
-            }
-            paint.setAlpha(255);
+        float cy = (plate ? h * 0.38f : h * 0.5f) + (plate ? 0f : (float) Math.sin(tick * 6.28f) * Math.min(w, h) * 0.04f);
+        float radius = Math.min(w, h) * (plate ? 0.16f : 0.34f);
+        if (!plate) {
+            Path moon = new Path();
+            moon.addCircle(cx, cy, radius, Path.Direction.CW);
+            Path cut = new Path();
+            cut.addCircle(cx + radius * 0.46f, cy - radius * 0.08f, radius * 0.72f, Path.Direction.CW);
+            moon.op(cut, Path.Op.DIFFERENCE);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xFFFFC857);
+            canvas.drawPath(moon, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+            paint.setStrokeWidth(Math.max(2.2f, radius * 0.14f));
+            paint.setColor(0xFFF15A22);
+            canvas.drawPath(moon, paint);
+            paint.setStyle(Paint.Style.FILL);
+            return;
         }
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFFFFF6D8);
+        canvas.drawCircle(cx, cy, radius, paint);
+        paint.setColor(0xFF1A2C52);
+        canvas.drawCircle(cx + radius * 0.45f, cy - radius * 0.15f, radius * 0.82f, paint);
+        paint.setColor(0xFFFFFFFF);
+        for (int i = 0; i < 8; i++) {
+            float alpha = 0.35f + 0.65f * Math.abs((float) Math.sin((tick + seeds[i]) * 6.28f));
+            paint.setAlpha((int) (alpha * 255));
+            canvas.drawCircle(seeds[i + 8] * w, seeds[i + 16] * h * 0.7f, 1.6f + seeds[i] * 1.8f, paint);
+        }
+        paint.setAlpha(255);
     }
 
     private void drawClouds(Canvas canvas, float w, float h) {
         paint.setStyle(Paint.Style.FILL);
         if (!plate) {
             float size = Math.min(w, h);
+            float drift = (tick - 0.5f) * size * 0.05f;
+            float cx = w * 0.46f + drift;
+            float cy = h * 0.54f;
+            float r = size * 0.16f;
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xFFFFFFFF);
+            blob(canvas, cx, cy, r);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2.2f, size * 0.045f));
             paint.setColor(0xFF0F8A3C);
-            blob(canvas, w * 0.50f, h * 0.56f, size * 0.20f);
-            paint.setColor(kind == STORM ? 0xFFE7EEF4 : 0xFFFFFFFF);
-            float drift = (tick - 0.5f) * size * 0.06f;
-            blob(canvas, w * 0.48f + drift, h * 0.52f, size * 0.17f);
+            blob(canvas, cx, cy, r);
+            paint.setStyle(Paint.Style.FILL);
             return;
         }
         paint.setColor(kind == STORM ? 0xFFE7EEF4 : 0xFFFFFFFF);
