@@ -8,6 +8,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -39,7 +40,7 @@ final class WeatherBoard {
     private final LinearLayout days;
     private final LinearLayout results;
     private final EditText search;
-    private final WeatherScene scene;
+    private final ImageView scene;
     private double lat = 27.033;
     private double lon = 84.983;
 
@@ -120,9 +121,10 @@ final class WeatherBoard {
         now.addView(temp);
         condition.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         now.addView(condition);
-        scene = new WeatherScene(activity);
-        scene.setPlate(false);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(72), dp(72));
+        scene = new ImageView(activity);
+        scene.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        scene.setImageResource(WeatherScene.drawable(WeatherScene.NIGHT));
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(64), dp(64));
         sceneLp.leftMargin = dp(8);
         now.addView(scene, sceneLp);
         hero.addView(now);
@@ -333,7 +335,7 @@ final class WeatherBoard {
             temp.setText(temperature);
             condition.setText(summary);
             meta.setText(details);
-            scene.setKind(kind);
+            scene.setImageResource(WeatherScene.drawable(kind));
             days.removeAllViews();
             for (int i = 0; i < labels.length; i++) {
                 LinearLayout chip = new LinearLayout(activity);
@@ -341,11 +343,10 @@ final class WeatherBoard {
                 chip.setGravity(Gravity.CENTER_VERTICAL);
                 chip.setBackground(field());
                 chip.setPadding(dp(12), dp(8), dp(14), dp(8));
-                WeatherScene icon = new WeatherScene(activity);
-                icon.setPlate(false);
-                icon.setLive(false);
-                icon.setKind(i < kinds.length ? kinds[i] : WeatherScene.SUN);
-                chip.addView(icon, new LinearLayout.LayoutParams(dp(44), dp(44)));
+                ImageView icon = new ImageView(activity);
+                icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                icon.setImageResource(WeatherScene.drawable(i < kinds.length ? kinds[i] : WeatherScene.SUN));
+                chip.addView(icon, new LinearLayout.LayoutParams(dp(36), dp(36)));
                 TextView name = text(labels[i], 16, 0xFF0B5C28, true);
                 name.setPadding(dp(12), 0, 0, 0);
                 chip.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));

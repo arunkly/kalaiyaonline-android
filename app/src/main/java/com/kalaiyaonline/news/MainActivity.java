@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean homeReady;
     private TextView weatherFlip;
     private TextView weatherTemp;
-    private WeatherScene weatherScene;
+    private ImageView weatherIcon;
     private String[] weatherLines = new String[0];
     private int weatherIndex;
     private int homeGen;
@@ -1728,11 +1728,12 @@ public class MainActivity extends AppCompatActivity {
         bg.setCornerRadius(dp(18));
         box.setBackground(bg);
         box.setElevation(0);
-        weatherScene = new WeatherScene(this);
-        weatherScene.setPlate(false);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(40), dp(40));
-        sceneLp.rightMargin = dp(2);
-        box.addView(weatherScene, sceneLp);
+        weatherIcon = new ImageView(this);
+        weatherIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        weatherIcon.setImageResource(R.drawable.ic_wx_moon);
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(32), dp(32));
+        sceneLp.rightMargin = dp(4);
+        box.addView(weatherIcon, sceneLp);
         weatherTemp = new TextView(this);
         weatherTemp.setText("—");
         weatherTemp.setTextColor(0xFF0F8A3C);
@@ -1770,7 +1771,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (isDestroyed() || !"home".equals(section) || weatherFlip == null || lines.length == 0) return;
                 if (weatherTemp != null) weatherTemp.setText(temp);
-                if (weatherScene != null) weatherScene.setKind(weatherKind(body));
+                if (weatherIcon != null) weatherIcon.setImageResource(WeatherScene.drawable(weatherKind(body)));
                 weatherLines = lines;
                 weatherIndex = 0;
                 weatherFlip.setAlpha(1f);

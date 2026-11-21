@@ -34,6 +34,17 @@ public final class WeatherScene extends View {
         for (int i = 0; i < seeds.length; i++) seeds[i] = random.nextFloat();
     }
 
+    public static int drawable(int kind) {
+        if (kind == NIGHT) return R.drawable.ic_wx_moon;
+        if (kind == PARTLY) return R.drawable.ic_wx_partly;
+        if (kind == CLOUD) return R.drawable.ic_wx_cloud;
+        if (kind == RAIN) return R.drawable.ic_wx_rain;
+        if (kind == STORM) return R.drawable.ic_wx_storm;
+        if (kind == SNOW) return R.drawable.ic_wx_snow;
+        if (kind == FOG) return R.drawable.ic_wx_fog;
+        return R.drawable.ic_wx_sun;
+    }
+
     public static int kindFor(int code, boolean day) {
         if (code == 0) return day ? SUN : NIGHT;
         if (code <= 2) return day ? PARTLY : NIGHT;
