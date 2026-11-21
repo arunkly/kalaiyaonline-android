@@ -4,6 +4,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
+import android.text.method.SingleLineTransformationMethod;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -116,7 +118,7 @@ public class AccountActivity extends AppCompatActivity {
         remember.setTextColor(Night.on(this) ? 0xFFE7EEEA : 0xFF292524);
         style(remember, 14, false);
         body.addView(id);
-        body.addView(password);
+        body.addView(secret(password));
         body.addView(remember);
         body.addView(button("लग इन गर्नुहोस्", () -> submitLogin(id, password, remember.isChecked())));
         TextView forgot = text("पासवर्ड बिर्सनुभयो?", 14, 0xFF0F8A3C, true);
@@ -137,8 +139,8 @@ public class AccountActivity extends AppCompatActivity {
         body.addView(person);
         body.addView(phone);
         body.addView(email);
-        body.addView(password);
-        body.addView(again);
+        body.addView(secret(password));
+        body.addView(secret(again));
         body.addView(text("कम्तीमा १० अक्षर, ठूलो अक्षर, सानो अक्षर, अंक र विशेष चिन्ह।", 12, 0xFF78716C, false));
         body.addView(button("खाता बनाउनुहोस्", () -> submitRegister(person, phone, email, password, again)));
     }
@@ -343,8 +345,9 @@ public class AccountActivity extends AppCompatActivity {
         boolean dark = Night.on(this);
         EditText input = new EditText(this);
         input.setHint(hint);
-        input.setInputType(type);
         input.setSingleLine(true);
+        input.setInputType(type);
+        if (passwordType(type)) input.setTransformationMethod(PasswordTransformationMethod.getInstance());
         input.setTextColor(dark ? 0xFFF4F7F5 : 0xFF1C1917);
         input.setHintTextColor(0xFF9AA89F);
         style(input, 16, false);
@@ -358,6 +361,38 @@ public class AccountActivity extends AppCompatActivity {
         lp.bottomMargin = dp(10);
         input.setLayoutParams(lp);
         return input;
+    }
+
+    private boolean passwordType(int type) {
+        int variation = type & InputType.TYPE_MASK_VARIATION;
+        return variation == InputType.TYPE_TEXT_VARIATION_PASSWORD || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD;
+    }
+
+    private View secret(EditText input) {
+        input.setPadding(dp(14), dp(12), dp(46), dp(12));
+        ViewGroup.LayoutParams old = input.getLayoutParams();
+        FrameLayout box = new FrameLayout(this);
+        box.setLayoutParams(old);
+        input.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ImageView eye = new ImageView(this);
+        eye.setImageResource(R.drawable.ic_eye);
+        eye.setPadding(dp(10), dp(10), dp(10), dp(10));
+        eye.setContentDescription("पासवर्ड हेर्नुहोस्");
+        FrameLayout.LayoutParams eyeLp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.END | Gravity.CENTER_VERTICAL);
+        eyeLp.rightMargin = dp(2);
+        boolean[] open = {false};
+        eye.setOnClickListener(v -> {
+            open[0] = !open[0];
+            int cursor = input.getSelectionEnd();
+            input.setTransformationMethod(open[0] ? SingleLineTransformationMethod.getInstance() : PasswordTransformationMethod.getInstance());
+            eye.setImageResource(open[0] ? R.drawable.ic_eye_off : R.drawable.ic_eye);
+            eye.setContentDescription(open[0] ? "पासवर्ड लुकाउनुहोस्" : "पासवर्ड हेर्नुहोस्");
+            style(input, 16, false);
+            if (cursor >= 0) input.setSelection(Math.min(cursor, input.length()));
+        });
+        box.addView(input);
+        box.addView(eye, eyeLp);
+        return box;
     }
 
     private View button(String label, Runnable action) {
