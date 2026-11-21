@@ -339,7 +339,17 @@ public class GalleryActivity extends AppCompatActivity {
         bg.setColor(0xFFF3F6F4);
         view.setBackground(bg);
         view.setOnClickListener(v -> action.run());
-        return view;
+        if (icon != R.drawable.ic_bell) return view;
+        FrameLayout wrap = new FrameLayout(this);
+        wrap.setLayoutParams(lp);
+        view.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        view.setOnClickListener(null);
+        wrap.setOnClickListener(v -> action.run());
+        wrap.addView(view);
+        TextView badge = Notices.badge(this);
+        wrap.addView(badge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
+        Notices.paint(badge, Notices.count(this));
+        return wrap;
     }
 
     private String navTarget(int id) {
