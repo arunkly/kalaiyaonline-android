@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Outline;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.ViewOutlineProvider;
 import android.graphics.drawable.Drawable;
@@ -1387,6 +1388,7 @@ public class MainActivity extends AppCompatActivity {
         page.addView(infoBar(home.dateLine));
         List<Story> heroes = home.headlines.size() > 2 ? home.headlines.subList(0, 2) : home.headlines;
         for (Story story : heroes) page.addView(headlineCard(story));
+        if (home.webStories != null && !home.webStories.isEmpty()) page.addView(webStoryStrip(home.webStories));
         page.addView(homeTabs(home));
         feedAd = Ads.attach(this, page);
         if (!home.politics.isEmpty()) page.addView(politicsGrid(home.politics));
@@ -2069,6 +2071,77 @@ public class MainActivity extends AppCompatActivity {
         inner.addView(photo, photoLp);
         card.addView(inner);
         card.setOnClickListener(v -> openStory(story));
+        return card;
+    }
+
+    private View webStoryStrip(List<SiteClient.WebStory> stories) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        TextView label = new TextView(this);
+        label.setText("वेब स्टोरीज");
+        label.setTextColor(0xFF142033);
+        style(label, 16, R.font.mukta_bold);
+        label.setPadding(0, dp(2), 0, dp(8));
+        box.addView(label);
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        String[] urls = new String[stories.size()];
+        String[] titles = new String[stories.size()];
+        String[] images = new String[stories.size()];
+        for (int i = 0; i < stories.size(); i++) {
+            SiteClient.WebStory story = stories.get(i);
+            urls[i] = story.url;
+            titles[i] = story.title;
+            images[i] = story.image;
+        }
+        for (int i = 0; i < stories.size(); i++) row.addView(webStoryCard(stories.get(i), i, urls, titles, images));
+        scroll.addView(row);
+        box.addView(scroll);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(10);
+        box.setLayoutParams(lp);
+        return box;
+    }
+
+    private View webStoryCard(SiteClient.WebStory story, int index, String[] urls, String[] titles, String[] images) {
+        FrameLayout card = new FrameLayout(this);
+        card.setBackgroundColor(0xFF0F8A3C);
+        card.setClipToOutline(true);
+        card.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(14));
+            }
+        });
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        card.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (!story.image.isEmpty()) loadImage(story.image, image);
+        View shade = new View(this);
+        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, 0xCC102018}));
+        FrameLayout.LayoutParams shadeLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(72), Gravity.BOTTOM);
+        card.addView(shade, shadeLp);
+        TextView title = new TextView(this);
+        title.setText(story.title);
+        title.setTextColor(0xFFFFFFFF);
+        title.setMaxLines(2);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        style(title, 12, R.font.mukta_bold);
+        title.setPadding(dp(8), 0, dp(8), dp(8));
+        FrameLayout.LayoutParams titleLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        card.addView(title, titleLp);
+        card.setOnClickListener(v -> {
+            Intent intent = new Intent(this, WebStoryActivity.class);
+            intent.putExtra("urls", urls);
+            intent.putExtra("titles", titles);
+            intent.putExtra("images", images);
+            intent.putExtra("index", index);
+            startActivity(intent);
+        });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(108), dp(164));
+        lp.rightMargin = dp(8);
+        card.setLayoutParams(lp);
         return card;
     }
 

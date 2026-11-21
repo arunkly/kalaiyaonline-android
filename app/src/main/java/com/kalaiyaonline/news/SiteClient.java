@@ -37,10 +37,11 @@ public final class SiteClient {
         public final List<Story> politics;
         public final List<Story> popular;
         public final List<Block> blocks;
+        public final List<WebStory> webStories;
 
         Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories,
              List<Story> tabAll, List<Story> tabLocal, List<Story> tabNational, List<Story> tabWorld,
-             List<Story> politics, List<Story> popular, List<Block> blocks) {
+             List<Story> politics, List<Story> popular, List<Block> blocks, List<WebStory> webStories) {
             this.dateLine = dateLine;
             this.ticker = ticker;
             this.headlines = headlines;
@@ -52,6 +53,31 @@ public final class SiteClient {
             this.politics = politics;
             this.popular = popular;
             this.blocks = blocks;
+            this.webStories = webStories;
+        }
+    }
+
+    public static final class WebStory {
+        public final String title;
+        public final String image;
+        public final String url;
+
+        public WebStory(String title, String image, String url) {
+            this.title = title == null ? "" : title;
+            this.image = image == null ? "" : image;
+            this.url = url == null ? "" : url;
+        }
+    }
+
+    public static final class StoryPage {
+        public final String image;
+        public final String title;
+        public final String text;
+
+        public StoryPage(String image, String title, String text) {
+            this.image = image == null ? "" : image;
+            this.title = title == null ? "" : title;
+            this.text = text == null ? "" : text;
         }
     }
 
@@ -129,7 +155,53 @@ public final class SiteClient {
                 addBlock(blocks, "लेख / बिचार", "lekhabichar", section, 3);
             }
         }
-        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks);
+        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks, webStories(doc));
+    }
+
+    public List<StoryPage> webStory(String url) throws Exception {
+        Document doc = page(url);
+        List<StoryPage> pages = new ArrayList<>();
+        for (Element slide : doc.select("amp-story-page")) {
+            String image = "";
+            for (Element img : slide.select("amp-img, img")) {
+                String src = img.attr("abs:src");
+                if (!storyImage(src)) continue;
+                image = src;
+                break;
+            }
+            String title = text(slide.selectFirst("h1, h2"));
+            String body = text(slide.selectFirst("p"));
+            if (image.isEmpty() && title.isEmpty() && body.isEmpty()) continue;
+            pages.add(new StoryPage(image, title, body));
+        }
+        if (pages.isEmpty()) throw new Exception("story");
+        return pages;
+    }
+
+    private List<WebStory> webStories(Document doc) {
+        List<WebStory> list = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Element card : doc.select("a.ws-card, a[href*=web-story.php?slug]")) {
+            String href = card.absUrl("href");
+            if (href.isEmpty() || !href.contains("slug=") || !seen.add(href)) continue;
+            String title = text(card.selectFirst(".ws-card-title"));
+            Element img = card.selectFirst("img");
+            if (title.isEmpty() && img != null) title = img.attr("alt").replaceAll("\\s+", " ").trim();
+            String image = img == null ? "" : img.attr("abs:src");
+            if (title.isEmpty()) continue;
+            list.add(new WebStory(title, image, href));
+            if (list.size() >= 12) break;
+        }
+        return list;
+    }
+
+    private static boolean storyImage(String src) {
+        if (src == null || src.length() < 12) return false;
+        String lower = src.toLowerCase();
+        if (lower.contains("favicon") || lower.endsWith(".svg")) return false;
+        if (lower.equals(ORIGIN) || lower.equals(ORIGIN + "/")) return false;
+        return lower.contains("imagekit") || lower.contains("/uploads/")
+                || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp");
     }
 
     public static final class Sign {
