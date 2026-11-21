@@ -10,12 +10,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,6 +51,13 @@ public class AccountActivity extends AppCompatActivity {
         scroll.addView(body);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(0, bars.top, 0, bars.bottom);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(root);
         showWait("खाता जाँचिँदैछ…");
         io.execute(() -> {
             Account.Result result = Account.session();
@@ -63,8 +75,9 @@ public class AccountActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(12), dp(12), dp(16), dp(12));
+        bar.setPadding(dp(12), dp(10), dp(16), dp(10));
         bar.setBackgroundColor(dark ? 0xFF101412 : 0xFFFFFFFF);
+        bar.setElevation(dp(1));
         TextView back = text("‹", 22, 0xFF0F8A3C, true);
         back.setGravity(Gravity.CENTER);
         GradientDrawable chip = new GradientDrawable();
@@ -138,6 +151,10 @@ public class AccountActivity extends AppCompatActivity {
     private void showIn() {
         body.removeAllViews();
         boolean dark = Night.on(this);
+        String person = Account.name().trim();
+        String contact = Account.contact().trim();
+        boolean named = !person.isEmpty() && !person.contains("@");
+        String mail = !contact.isEmpty() ? contact : (person.contains("@") ? person : "");
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(18), dp(18), dp(18), dp(18));
@@ -145,11 +162,38 @@ public class AccountActivity extends AppCompatActivity {
         bg.setColor(dark ? 0xFF1A2420 : 0xFFFFFFFF);
         bg.setCornerRadius(dp(18));
         card.setBackground(bg);
-        card.addView(text("नमस्कार", 14, 0xFF0F8A3C, true));
-        String person = Account.name();
-        card.addView(text(person.isEmpty() ? "तपाईं लगइन हुनुहुन्छ" : person, 24, dark ? 0xFFF4F7F5 : 0xFF142033, true));
-        if (!Account.contact().isEmpty()) card.addView(text(Account.contact(), 14, 0xFF78716C, false));
-        card.addView(text("यो kalaiyaonline.com को खाता हो।", 13, 0xFF78716C, false));
+        LinearLayout who = new LinearLayout(this);
+        who.setOrientation(LinearLayout.HORIZONTAL);
+        who.setGravity(Gravity.CENTER_VERTICAL);
+        who.addView(avatar(named ? person : mail));
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.setPadding(dp(14), 0, 0, 0);
+        words.addView(text("नमस्कार", 14, 0xFF0F8A3C, true));
+        TextView title = text(named ? person : "तपाईंको खाता", 22, dark ? 0xFFF4F7F5 : 0xFF142033, true);
+        title.setPadding(0, dp(2), 0, 0);
+        words.addView(title);
+        if (!mail.isEmpty()) {
+            TextView line = text(mail, 14, 0xFF78716C, false);
+            line.setPadding(0, dp(2), 0, 0);
+            words.addView(line);
+        }
+        who.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        card.addView(who);
+        TextView badge = text("लगइन सक्रिय", 13, 0xFF0B5C28, true);
+        badge.setPadding(dp(10), dp(5), dp(10), dp(5));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setCornerRadius(dp(12));
+        pill.setColor(dark ? 0xFF143024 : 0xFFE7F6EE);
+        badge.setBackground(pill);
+        LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        badgeLp.topMargin = dp(16);
+        badge.setLayoutParams(badgeLp);
+        card.addView(badge);
+        TextView about = text("यो kalaiyaonline.com को खाता हो। समुदाय, टिप्पणी र रक्तदाता यही खाताबाट चल्छ।", 14, 0xFF57534E, false);
+        about.setPadding(0, dp(12), 0, 0);
+        about.setLineSpacing(dp(2), 1f);
+        card.addView(about);
         body.addView(card);
         body.addView(button("लगआउट", () -> {
             if (busy) return;
@@ -164,6 +208,24 @@ public class AccountActivity extends AppCompatActivity {
                 });
             });
         }));
+    }
+
+    private View avatar(String source) {
+        FrameLayout frame = new FrameLayout(this);
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(0xFF0F8A3C);
+        frame.setBackground(circle);
+        String raw = source == null ? "" : source.trim();
+        int at = raw.indexOf('@');
+        if (at > 0) raw = raw.substring(0, at);
+        String letter = "क";
+        if (!raw.isEmpty()) letter = new String(Character.toChars(raw.codePointAt(0))).toUpperCase(java.util.Locale.ROOT);
+        TextView mark = text(letter, 26, 0xFFFFFFFF, true);
+        mark.setGravity(Gravity.CENTER);
+        frame.addView(mark, new FrameLayout.LayoutParams(dp(64), dp(64), Gravity.CENTER));
+        frame.setLayoutParams(new LinearLayout.LayoutParams(dp(64), dp(64)));
+        return frame;
     }
 
     private View switcher(boolean login) {
