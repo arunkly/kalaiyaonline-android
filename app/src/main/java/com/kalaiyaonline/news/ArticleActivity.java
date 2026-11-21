@@ -350,8 +350,7 @@ public class ArticleActivity extends AppCompatActivity {
         listenButton.setCompoundDrawablePadding(dp(5));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(18));
-        bg.setColor(0xFFFFFFFF);
-        bg.setStroke(dp(1), 0xFFE5E7EB);
+        bg.setColor(0xFFE7F6EE);
         listenButton.setBackground(bg);
         listenButton.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)));
         listenButton.setOnClickListener(v -> toggleSpeech());
@@ -441,8 +440,7 @@ public class ArticleActivity extends AppCompatActivity {
         }
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(18));
-        bg.setColor(playing ? 0xFF0F8A3C : 0xFFFFFFFF);
-        bg.setStroke(dp(1), playing ? 0xFF0F8A3C : 0xFFE5E7EB);
+        bg.setColor(playing ? 0xFF0F8A3C : 0xFFE7F6EE);
         listenButton.setBackground(bg);
     }
 
@@ -648,17 +646,7 @@ public class ArticleActivity extends AppCompatActivity {
         bg.setColor(0xFFF3F6F4);
         view.setBackground(bg);
         view.setOnClickListener(v -> action.run());
-        if (icon != R.drawable.ic_bell) return view;
-        FrameLayout wrap = new FrameLayout(this);
-        wrap.setLayoutParams(lp);
-        view.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        view.setOnClickListener(null);
-        wrap.setOnClickListener(v -> action.run());
-        wrap.addView(view);
-        TextView badge = Notices.badge(this);
-        wrap.addView(badge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
-        Notices.paint(badge, Notices.count(this));
-        return wrap;
+        return view;
     }
 
     private String navTarget(int id) {

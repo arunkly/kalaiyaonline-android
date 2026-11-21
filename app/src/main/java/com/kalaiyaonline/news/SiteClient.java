@@ -38,12 +38,10 @@ public final class SiteClient {
         public final List<Story> popular;
         public final List<Block> blocks;
         public final List<WebStory> webStories;
-        public final List<String> notices;
 
         Home(String dateLine, List<Story> ticker, List<Story> headlines, List<Story> stories,
              List<Story> tabAll, List<Story> tabLocal, List<Story> tabNational, List<Story> tabWorld,
-             List<Story> politics, List<Story> popular, List<Block> blocks, List<WebStory> webStories,
-             List<String> notices) {
+             List<Story> politics, List<Story> popular, List<Block> blocks, List<WebStory> webStories) {
             this.dateLine = dateLine;
             this.ticker = ticker;
             this.headlines = headlines;
@@ -56,7 +54,6 @@ public final class SiteClient {
             this.popular = popular;
             this.blocks = blocks;
             this.webStories = webStories;
-            this.notices = notices;
         }
     }
 
@@ -158,7 +155,7 @@ public final class SiteClient {
                 addBlock(blocks, "लेख / बिचार", "lekhabichar", section, 3);
             }
         }
-        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks, webStories(doc), notices(doc));
+        return new Home(date, ticker, headlines, stories, tabAll, tabLocal, tabNational, tabWorld, politics, popularNear(doc, ""), blocks, webStories(doc));
     }
 
     public List<StoryPage> webStory(String url) throws Exception {
@@ -196,16 +193,6 @@ public final class SiteClient {
             if (list.size() >= 12) break;
         }
         return list;
-    }
-
-    private List<String> notices(Document doc) {
-        List<String> ids = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
-        for (Element item : doc.select(".header-notification-item")) {
-            String id = item.attr("data-notification-id");
-            if (!id.isEmpty() && seen.add(id)) ids.add(id);
-        }
-        return ids;
     }
 
     private static boolean storyImage(String src) {

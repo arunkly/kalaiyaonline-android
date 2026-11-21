@@ -118,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView bellHotIcon;
     private View bellFreshLine;
     private View bellHotLine;
-    private TextView bellBadge;
     private int bellMode;
     private List<Story> popularCache;
     private SiteClient.Home latestHome;
@@ -337,17 +336,7 @@ public class MainActivity extends AppCompatActivity {
         bg.setColor(Night.on(this) ? 0xFF24302A : 0xFFF3F6F4);
         view.setBackground(bg);
         view.setOnClickListener(v -> action.run());
-        if (icon != R.drawable.ic_bell) return view;
-        FrameLayout wrap = new FrameLayout(this);
-        wrap.setLayoutParams(lp);
-        view.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        view.setOnClickListener(null);
-        wrap.setOnClickListener(v -> action.run());
-        bellBadge = Notices.badge(this);
-        wrap.addView(view);
-        wrap.addView(bellBadge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END));
-        Notices.paint(bellBadge, Notices.count(this));
-        return wrap;
+        return view;
     }
 
     private void openSearch() {
@@ -402,8 +391,6 @@ public class MainActivity extends AppCompatActivity {
         bellOpen = true;
         bellPanel.setVisibility(View.VISIBLE);
         dim.setVisibility(View.VISIBLE);
-        if (latestHome != null) Notices.mark(this, latestHome.notices);
-        Notices.paint(bellBadge, 0);
         fillBell();
     }
 
@@ -1392,7 +1379,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void renderHome(SiteClient.Home home, int gen) {
         if (isDestroyed() || !"home".equals(section) || gen != homeGen) return;
-        Notices.paint(bellBadge, Notices.unread(this, home.notices));
         if (feedAd != null) {
             feedAd.destroy();
             feedAd = null;
