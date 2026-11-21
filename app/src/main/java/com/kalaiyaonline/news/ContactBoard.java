@@ -176,12 +176,13 @@ final class ContactBoard {
     }
 
     private View linkButton(String label, String url) {
-        TextView view = line(label, 16, 0xFFFFFFFF, true, 0);
+        TextView view = line(label, 15, 0xFFFFFFFF, true, 0);
         view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(14), dp(12), dp(14), dp(12));
+        view.setIncludeFontPadding(false);
+        view.setPadding(dp(14), dp(8), dp(14), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFF0F8A3C);
-        bg.setCornerRadius(dp(14));
+        bg.setCornerRadius(dp(12));
         view.setBackground(bg);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);

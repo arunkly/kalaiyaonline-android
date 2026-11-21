@@ -640,7 +640,8 @@ final class DirectoryBoard {
     private View button(String label, Runnable action) {
         TextView view = text(label, 15, 0xFFFFFFFF, true);
         view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(12), dp(10), dp(12), dp(10));
+        view.setIncludeFontPadding(false);
+        view.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(12));
         bg.setColor(0xFF0F8A3C);

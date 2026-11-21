@@ -134,7 +134,8 @@ final class PreetiBoard {
     private TextView action(String label, boolean solid, Runnable task) {
         TextView button = text(label, 14, solid ? 0xFFFFFFFF : 0xFF0B5C28, true);
         button.setGravity(Gravity.CENTER);
-        button.setPadding(dp(10), dp(10), dp(10), dp(10));
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(10), dp(8), dp(10), dp(8));
         button.setBackground(solid ? chipBg(true) : chipBg(false));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);

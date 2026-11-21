@@ -223,9 +223,10 @@ final class SocialBoard {
             }
         };
         for (int index = 0; index < labels.length; index++) {
-            TextView chip = note(labels[index], 14, 0xFF3F4A45, true);
+            TextView chip = note(labels[index], 13, 0xFF3F4A45, true);
             chip.setGravity(Gravity.CENTER);
-            chip.setPadding(dp(6), dp(8), dp(6), dp(8));
+            chip.setIncludeFontPadding(false);
+            chip.setPadding(dp(4), dp(5), dp(4), dp(5));
             chip.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             chips[index] = chip;
             int pick = index;
@@ -501,8 +502,9 @@ final class SocialBoard {
         Element button = form.selectFirst("button, input[type=submit]");
         TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
         send.setGravity(Gravity.CENTER);
+        send.setIncludeFontPadding(false);
         send.setBackground(pill(0xFF0F8A3C));
-        send.setPadding(dp(14), dp(12), dp(14), dp(12));
+        send.setPadding(dp(12), dp(7), dp(12), dp(7));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.leftMargin = dp(8);
         send.setLayoutParams(lp);
@@ -757,10 +759,11 @@ final class SocialBoard {
     }
 
     private View wideButton(String label, int color, Runnable action) {
-        TextView view = note(label, 16, 0xFFFFFFFF, true);
+        TextView view = note(label, 15, 0xFFFFFFFF, true);
         view.setGravity(Gravity.CENTER);
+        view.setIncludeFontPadding(false);
         view.setBackground(pill(color));
-        view.setPadding(dp(12), dp(12), dp(12), dp(12));
+        view.setPadding(dp(12), dp(8), dp(12), dp(8));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(10);
         view.setLayoutParams(lp);

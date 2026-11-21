@@ -521,7 +521,8 @@ final class BloodBoard {
     private TextView button(String label, boolean solid, Runnable action) {
         TextView button = text(label, 15, solid ? 0xFFFFFFFF : 0xFFB91C1C, true);
         button.setGravity(Gravity.CENTER);
-        button.setPadding(dp(12), dp(10), dp(12), dp(10));
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(14));
         bg.setColor(solid ? 0xFFB91C1C : 0xFFFDECEC);

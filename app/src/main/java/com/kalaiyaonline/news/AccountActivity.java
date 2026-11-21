@@ -361,12 +361,13 @@ public class AccountActivity extends AppCompatActivity {
     }
 
     private View button(String label, Runnable action) {
-        TextView view = text(label, 16, 0xFFFFFFFF, true);
+        TextView view = text(label, 15, 0xFFFFFFFF, true);
         view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(16), dp(12), dp(16), dp(12));
+        view.setIncludeFontPadding(false);
+        view.setPadding(dp(14), dp(8), dp(14), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFF0F8A3C);
-        bg.setCornerRadius(dp(14));
+        bg.setCornerRadius(dp(12));
         view.setBackground(bg);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);

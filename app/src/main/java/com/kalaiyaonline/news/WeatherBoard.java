@@ -71,8 +71,9 @@ final class WeatherBoard {
         bar.addView(search, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView go = text("खोज", 15, 0xFFFFFFFF, true);
         go.setGravity(Gravity.CENTER);
+        go.setIncludeFontPadding(false);
         go.setBackground(pill(0xFF0F8A3C));
-        go.setPadding(dp(16), dp(10), dp(16), dp(10));
+        go.setPadding(dp(14), dp(8), dp(14), dp(8));
         LinearLayout.LayoutParams goLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         goLp.leftMargin = dp(8);
         go.setLayoutParams(goLp);

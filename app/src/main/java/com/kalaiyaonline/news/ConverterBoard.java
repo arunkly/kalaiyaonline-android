@@ -214,7 +214,8 @@ final class ConverterBoard {
     private TextView button(String label, Runnable action) {
         TextView button = text(label, 15, 0xFFFFFFFF, true);
         button.setGravity(Gravity.CENTER);
-        button.setPadding(dp(12), dp(10), dp(12), dp(10));
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFF0F8A3C);
         bg.setCornerRadius(dp(14));

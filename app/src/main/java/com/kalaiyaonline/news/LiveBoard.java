@@ -249,7 +249,8 @@ final class LiveBoard {
     private TextView button(String label, Runnable action) {
         TextView button = text(label, 14, 0xFFFFFFFF, true);
         button.setGravity(Gravity.CENTER);
-        button.setPadding(dp(16), dp(10), dp(16), dp(10));
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(14), dp(8), dp(14), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(20));
         bg.setColor(0xFFF15A22);
