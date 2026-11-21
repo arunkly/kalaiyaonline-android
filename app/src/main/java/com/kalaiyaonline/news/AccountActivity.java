@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -72,12 +73,18 @@ public class AccountActivity extends AppCompatActivity {
 
     private View top() {
         boolean dark = Night.on(this);
-        LinearLayout bar = new LinearLayout(this);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(12), dp(10), dp(16), dp(10));
-        bar.setBackgroundColor(dark ? 0xFF101412 : 0xFFFFFFFF);
-        bar.setElevation(dp(1));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(dark ? 0xFF101412 : 0xFFFFFFFF);
+        box.setElevation(dp(1));
+        FrameLayout bar = new FrameLayout(this);
+        bar.setPadding(dp(12), dp(8), dp(12), dp(8));
+        ImageView logo = new ImageView(this);
+        logo.setAdjustViewBounds(true);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        logo.setImageResource(R.drawable.wordmark);
+        Night.allow(logo, false);
+        bar.addView(logo, new FrameLayout.LayoutParams(dp(156), dp(34), Gravity.CENTER));
         TextView back = text("‹", 22, 0xFF0F8A3C, true);
         back.setGravity(Gravity.CENTER);
         GradientDrawable chip = new GradientDrawable();
@@ -85,11 +92,12 @@ public class AccountActivity extends AppCompatActivity {
         chip.setColor(dark ? 0xFF1C2822 : 0xFFE7F6EE);
         back.setBackground(chip);
         back.setOnClickListener(v -> finish());
-        bar.addView(back, new LinearLayout.LayoutParams(dp(40), dp(40)));
-        TextView title = text("खाता", 20, dark ? 0xFFF3F6F4 : 0xFF142033, true);
-        title.setPadding(dp(12), 0, 0, 0);
-        bar.addView(title);
-        return bar;
+        bar.addView(back, new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.START | Gravity.CENTER_VERTICAL));
+        box.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        View accent = new View(this);
+        accent.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF0B5C28, 0xFF18A34A, 0xFFF15A22}));
+        box.addView(accent, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
+        return box;
     }
 
     private void showWait(String message) {
