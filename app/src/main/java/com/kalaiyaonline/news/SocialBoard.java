@@ -73,7 +73,13 @@ final class SocialBoard {
             String[] base = {pageUrl};
             String html = fetch("GET", pageUrl, null, base);
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
-                if (token == generation) render(html, base[0] == null || base[0].isEmpty() ? HOME : base[0]);
+                if (token != generation || activity.isDestroyed()) return;
+                try {
+                    render(html, base[0] == null || base[0].isEmpty() ? HOME : base[0]);
+                } catch (RuntimeException ignored) {
+                    root.removeAllViews();
+                    root.addView(card(loginCard(true)));
+                }
             });
         }).start();
     }
@@ -127,7 +133,7 @@ final class SocialBoard {
         EditText status = input(area.attr("placeholder").isEmpty() ? "तपाईंको आजको स्टाटस के छ?" : area.attr("placeholder"), true);
         status.setBackground(pill(0xFFF0F2F5));
         status.setMinLines(2);
-        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(0, dp(76), 1f);
         statusLp.leftMargin = dp(10);
         status.setLayoutParams(statusLp);
         head.addView(status);
@@ -498,7 +504,7 @@ final class SocialBoard {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(8), 0, 0);
         EditText input = input(field == null || field.attr("placeholder").isEmpty() ? "टिप्पणी लेख्नुहोस्..." : field.attr("placeholder"), false);
-        row.addView(input, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(input, new LinearLayout.LayoutParams(0, dp(44), 1f));
         Element button = form.selectFirst("button, input[type=submit]");
         TextView send = note(button == null || button.text().isEmpty() ? "पठाउनुहोस्" : button.text(), 14, 0xFFFFFFFF, true);
         send.setGravity(Gravity.CENTER);
@@ -645,7 +651,13 @@ final class SocialBoard {
             String[] base = {target};
             String html = fetch(verb, target, body, base);
             if (!activity.isDestroyed()) activity.runOnUiThread(() -> {
-                if (token == generation) render(html, base[0] == null || base[0].isEmpty() ? pageUrl : base[0]);
+                if (token != generation || activity.isDestroyed()) return;
+                try {
+                    render(html, base[0] == null || base[0].isEmpty() ? pageUrl : base[0]);
+                } catch (RuntimeException ignored) {
+                    root.removeAllViews();
+                    root.addView(note("पठाउन सकिएन। फेरि प्रयास गर्नुहोस्।", 15, 0xFF78716C, false));
+                }
             });
         }).start();
     }
