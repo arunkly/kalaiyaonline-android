@@ -1,4 +1,5 @@
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keep class com.kalaiyaonline.news.*Activity { *; }
 -dontwarn org.jsoup.**
 -dontwarn okhttp3.**
 -dontwarn okio.**

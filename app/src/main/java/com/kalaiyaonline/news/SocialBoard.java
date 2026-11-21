@@ -630,7 +630,12 @@ final class SocialBoard {
         box.addView(note(offline ? "समुदाय आएन। नेट जाँच गर्नुहोस्।" : "समुदाय हेर्न आफ्नो खातामा लगइन गर्नुहोस्।", 16, 0xFF142033, true));
         box.addView(wideButton(offline ? "फेरि प्रयास" : "लगइन / खाता", 0xFF0F8A3C, () -> {
             if (offline) load();
-            else activity.startActivity(new Intent(activity, AccountActivity.class));
+            else {
+                try {
+                    activity.startActivity(new Intent(activity, AccountActivity.class));
+                } catch (RuntimeException ignored) {
+                }
+            }
         }));
         return box;
     }

@@ -28,6 +28,11 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         <activity
+            android:name=".AccountActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="false"
