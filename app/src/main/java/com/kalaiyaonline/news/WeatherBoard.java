@@ -122,7 +122,7 @@ final class WeatherBoard {
         now.addView(condition);
         scene = new WeatherScene(activity);
         scene.setPlate(false);
-        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(84), dp(64));
+        LinearLayout.LayoutParams sceneLp = new LinearLayout.LayoutParams(dp(72), dp(72));
         sceneLp.leftMargin = dp(8);
         now.addView(scene, sceneLp);
         hero.addView(now);
@@ -137,11 +137,8 @@ final class WeatherBoard {
         root.addView(forecast);
 
         days = new LinearLayout(activity);
-        days.setOrientation(LinearLayout.HORIZONTAL);
-        HorizontalScrollView scroll = new HorizontalScrollView(activity);
-        scroll.setHorizontalScrollBarEnabled(false);
-        scroll.addView(days);
-        root.addView(scroll);
+        days.setOrientation(LinearLayout.VERTICAL);
+        root.addView(days);
     }
 
     ViewGroup view() {
@@ -251,7 +248,7 @@ final class WeatherBoard {
             JSONObject current = json.getJSONObject("current");
             int code = current.getInt("weather_code");
             boolean day = current.optInt("is_day", 1) == 1;
-            String summary = label(code, day) + "  " + symbol(code);
+            String summary = label(code, day);
             String details = "अनुभूति " + round(current.getDouble("apparent_temperature"))
                     + "°   आर्द्रता " + current.getInt("relative_humidity_2m")
                     + "%   हावा " + round(current.getDouble("wind_speed_10m")) + " km/h";
@@ -262,11 +259,13 @@ final class WeatherBoard {
             JSONArray lows = daily.getJSONArray("temperature_2m_min");
             String[] labels = new String[times.length()];
             String[] values = new String[times.length()];
+            int[] kinds = new int[times.length()];
             for (int i = 0; i < times.length(); i++) {
                 labels[i] = weekday(times.getString(i));
-                values[i] = symbol(codes.getInt(i)) + "  " + round(highs.getDouble(i)) + "°/" + round(lows.getDouble(i)) + "°";
+                values[i] = round(highs.getDouble(i)) + "° / " + round(lows.getDouble(i)) + "°";
+                kinds[i] = WeatherScene.kindFor(codes.getInt(i), true);
             }
-            show(where, round(current.getDouble("temperature_2m")) + "°", summary, details, labels, values, WeatherScene.kindFor(code, day));
+            show(where, round(current.getDouble("temperature_2m")) + "°", summary, details, labels, values, kinds, WeatherScene.kindFor(code, day));
             return true;
         } catch (Exception error) {
             return false;
@@ -279,7 +278,7 @@ final class WeatherBoard {
             JSONObject first = series.getJSONObject(0).getJSONObject("data");
             JSONObject now = first.getJSONObject("instant").getJSONObject("details");
             String symbol = symbolCode(first);
-            String summary = metLabel(symbol) + "  " + metSymbol(symbol);
+            String summary = metLabel(symbol);
             String details = "आर्द्रता " + round(now.optDouble("relative_humidity", 0))
                     + "%   हावा " + round(now.optDouble("wind_speed", 0) * 3.6) + " km/h";
             java.util.LinkedHashMap<String, double[]> daysMap = new java.util.LinkedHashMap<>();
@@ -301,14 +300,16 @@ final class WeatherBoard {
             }
             String[] labels = new String[daysMap.size()];
             String[] values = new String[daysMap.size()];
+            int[] kinds = new int[daysMap.size()];
             int index = 0;
             for (String key : daysMap.keySet()) {
                 double[] range = daysMap.get(key);
                 labels[index] = weekdayFromKey(series, key);
-                values[index] = metSymbol(icons.get(key)) + "  " + round(range[0]) + "°/" + round(range[1]) + "°";
+                values[index] = round(range[0]) + "° / " + round(range[1]) + "°";
+                kinds[index] = WeatherScene.kindForMet(icons.get(key));
                 index++;
             }
-            show(where, round(now.optDouble("air_temperature")) + "°", summary, details, labels, values, WeatherScene.kindForMet(symbol));
+            show(where, round(now.optDouble("air_temperature")) + "°", summary, details, labels, values, kinds, WeatherScene.kindForMet(symbol));
             return true;
         } catch (Exception error) {
             return false;
@@ -325,7 +326,7 @@ final class WeatherBoard {
         return "";
     }
 
-    private void show(String where, String temperature, String summary, String details, String[] labels, String[] values, int kind) {
+    private void show(String where, String temperature, String summary, String details, String[] labels, String[] values, int[] kinds, int kind) {
         activity.runOnUiThread(() -> {
             if (activity.isDestroyed()) return;
             place.setText(where);
@@ -336,17 +337,21 @@ final class WeatherBoard {
             days.removeAllViews();
             for (int i = 0; i < labels.length; i++) {
                 LinearLayout chip = new LinearLayout(activity);
-                chip.setOrientation(LinearLayout.VERTICAL);
-                chip.setGravity(Gravity.CENTER);
+                chip.setOrientation(LinearLayout.HORIZONTAL);
+                chip.setGravity(Gravity.CENTER_VERTICAL);
                 chip.setBackground(field());
-                chip.setPadding(dp(12), dp(10), dp(12), dp(10));
-                chip.setMinimumWidth(dp(76));
-                chip.addView(text(labels[i], 13, 0xFF0B5C28, true));
-                String[] parts = values[i].split("  ", 2);
-                chip.addView(text(parts[0], 18, 0xFF1C1917, false));
-                chip.addView(text(parts.length > 1 ? parts[1] : values[i], 12, 0xFF57534E, false));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                lp.rightMargin = dp(8);
+                chip.setPadding(dp(12), dp(8), dp(14), dp(8));
+                WeatherScene icon = new WeatherScene(activity);
+                icon.setPlate(false);
+                icon.setLive(false);
+                icon.setKind(i < kinds.length ? kinds[i] : WeatherScene.SUN);
+                chip.addView(icon, new LinearLayout.LayoutParams(dp(44), dp(44)));
+                TextView name = text(labels[i], 16, 0xFF0B5C28, true);
+                name.setPadding(dp(12), 0, 0, 0);
+                chip.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                chip.addView(text(values[i], 15, 0xFF1C1917, true));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.bottomMargin = dp(8);
                 days.addView(chip, lp);
             }
         });

@@ -61,14 +61,30 @@ public final class WeatherScene extends View {
         invalidate();
     }
 
+    private boolean live = true;
+
     public void setPlate(boolean plate) {
         this.plate = plate;
         invalidate();
     }
 
+    public void setLive(boolean live) {
+        this.live = live;
+        if (!live) {
+            if (animator != null) animator.cancel();
+            tick = 0.35f;
+            invalidate();
+        }
+    }
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        if (!live) {
+            tick = 0.35f;
+            invalidate();
+            return;
+        }
         if (animator != null) animator.cancel();
         animator = ValueAnimator.ofFloat(0f, 1f);
         animator.setDuration(3200);
@@ -92,7 +108,15 @@ public final class WeatherScene extends View {
         float w = getWidth();
         float h = getHeight();
         if (w < 2 || h < 2) return;
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setAlpha(255);
         canvas.save();
+        if (!plate) {
+            drawBadge(canvas, w, h);
+            canvas.restore();
+            return;
+        }
         if (plate) {
             float radius = h * 0.22f;
             clip.reset();
@@ -128,15 +152,47 @@ public final class WeatherScene extends View {
         return new int[]{0xFF8AA0B4, 0xFFD7E0E8};
     }
 
+    private void drawBadge(Canvas canvas, float w, float h) {
+        float cx = w * 0.5f;
+        float cy = h * 0.5f;
+        float radius = Math.min(w, h) * 0.22f;
+        if (kind == NIGHT) {
+            drawMoon(canvas, w, h);
+            return;
+        }
+        if (kind == SUN || kind == PARTLY) drawSun(canvas, kind == PARTLY ? cx - radius * 0.45f : cx, cy - radius * 0.2f, radius);
+        if (kind == CLOUD || kind == PARTLY || kind == RAIN || kind == STORM || kind == SNOW || kind == FOG) drawClouds(canvas, w, h);
+        if (kind == RAIN || kind == STORM) drawRain(canvas, w, h);
+        if (kind == SNOW) drawSnow(canvas, w, h);
+        if (kind == FOG) drawFog(canvas, w, h);
+        if (kind == STORM) drawBolt(canvas, cx, cy + radius * 0.2f, radius);
+    }
+
+    private void drawBolt(Canvas canvas, float cx, float cy, float radius) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFFFFC857);
+        Path bolt = new Path();
+        bolt.moveTo(cx + radius * 0.15f, cy - radius);
+        bolt.lineTo(cx - radius * 0.45f, cy + radius * 0.15f);
+        bolt.lineTo(cx - radius * 0.05f, cy + radius * 0.15f);
+        bolt.lineTo(cx - radius * 0.25f, cy + radius);
+        bolt.lineTo(cx + radius * 0.5f, cy - radius * 0.1f);
+        bolt.lineTo(cx + radius * 0.05f, cy - radius * 0.1f);
+        bolt.close();
+        canvas.drawPath(bolt, paint);
+    }
+
     private void drawSun(Canvas canvas, float cx, float cy, float radius) {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setColor(0xFFFFC857);
         canvas.save();
         canvas.rotate(tick * 360f, cx, cy);
         for (int i = 0; i < 8; i++) {
             canvas.rotate(45f, cx, cy);
-            float length = radius * (1.55f + 0.12f * (i % 2));
-            paint.setStrokeWidth(radius * 0.16f);
-            canvas.drawLine(cx, cy - radius * 1.15f, cx, cy - length, paint);
+            float length = radius * (1.7f + 0.16f * (i % 2));
+            paint.setStrokeWidth(Math.max(2f, radius * 0.18f));
+            canvas.drawLine(cx, cy - radius * 1.2f, cx, cy - length, paint);
         }
         canvas.restore();
         paint.setStyle(Paint.Style.FILL);
@@ -147,11 +203,22 @@ public final class WeatherScene extends View {
     }
 
     private void drawMoon(Canvas canvas, float w, float h) {
-        float cx = w * 0.28f;
-        float cy = h * 0.38f;
-        float radius = Math.min(w, h) * 0.16f;
-        paint.setColor(0xFFFFF6D8);
+        float cx = plate ? w * 0.28f : w * 0.5f;
+        float cy = plate ? h * 0.38f : h * 0.5f + (float) Math.sin(tick * 6.28f) * Math.min(w, h) * 0.03f;
+        float radius = Math.min(w, h) * (plate ? 0.16f : 0.28f);
+        int layer = canvas.saveLayer(cx - radius * 1.4f, cy - radius * 1.4f, cx + radius * 1.6f, cy + radius * 1.4f, null);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFFFFF3C4);
         canvas.drawCircle(cx, cy, radius, paint);
+        paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
+        canvas.drawCircle(cx + radius * 0.48f, cy - radius * 0.12f, radius * 0.78f, paint);
+        paint.setXfermode(null);
+        canvas.restoreToCount(layer);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setColor(0xFFF15A22);
+        paint.setStrokeWidth(Math.max(1.6f, radius * 0.1f));
+        canvas.drawCircle(cx - radius * 0.08f, cy + radius * 0.02f, radius * 0.72f, paint);
+        paint.setStyle(Paint.Style.FILL);
         if (plate) {
             paint.setColor(0xFF1A2C52);
             canvas.drawCircle(cx + radius * 0.45f, cy - radius * 0.15f, radius * 0.82f, paint);
@@ -162,24 +229,23 @@ public final class WeatherScene extends View {
                 canvas.drawCircle(seeds[i + 8] * w, seeds[i + 16] * h * 0.7f, 1.6f + seeds[i] * 1.8f, paint);
             }
             paint.setAlpha(255);
-        } else {
-            paint.setColor(0xFFF15A22);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(1.5f, radius * 0.12f));
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setStyle(Paint.Style.FILL);
         }
     }
 
     private void drawClouds(Canvas canvas, float w, float h) {
-        paint.setColor(kind == STORM ? 0xFFE7EEF4 : 0xFFFFFFFF);
+        paint.setStyle(Paint.Style.FILL);
         if (!plate) {
-            paint.setColor(0x660F8A3C);
-            blob(canvas, w * 0.58f, h * 0.58f, h * 0.20f);
-            paint.setColor(0xFFFFFFFF);
+            float size = Math.min(w, h);
+            paint.setColor(0xFF0F8A3C);
+            blob(canvas, w * 0.50f, h * 0.56f, size * 0.20f);
+            paint.setColor(kind == STORM ? 0xFFE7EEF4 : 0xFFFFFFFF);
+            float drift = (tick - 0.5f) * size * 0.06f;
+            blob(canvas, w * 0.48f + drift, h * 0.52f, size * 0.17f);
+            return;
         }
-        float drift = plate ? (tick * 1.3f) % 1f : (tick * 0.18f);
-        float cx = plate ? w * ((0.55f + drift) % 1.15f - 0.08f) : w * (0.58f + drift * 0.15f);
+        paint.setColor(kind == STORM ? 0xFFE7EEF4 : 0xFFFFFFFF);
+        float drift = (tick * 1.3f) % 1f;
+        float cx = plate ? w * ((0.55f + drift) % 1.15f - 0.08f) : w * 0.5f;
         blob(canvas, cx, h * (plate ? 0.62f : 0.60f), h * (plate ? 0.16f : 0.20f));
         if (plate) blob(canvas, w * ((0.15f + drift * 0.7f) % 1.2f - 0.1f), h * 0.34f, h * 0.12f);
     }
@@ -191,6 +257,8 @@ public final class WeatherScene extends View {
     }
 
     private void drawRain(Canvas canvas, float w, float h) {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setColor(!plate ? 0xFF1D6FBF : kind == STORM ? 0xFFD6E4FF : 0xFFEFF6FF);
         paint.setStrokeWidth(Math.max(1.5f, w * 0.012f));
         for (int i = 0; i < 18; i++) {
@@ -202,6 +270,7 @@ public final class WeatherScene extends View {
     }
 
     private void drawSnow(Canvas canvas, float w, float h) {
+        paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFFFFFFFF);
         for (int i = 0; i < 16; i++) {
             float x = (seeds[i] * w + tick * w * 0.08f * (i % 2 == 0 ? 1 : -1) + w) % w;
@@ -211,6 +280,7 @@ public final class WeatherScene extends View {
     }
 
     private void drawFog(Canvas canvas, float w, float h) {
+        paint.setStyle(Paint.Style.FILL);
         paint.setColor(0x99FFFFFF);
         if (!plate) paint.setColor(0x6694A3AD);
         for (int i = 0; i < 3; i++) {
