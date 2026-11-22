@@ -2103,12 +2103,7 @@ public class MainActivity extends AppCompatActivity {
     private View webStoryStrip(List<SiteClient.WebStory> stories) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        TextView label = new TextView(this);
-        label.setText("वेब स्टोरीज");
-        label.setTextColor(0xFF142033);
-        style(label, 16, R.font.mukta_bold);
-        label.setPadding(0, dp(2), 0, dp(8));
-        box.addView(label);
+        box.addView(sectionHead("वेब स्टोरीज", null, null));
         HorizontalScrollView scroll = new HorizontalScrollView(this);
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(this);
